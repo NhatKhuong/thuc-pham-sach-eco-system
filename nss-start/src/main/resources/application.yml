@@ -1,0 +1,11 @@
+# application.yml duy nhat cua toan he — chi nss-start co src/main/resources
+server:
+  port: 8080
+
+spring:
+  application:
+    name: nss-api
+  threads:
+    virtual:
+      # Java 21 virtual threads bat san (architecture/01-overview.md muc 2)
+      enabled: true

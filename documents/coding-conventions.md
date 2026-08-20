@@ -1,6 +1,6 @@
 # Coding conventions
 
-Quy ước bắt buộc cho mọi dự án dùng stack ở [`overview.md`](overview.md). **Đây là luật, không phải gợi ý** — khi ticket mâu thuẫn với tài liệu này thì **dừng và flag**, không tự hoà giải.
+Quy ước bắt buộc cho mọi dự án dùng stack ở [`architecture/01-overview.m`](overview.md). **Đây là luật, không phải gợi ý** — khi ticket mâu thuẫn với tài liệu này thì **dừng và flag**, không tự hoà giải.
 
 Ví dụ trích từ dự án tham chiếu `xxxx.com`. Chỗ nào dự án tham chiếu làm sai, tài liệu ghi rõ **"đừng chép"** và nêu cách đúng.
 
