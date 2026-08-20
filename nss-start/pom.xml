@@ -14,6 +14,12 @@
   <name>nss-start</name>
   <description>Start: StartApplication va application.yml duy nhat cua toan he.</description>
 
+  <properties>
+    <!-- Test danh @Tag("db") can mot MySQL song nen bi loai khoi build mac dinh.
+         Chay rieng: mvn -pl nss-start test -Dexcluded.test.groups= -Dgroups=db -->
+    <excluded.test.groups>db</excluded.test.groups>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.nss</groupId>
@@ -31,6 +37,13 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludedGroups>${excluded.test.groups}</excludedGroups>
+        </configuration>
       </plugin>
     </plugins>
   </build>

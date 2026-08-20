@@ -9,3 +9,28 @@ spring:
     virtual:
       # Java 21 virtual threads bat san (architecture/01-overview.md muc 2)
       enabled: true
+
+  datasource:
+    # Khong commit mat khau nao: gia tri that doc tu bien moi truong, mac dinh chi de chay dev tren may ca nhan
+    # characterEncoding=UTF-8 chu KHONG phai utf8mb4: Connector/J 8.3.0 nhan ten charset cua Java,
+    # va no tu map UTF-8 -> utf8mb4 khi noi toi MySQL 8. Dat thang 'utf8mb4' thi driver nem
+    # "Unsupported character encoding 'utf8mb4'" ngay truoc khi mo duoc ket noi.
+    url: ${DB_URL:jdbc:mysql://localhost:3306/nss_db?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 100
+
+  jpa:
+    hibernate:
+      # ADR 0002: entity la nguon chan ly cua schema — chay app la schema hien hanh
+      ddl-auto: update
+    # Dialect tuy bien de moi bang co DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci (architecture muc 3)
+    database-platform: com.nss.ddd.infrastructure.config.MySQLUtf8mb4Dialect
+    # Entity khong duoc doc ngoai session: quan he mot chieu LAZY, gom danh sach con la viec cua tang service
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true

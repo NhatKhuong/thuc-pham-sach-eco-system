@@ -1,1 +1,2 @@
 com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.class
+com\nss\ddd\infrastructure\config\MySQLUtf8mb4Dialect.class
