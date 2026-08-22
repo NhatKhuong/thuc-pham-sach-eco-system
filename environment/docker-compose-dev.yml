@@ -1,0 +1,54 @@
+# MySQL 8.0 cho moi truong dev — thay cho MySQL80 native tren may ca nhan.
+# Mat khau root doc tu environment/.env (gitignored). Copy .env.example -> .env roi dien truoc khi chay.
+#
+# CO mount ./mysql/init vao /docker-entrypoint-initdb.d/ — Owner chot o backlog/0006.
+# Ly do doi: dung container len la co ngay ca schema (01-schema.sql) lan du lieu seed
+# (02-seed-data.sql), khong phai boot app roi chay them buoc tay nao. Truoc do khong mount
+# nen container moi luon rong 0 ban ghi, khong lam viec duoc voi tang repository va API.
+#
+# Danh doi da nhin thay va da chap nhan: voi container moi, schema do file .sql tao chu KHONG
+# do Hibernate. ADR 0002 khong bi vi pham — 01-schema.sql van la ban ket xuat tu entity va van
+# cam sua tay — nhung phep kiem "Hibernate tu sinh schema" khong con chay mac dinh nua.
+#   => LUAT DI KEM: sua entity thi SINH LAI 01-schema.sql trong CUNG lan sua do.
+#      Quen thi container moi dung schema CU roi ddl-auto=update va phan chenh; `update` chi them,
+#      khong xoa cot thua va khong doi kieu cot, nen DB roi vao trang thai lai ma KHONG co gi bao loi.
+#
+# Luu y: initdb.d chi chay khi datadir RONG. Muon nap lai tu dau thi docker stop + docker rm
+# nss-event-mysql, xoa ./data/, roi up -d.
+
+# DUNG XOA dong `name` duoi day. Thieu no thi Compose lay project name tu ten thu muc cha
+# (`environment`), trung voi mot stack `pre-event-*` khong lien quan tren cung may: `up` tai tao
+# nham service `mysql` cua stack do, con `down` se xoa sach 11 container cua ho. Xem bugs/0001.
+name: nss-event
+
+networks:
+  ssn-event-network:
+    driver: bridge
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: nss-event-mysql
+    volumes:
+      - ./data/db_data:/var/lib/mysql
+      # Chay theo thu tu alphabet khi datadir rong: 01-schema.sql roi 02-seed-data.sql.
+      - ./mysql/init:/docker-entrypoint-initdb.d/
+    command: [
+      '--character-set-server=utf8mb4',
+      '--collation-server=utf8mb4_unicode_ci',
+      '--skip-character-set-client-handshake'  # Buoc tat ca ket noi su dung utf8mb4
+    ]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: nssdbs
+    ports:
+      - "3316:3306"
+    healthcheck:
+      # $$ de shell trong container tu expand bien, mat khau khong lo ra `docker compose config`
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - ssn-event-network

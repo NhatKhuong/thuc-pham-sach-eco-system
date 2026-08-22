@@ -313,8 +313,36 @@ Quy tắc chung:
 - **Cấm hardcode host / port / secret trong `@Configuration`** — dùng `@ConfigurationProperties` (ưu tiên) hoặc `@Value`.
 - YAML: 2 space, comment `#` tiếng Việt được, **không giữ khối cấu hình bị comment**.
 
+
 ---
 
+## 15. Số học & làm tròn
+
+**`product.rating` làm tròn HALF-UP, 1 chữ số thập phân.** `4.25 → 4.3`, **không phải** `4.2`.
+
+Phía Java **phải khai `RoundingMode.HALF_UP` tường minh**:
+
+```java
+BigDecimal rating = BigDecimal.valueOf(sumRating)
+        .divide(BigDecimal.valueOf(reviewCount), 1, RoundingMode.HALF_UP);
+```
+
+**Cấm** `Math.round` trên `double`, cấm `RoundingMode.HALF_EVEN`, và cấm mượn hàm `round()` mặc định
+của ngôn ngữ khác khi sinh dữ liệu — `round()` của Python là half-to-even và cho ra `4.2`.
+
+**Lý do phải viết ra, đừng xoá cho gọn.** `rating` được tính ở **hai nơi**: lúc seed dữ liệu
+(`environment/mysql/init/02-seed-data.sql`) và lúc service tính lại khi có đánh giá mới. Hai nơi
+dùng hai quy ước khác nhau thì giá trị **nhảy một bước 0.1 vào lúc không ai đang nhìn**, và triệu
+chứng trông y hệt một cái bug — trong khi mỗi phép tính đều "đúng" theo quy ước của riêng nó, nên
+truy ngược rất tốn thời gian.
+
+Phát hiện ở [backlog 0006](../../../management/backlog/0006-seed-du-lieu-dev-tu-mock.md): sản phẩm 11
+có `AVG(rating) = 4.2500` — đúng ranh giới `.x5`, và là sản phẩm duy nhất trong 42 rơi vào đó. Chọn
+**half-up** vì runtime tính bằng SQL và `ROUND()` của MySQL là half-up, nên quy ước phải khớp engine
+thật; ngoài ra half-up là thứ người dùng chờ đợi.
+
+Quy tắc tổng quát rút ra: **giá trị nào được tính ở nhiều hơn một nơi thì quy ước làm tròn là một
+phần của contract** — pin ở mục này *trước khi* viết chỗ tính thứ hai.
 
 ---
 
@@ -335,6 +363,7 @@ Quy tắc chung:
 - [ ] Không có `@Autowired` field injection mới
 - [ ] Không có `@Builder`, `@Getter` / `@Setter` lẻ
 - [ ] Không có `java.util.Date` trong code
+- [ ] Không làm tròn `rating` bằng `Math.round` / `HALF_EVEN` — chỉ `RoundingMode.HALF_UP` (§15)
 - [ ] Không import `jakarta.transaction.Transactional` hay `javax.validation`
 - [ ] Không có `catch (Exception e) { throw new RuntimeException(e); }`
 - [ ] Không nuốt exception mà không log
@@ -349,4 +378,4 @@ Quy tắc chung:
 
 ---
 
-*Last updated: 2026-08-20 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-22 — cập nhật stamp này trong cùng lần sửa nội dung.*
