@@ -1,2 +1,10 @@
-com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.class
+com\nss\ddd\infrastructure\persistence\repository\CategoryRepositoryImpl.class
+com\nss\ddd\infrastructure\persistence\mapper\ProductJPAMapper.class
+com\nss\ddd\infrastructure\persistence\repository\ProductRepositoryImpl.class
 com\nss\ddd\infrastructure\config\MySQLUtf8mb4Dialect.class
+com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.class
+com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.class
+com\nss\ddd\infrastructure\persistence\mapper\ProductImageJPAMapper.class
+com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.class
+com\nss\ddd\infrastructure\persistence\repository\ProductImageRepositoryImpl.class
+com\nss\ddd\infrastructure\persistence\repository\BrandRepositoryImpl.class

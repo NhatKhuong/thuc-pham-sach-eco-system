@@ -1,10 +1,16 @@
 package com.nss;
 
+import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,6 +41,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 class HelloEndpointTest {
+
+    /**
+     * Bốn interface Spring Data phải có bản giả ở đây, và lý do phải viết ra vì nó không hiển nhiên:
+     * context này <b>cố ý loại</b> {@code JpaRepositoriesAutoConfiguration}, mà đó chính là thứ
+     * biến {@code *JPAMapper} thành bean. Không có bản giả thì {@code ProductRepositoryImpl} không
+     * dựng được và cả context sập — nghĩa là câu hỏi "5 module có ráp lại được không" sẽ trả lời
+     * "không" chỉ vì máy chạy build không có MySQL, đúng thứ mà việc tách lane test sinh ra để tránh.
+     * <p>
+     * Bản giả không được gọi trong test này; luồng {@code hello} không chạm tới chúng.
+     */
+    @MockBean
+    private ProductJPAMapper productJPAMapper;
+
+    @MockBean
+    private ProductImageJPAMapper productImageJPAMapper;
+
+    @MockBean
+    private CategoryJPAMapper categoryJPAMapper;
+
+    @MockBean
+    private BrandJPAMapper brandJPAMapper;
 
     private final MockMvc mockMvc;
 

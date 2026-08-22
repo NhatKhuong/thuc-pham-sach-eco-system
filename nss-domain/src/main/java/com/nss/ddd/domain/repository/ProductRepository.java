@@ -1,0 +1,82 @@
+package com.nss.ddd.domain.repository;
+
+import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.entity.Product;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+/**
+ * PORT của aggregate {@code Product} — domain khai báo, infrastructure implement.
+ * <p>
+ * <b>Ràng buộc kiến trúc:</b> file này không được import bất cứ thứ gì thuộc
+ * {@code org.springframework.data.*}. Domain không biết {@code Pageable} / {@code Page} tồn tại —
+ * đó là khái niệm của adapter. Mất ranh giới này là mất lý do chia module
+ * (architecture/01-overview.md §1).
+ * <p>
+ * <b>Quy ước xoá mềm:</b> mọi đường <i>đọc</i> ở đây chỉ trả sản phẩm còn {@code isActive = true};
+ * sản phẩm đã xoá mềm hành xử như thể không tồn tại. Ngoại lệ duy nhất là {@link #existsBySlug} —
+ * xem javadoc của nó.
+ */
+public interface ProductRepository {
+
+    /**
+     * Tìm sản phẩm <b>còn hiệu lực</b> theo slug — khóa tra cứu của {@code GET /products/{slug}}.
+     *
+     * @param slug slug không dấu, duy nhất
+     * @return sản phẩm, hoặc rỗng khi slug không tồn tại / sản phẩm đã bị xoá mềm
+     */
+    Optional<Product> findBySlug(String slug);
+
+    /**
+     * Tìm sản phẩm <b>còn hiệu lực</b> theo khóa chính — đường ghi ({@code PUT} / {@code DELETE})
+     * thao tác theo id.
+     *
+     * @param id khóa chính
+     * @return sản phẩm, hoặc rỗng khi id không tồn tại / sản phẩm đã bị xoá mềm
+     */
+    Optional<Product> findById(Long id);
+
+    /**
+     * Một trang sản phẩm còn hiệu lực, sắp xếp ổn định theo id tăng dần.
+     * <p>
+     * {@code page} <b>đánh số từ 1</b> (API_CONTRACT §A.4) và đi thẳng vào port ở dạng đó.
+     * Việc trừ 1 để dựng {@code Pageable} là của adapter — gom vào <i>một</i> chỗ duy nhất
+     * để lỗi off-by-one không có chỗ nào khác để trốn.
+     *
+     * @param page số trang, đánh số từ 1
+     * @param limit số phần tử mỗi trang
+     * @return các phần tử của trang kèm tổng số sản phẩm còn hiệu lực
+     */
+    PageResult<Product> findPage(int page, int limit);
+
+    /**
+     * Ghi sản phẩm (chèn mới khi {@code id} rỗng, cập nhật khi đã có).
+     *
+     * @param product sản phẩm cần ghi
+     * @return bản ghi sau khi ghi, đã có id
+     */
+    Product save(Product product);
+
+    /**
+     * Slug đã có ai giữ chưa.
+     * <p>
+     * <b>Cố ý đếm cả bản ghi đã xoá mềm.</b> Ràng buộc {@code uk_slug} nằm trên toàn bảng, không
+     * quan tâm {@code is_active} — bỏ qua dòng đã xoá mềm ở đây thì {@code POST} sẽ qua được cổng
+     * kiểm rồi chết bằng lỗi ràng buộc ở tầng dưới.
+     *
+     * @param slug slug cần kiểm
+     * @return true nếu đã có sản phẩm (còn hiệu lực hoặc đã xoá mềm) giữ slug này
+     */
+    boolean existsBySlug(String slug);
+
+    /**
+     * Xoá mềm: đặt {@code is_active = false}, <b>không xoá dòng</b>.
+     *
+     * @param id khóa chính
+     * @param deletedAt thời điểm xoá, giờ UTC — ghi vào {@code updated_at}
+     * @return true nếu có đúng một dòng chuyển trạng thái; false khi id không tồn tại hoặc
+     *         sản phẩm đã bị xoá mềm từ trước
+     */
+    boolean softDelete(Long id, LocalDateTime deletedAt);
+}

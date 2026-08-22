@@ -1,3 +1,11 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\ProductMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\CreateProductCommand.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\UpdateProductCommand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\HelloResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\PaginatedResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\ProductMutationResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\ProductResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\hello\HelloAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\hello\impl\HelloAppServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\impl\ProductAppServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\ProductAppService.java

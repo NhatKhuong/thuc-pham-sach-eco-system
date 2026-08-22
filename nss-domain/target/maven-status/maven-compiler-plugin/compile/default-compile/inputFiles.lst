@@ -18,6 +18,13 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\User.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\UserRole.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Ward.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\PageResult.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\BrandRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CategoryRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\HelloRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductImageRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\HelloDomainService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\ProductDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\ProductDomainService.java

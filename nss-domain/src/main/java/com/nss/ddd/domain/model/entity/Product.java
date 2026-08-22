@@ -153,6 +153,27 @@ public class Product {
     @Comment("Co phai san pham ban chay")
     private Boolean isBestSeller;
 
+    /**
+     * Tương ứng cột {@code is_active} — cờ <b>xoá mềm</b>. {@code DELETE /products/{id}} đặt cột này
+     * về {@code false} thay vì xoá dòng, vì {@code product_image} và {@code review} đều có khóa ngoại
+     * trỏ vào {@code product}: xoá cứng thì hoặc phải cascade, hoặc đánh giá cũ mất chỗ dựa.
+     * <p>
+     * <b>Cột nội bộ, tuyệt đối không lộ ra {@code Product} response</b> — type {@code Product} phía
+     * client không có trường này, rò ra là thay đổi contract.
+     * <p>
+     * {@code columnDefinition} mang {@code DEFAULT TRUE} vì hai lý do, cả hai đều hỏng trong im lặng:
+     * <ul>
+     *   <li>{@code 02-seed-data.sql} chèn {@code product} bằng danh sách cột tường minh <i>không</i> có
+     *       {@code is_active} — thiếu DEFAULT thì container sạch chết ngay ở bước init.</li>
+     *   <li>{@code ddl-auto: update} thêm cột NOT NULL vào bảng đang có dữ liệu sẽ điền giá trị ngầm
+     *       của MySQL là {@code 0} (tức <i>inactive</i>) — toàn bộ sản phẩm seed biến mất khỏi API mà
+     *       không có lỗi nào được ném ra. Có DEFAULT thì MySQL điền {@code 1} cho mọi dòng sẵn có.</li>
+     * </ul>
+     */
+    @Column(nullable = false, columnDefinition = "BIT DEFAULT TRUE")
+    @Comment("Con hieu luc hay da bi xoa mem; false la da xoa mem, cot noi bo khong lo ra response")
+    private Boolean isActive;
+
     /** Tương ứng cột {@code category_id}. Quan hệ một chiều LAZY, sinh khóa ngoại thật. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(nullable = false, foreignKey = @ForeignKey(name = "fk_product_category"))

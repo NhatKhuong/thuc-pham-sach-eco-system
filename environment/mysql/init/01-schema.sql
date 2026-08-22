@@ -119,6 +119,7 @@
     ) comment='Quyen han don le trong mo hinh RBAC' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
     create table product (
+        is_active BIT DEFAULT TRUE not null comment 'Con hieu luc hay da bi xoa mem; false la da xoa mem, cot noi bo khong lo ra response',
         is_best_seller bit not null comment 'Co phai san pham ban chay',
         is_featured bit not null comment 'Co phai san pham noi bat',
         rating decimal(2,1) not null comment 'Diem danh gia trung binh, thang 0.0-5.0',

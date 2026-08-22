@@ -30,7 +30,7 @@ java -jar nss-start/target/nss-start-1.0.0-SNAPSHOT.jar \
 
 **Bước `rm -f` là bắt buộc, không phải cho gọn.** Hibernate mở `create-target` ở chế độ **append**:
 chạy lệnh lên một file đã tồn tại thì nội dung mới được **nối thêm** vào cuối chứ không ghi đè, ra
-file 766 dòng thay vì 383 với mọi `CREATE TABLE` lặp hai lần. Xoá file trước khi sinh là cách duy
+file 768 dòng thay vì 384 với mọi `CREATE TABLE` lặp hai lần. Xoá file trước khi sinh là cách duy
 nhất chắc chắn kết quả chỉ chứa đúng một lần kết xuất — đừng trông vào hành vi mặc định của công cụ.
 
 Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1` khiến lệnh chạy được
@@ -39,18 +39,18 @@ Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1`
 Sinh xong thì **kiểm ngay**:
 
 ```bash
-wc -l environment/mysql/init/01-schema.sql            # phải ra 383
+wc -l environment/mysql/init/01-schema.sql            # phải ra 384
 git diff --stat environment/mysql/init/01-schema.sql  # phải RỖNG (không in gì)
 ```
 
 Diff rỗng là **bài kiểm entity chưa trôi khỏi schema**, không phải thủ tục cho có: nó nói rằng schema
 sinh từ entity hiện tại giống hệt bản đang commit. Diff không rỗng nghĩa là entity đã đổi mà bản kết
 xuất chưa theo kịp — đọc diff, xác nhận đúng ý định, rồi commit bản vừa sinh; **tuyệt đối không sửa
-tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 383 khác
+tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 384 khác
 đi mà không do entity đổi thì gần như chắc chắn là quên `rm -f`.
 
 > **Cảnh báo — `environment/mysql/init/` **đang được mount** vào `docker-entrypoint-initdb.d/`, nên
-> file này được MySQL *thực thi*, không còn nằm im.** Một bản sinh sai — ví dụ file 766 dòng do quên
+> file này được MySQL *thực thi*, không còn nằm im.** Một bản sinh sai — ví dụ file 768 dòng do quên
 > `rm -f`, mang `CREATE TABLE` trùng — làm container **chết ngay lúc khởi tạo**, và triệu chứng hiện
 > ra dưới dạng "DB không lên" chứ không phải "file SQL sai". Kiểm số dòng và diff trước khi commit.
 

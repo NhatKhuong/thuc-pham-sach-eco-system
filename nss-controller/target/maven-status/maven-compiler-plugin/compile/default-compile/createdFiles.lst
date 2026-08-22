@@ -1,1 +1,10 @@
+com\nss\ddd\controller\http\ProductController.class
+com\nss\ddd\controller\exception\GlobalExceptionHandler.class
+com\nss\ddd\controller\mapper\ProductControllerMapper.class
 com\nss\ddd\controller\http\HelloController.class
+com\nss\ddd\controller\dto\UpdateProductRequest.class
+com\nss\ddd\controller\dto\CreateProductRequest.class
+com\nss\ddd\controller\exception\InvalidProductDataException.class
+com\nss\ddd\controller\exception\DuplicateSlugException.class
+com\nss\ddd\controller\exception\ProductNotFoundException.class
+com\nss\ddd\controller\exception\UnexpectedExceptionHandler.class
