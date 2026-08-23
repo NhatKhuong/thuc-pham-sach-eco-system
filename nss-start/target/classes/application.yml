@@ -46,3 +46,12 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+
+# Swagger / OpenAPI 3 (backlog 0009). Bat mac dinh, tat duoc bang bien moi truong — khong tao profile moi.
+# Hai co tach rieng vi chung tat hai thu khac nhau: api-docs tat endpoint JSON /v3/api-docs,
+# swagger-ui tat trang /swagger-ui/index.html.
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:true}

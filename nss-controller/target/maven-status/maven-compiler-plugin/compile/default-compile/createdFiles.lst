@@ -1,3 +1,4 @@
+com\nss\ddd\controller\config\OpenApiConfig.class
 com\nss\ddd\controller\http\ProductController.class
 com\nss\ddd\controller\exception\GlobalExceptionHandler.class
 com\nss\ddd\controller\mapper\ProductControllerMapper.class

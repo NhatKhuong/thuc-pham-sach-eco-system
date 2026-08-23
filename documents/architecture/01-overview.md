@@ -47,7 +47,7 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 | Actuator + micrometer-registry-prometheus | 1.13.6 |                                                                                    |
 | logstash-logback-encoder | 8.0 | Log JSON → Logstash TCP                                                            |
 | Spring Security |  | Xác thực và phân quyền theo RBAC                                                   |
-| Swagger |  | Quản lý document cho API                                                           |
+| Swagger | **2.6.0** | `springdoc-openapi-starter-webmvc-ui`, khai ở `*-controller`; BOM không quản version nên pin ở root pom |
 **Cố ý không có** — đừng thêm nếu không có lý do được duyệt:
 
 - **MapStruct** → converter viết tay (`*Mapper` với method `public static`). Đổi lấy tính minh bạch khi debug.
@@ -264,4 +264,4 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-08-20 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-23 — cập nhật stamp này trong cùng lần sửa nội dung.*

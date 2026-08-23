@@ -27,6 +27,9 @@
     <maven.compiler.release>21</maven.compiler.release>
     <!-- Import BOM spring-boot-dependencies, KHONG dung spring-boot-starter-parent (architecture/01-overview.md muc 2) -->
     <spring-boot.version>3.3.5</spring-boot.version>
+    <!-- BOM spring-boot-dependencies KHONG quan version cua springdoc nen phai tu pin o day.
+         2.6.0 la dong tuong thich Spring Boot 3.3.5 (backlog 0009) -->
+    <springdoc.version>2.6.0</springdoc.version>
     <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
   </properties>
 
@@ -59,6 +62,13 @@
         <groupId>com.nss</groupId>
         <artifactId>nss-controller</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!-- Chi nss-controller khai <dependency> that; o day chi pin version -->
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
