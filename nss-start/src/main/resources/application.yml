@@ -47,6 +47,19 @@ spring:
         format_sql: true
     show-sql: true
 
+# Xac thuc (backlog 0010, ADR 0003). Theo dung nep ${ENV_VAR:dev-default} — khong tao profile moi.
+nss:
+  auth:
+    # CANH BAO: chuoi duoi day CHI danh cho may dev. Bat ky ai co no deu ky duoc access token hop le
+    # cho BAT KY tai khoan nao, ke ca ADMIN. Moi truong that BAT BUOC dat bien JWT_SECRET.
+    # Toi thieu 32 byte cho HS256; JwtConfig fail ngay luc khoi dong neu ngan hon, chu khong doi
+    # den lan dang nhap dau tien moi bao loi.
+    jwt-secret: ${JWT_SECRET:nss-dev-only-secret-key-change-me-in-production}
+    # TTL la GIA DINH DA NEU RO, khong phai contract: API_CONTRACT muc A.2 chi noi access token
+    # 15-60 phut va im lang ve refresh. Dinh dang ISO-8601 Duration.
+    access-token-ttl: ${ACCESS_TOKEN_TTL:PT30M}
+    refresh-token-ttl: ${REFRESH_TOKEN_TTL:P14D}
+
 # Swagger / OpenAPI 3 (backlog 0009). Bat mac dinh, tat duoc bang bien moi truong — khong tao profile moi.
 # Hai co tach rieng vi chung tat hai thu khac nhau: api-docs tat endpoint JSON /v3/api-docs,
 # swagger-ui tat trang /swagger-ui/index.html.

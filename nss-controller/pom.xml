@@ -35,5 +35,19 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     </dependency>
+    <!-- Spring Security (backlog 0010, ADR 0003): SecurityFilterChain va bo giai JWT cua resource
+         server song o day, cung cho voi spring-boot-starter-web.
+         Ca hai nam trong BOM spring-boot-dependencies 3.3.5 nen KHONG khai <version> va KHONG them
+         property phien ban nao — dung ly do ADR 0003 chon chung thay vi jjwt.
+         Khai tuong minh du oauth2-resource-server da den transitively tu nss-application: module
+         nao dung thi module do khai. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
   </dependencies>
 </project>

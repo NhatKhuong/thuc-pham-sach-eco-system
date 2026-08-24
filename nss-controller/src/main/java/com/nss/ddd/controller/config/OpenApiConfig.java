@@ -1,5 +1,7 @@
 package com.nss.ddd.controller.config;
 
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
@@ -11,16 +13,22 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 /**
- * Cấu hình OpenAPI 3 — phần mô tả cấp tài liệu (title, version, server).
+ * Cấu hình OpenAPI 3 — phần mô tả cấp tài liệu (title, version, server, security scheme).
  * <p>
- * <b>Chỉ mô tả, không đổi hành vi.</b> Doc chỉ nói về 6 endpoint đang chạy thật; springdoc suy
+ * <b>Chỉ mô tả, không đổi hành vi.</b> Doc chỉ nói về những endpoint đang chạy thật; springdoc suy
  * path và schema bằng reflection trên chính controller nên doc không bao giờ lệch runtime.
  * <p>
- * <b>Không khai {@code @SecurityScheme}.</b> Spring Security chưa tồn tại trong repo — khai bearer
- * JWT bây giờ chỉ tạo một nút <i>Authorize</i> không làm gì, tức là doc nói dối. Việc đó thuộc
- * ticket dựng Spring Security, và ticket đó phải {@code permitAll} cho {@code /swagger-ui/**},
- * {@code /swagger-ui.html}, {@code /v3/api-docs/**}, {@code /v3/api-docs.yaml} — thiếu là Swagger
- * UI chết với 401/403 chứ không phải một lỗi cấu hình rõ ràng.
+ * <b>{@code @SecurityScheme} chỉ được khai từ backlog 0010 trở đi</b>, và thứ tự đó là có lý do:
+ * chừng nào Spring Security chưa tồn tại thì một nút <i>Authorize</i> chỉ là doc nói dối — nó nhận
+ * token rồi gắn header mà không endpoint nào kiểm. Cùng ticket đó đã {@code permitAll} bốn đường
+ * dẫn tài liệu ({@code /swagger-ui/**}, {@code /swagger-ui.html}, {@code /v3/api-docs/**},
+ * {@code /v3/api-docs.yaml}) trong {@link SecurityConfig} — thiếu là Swagger UI chết với 401/403
+ * chứ không phải một lỗi cấu hình rõ ràng.
+ * <p>
+ * <b>Scheme khai ở cấp tài liệu nhưng KHÔNG áp cho toàn bộ API.</b> Không có
+ * {@code addSecurityItem(...)} nào ở đây: phần lớn endpoint hiện tại là công khai, nên gắn yêu cầu
+ * token lên tất cả sẽ khiến Swagger UI hiện ổ khoá ở những chỗ không cần token. Endpoint nào cần
+ * thì tự khai {@code @SecurityRequirement} tại chỗ — hiện chỉ có {@code POST /api/auth/logout}.
  * <p>
  * <b>Server URL lấy qua {@code @Value}</b>: coding-conventions §14 cấm hardcode host/port trong
  * {@code @Configuration}. Default chỉ để chạy dev trên máy cá nhân.
@@ -29,6 +37,13 @@ import java.util.List;
  * <b>không phải</b> Lombok {@code @Builder} (bị cấm ở §5).
  */
 @Configuration
+@SecurityScheme(
+        name = "bearerAuth",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT",
+        description = "Dán **access token** lấy từ `POST /api/auth/login` (trường `token` trong "
+                + "response, không phải `refreshToken`). Swagger UI tự thêm tiền tố `Bearer `.")
 public class OpenApiConfig {
 
     private static final String API_TITLE = "NSS API — Thực phẩm sạch";
@@ -55,7 +70,17 @@ public class OpenApiConfig {
             `application/problem+json`; `detail` viết tiếng Việt cho người dùng cuối đọc. \
             Lỗi validate 422 kèm phần mở rộng `errors` — map `tên trường → thông điệp` \
             (thông điệp validate hiện là tiếng Anh).
-            - Chưa có xác thực: mọi endpoint dưới đây đều công khai.""";
+
+            **Xác thực (§A.2):** access token là JWT, gắn bằng header \
+            `Authorization: Bearer <token>`. Lấy token ở `POST /api/auth/login` — trường tên là \
+            **`token`**, không phải `accessToken` — rồi dán vào nút *Authorize* ở góc trên.
+            - Access token hết hạn sau **30 phút**; đổi lấy cặp mới bằng \
+            `POST /api/auth/refresh`, và refresh token **xoay vòng**: chuỗi cũ bị thu hồi ngay khi \
+            chuỗi mới được cấp.
+            - Hiện chỉ `POST /api/auth/logout` cần token; mọi endpoint khác trong tài liệu này đều \
+            công khai.
+            - Thiếu token hoặc token sai trả `401` dạng `ProblemDetail` với `detail` tiếng Việt, \
+            **không phải thân rỗng**.""";
 
     private static final String SERVER_DESCRIPTION = "Server hiện hành";
 

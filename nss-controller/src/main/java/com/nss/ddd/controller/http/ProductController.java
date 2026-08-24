@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -43,6 +44,11 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>
  * <b>Đọc bằng {@code slug}, ghi bằng {@code id}.</b> Đọc theo slug vì frontend dựng URL từ slug;
  * ghi theo id vì admin thao tác trên khóa chính và slug thì sửa được.
+ * <p>
+ * <b>Đọc công khai, ghi chỉ ADMIN</b> (backlog 0012). Đó không phải lựa chọn của file này mà của
+ * {@code SecurityConfig} — nơi duy nhất quyết định endpoint nào cần quyền gì. Ba lệnh ghi bên dưới
+ * khai {@code @SecurityRequirement} và {@code 403} chỉ để <i>tài liệu nói đúng sự thật đó</i>;
+ * annotation của springdoc không tự cưỡng chế được gì.
  * <p>
  * <b>Không đặt regex hay ràng buộc nào lên {@code {slug}}.</b> Khi {@code /products/suggest} và
  * {@code /products/price-range} ra đời, Spring vẫn ưu tiên path literal hơn path template nên
@@ -72,6 +78,15 @@ public class ProductController {
 
     /** Mô tả dùng lại cho mọi response lỗi: mọi lỗi đều là ProblemDetail RFC 7807. */
     private static final String PROBLEM_JSON = "application/problem+json";
+
+    /** Tên security scheme khai ở {@code OpenApiConfig} — nút *Authorize* của Swagger UI. */
+    private static final String SECURITY_SCHEME = "bearerAuth";
+
+    /** Mô tả 403 dùng chung cho ba lệnh ghi — cùng một luật, cùng một câu trả lời. */
+    private static final String DESC_FORBIDDEN =
+            "Đã đăng nhập nhưng tài khoản không có vai trò `ADMIN`; `detail` viết tiếng Việt. "
+                    + "**Là `403`, không phải `401`** — `401` sẽ khiến client hiểu nhầm là token hết "
+                    + "hạn rồi tự đăng xuất người dùng.";
 
     private final ProductAppService productAppService;
 
@@ -145,8 +160,14 @@ public class ProductController {
                     - `images` là các đường dẫn **tương đối** `/images/...`; thứ tự trong mảng là \
                     thứ tự hiển thị.
                     - Các trường hệ thống (`id`, `effectivePrice`, `rating`, `reviewCount`, `sold`, \
-                    `isActive`, `createdAt`, `updatedAt`) client gửi lên sẽ bị bỏ qua trong im lặng.""")
+                    `isActive`, `createdAt`, `updatedAt`) client gửi lên sẽ bị bỏ qua trong im lặng.
+
+                    **Cần access token của tài khoản có vai trò `ADMIN`** (backlog 0012).""",
+            security = @SecurityRequirement(name = SECURITY_SCHEME))
     @ApiResponse(responseCode = "201", description = "Sản phẩm đã được tạo")
+    @ApiResponse(responseCode = "403", description = DESC_FORBIDDEN,
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409",
             description = "Slug đã có sản phẩm khác giữ; `detail` viết tiếng Việt",
             content = @Content(mediaType = PROBLEM_JSON,
@@ -177,8 +198,14 @@ public class ProductController {
                     tác trên id vì slug thì sửa được.
 
                     Áp dụng cùng quy ước kiểu dữ liệu với lệnh tạo: tiền là số nguyên VNĐ, \
-                    `salePrice = null` nghĩa là không giảm giá, ảnh là đường dẫn tương đối.""")
+                    `salePrice = null` nghĩa là không giảm giá, ảnh là đường dẫn tương đối.
+
+                    **Cần access token của tài khoản có vai trò `ADMIN`** (backlog 0012).""",
+            security = @SecurityRequirement(name = SECURITY_SCHEME))
     @ApiResponse(responseCode = "200", description = "Sản phẩm sau khi sửa")
+    @ApiResponse(responseCode = "403", description = DESC_FORBIDDEN,
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404",
             description = "Id không tồn tại hoặc sản phẩm đã bị xoá mềm; `detail` viết tiếng Việt",
             content = @Content(mediaType = PROBLEM_JSON,
@@ -214,9 +241,15 @@ public class ProductController {
                     không xoá vật lý.
 
                     Thành công trả **`204`** với **thân rỗng**. Xoá lại một sản phẩm đã xoá mềm \
-                    trả `404`.""")
+                    trả `404`.
+
+                    **Cần access token của tài khoản có vai trò `ADMIN`** (backlog 0012).""",
+            security = @SecurityRequirement(name = SECURITY_SCHEME))
     @ApiResponse(responseCode = "204", description = "Đã xoá mềm; không có thân phản hồi",
             content = @Content)
+    @ApiResponse(responseCode = "403", description = DESC_FORBIDDEN,
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404",
             description = "Id không tồn tại hoặc sản phẩm đã bị xoá mềm từ trước; `detail` viết tiếng Việt",
             content = @Content(mediaType = PROBLEM_JSON,

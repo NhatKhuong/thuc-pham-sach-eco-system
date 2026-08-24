@@ -25,6 +25,16 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    <!-- PasswordEncoder cho AuthDomainService (backlog 0010): bam va doi chieu mat khau la quy tac
+         nghiep vu chu khong phai chi tiet ha tang, nen no song o domain.
+         KHONG phai spring-boot-starter-security: artifact nay la thu vien ma hoa THUAN, khong keo
+         theo servlet filter hay SecurityFilterChain — nhung thu do o lai nss-controller.
+         Day la thu vien, khong phai module com.nss, nen enforcer ban com.nss:* van xanh.
+         Version do BOM spring-boot-dependencies 3.3.5 quan; khong khai <version>. -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

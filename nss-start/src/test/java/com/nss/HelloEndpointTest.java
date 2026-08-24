@@ -4,6 +4,9 @@ import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.UserJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.UserRoleJPAMapper;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * không được phép hỏng chỉ vì máy chạy build chưa cài MySQL.
  * <p>
  * Phần kiểm schema thật nằm ở {@link SchemaSmokeTest}, đánh {@code @Tag("db")} và chạy riêng.
+ * <p>
+ * <b>Filter chain của Spring Security KHÔNG bị tắt ở đây</b> (backlog 0010). {@code @AutoConfigureMockMvc}
+ * gắn {@code springSecurityFilterChain} thật vào MockMvc, nên request bên dưới đi qua đúng chuỗi
+ * filter mà production dùng. Đó là chủ ý: {@code /api/hello} là endpoint công khai theo contract,
+ * và nếu ai đó xoá dòng {@code permitAll} của nó thì test này phải đỏ. Tắt security trong test sẽ
+ * biến chính thứ cần kiểm thành thứ không được kiểm.
+ * <p>
+ * Phần kiểm luật {@code permitAll} đầy đủ nằm ở {@link SecurityRulesTest}.
  */
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -43,11 +54,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HelloEndpointTest {
 
     /**
-     * Bốn interface Spring Data phải có bản giả ở đây, và lý do phải viết ra vì nó không hiển nhiên:
-     * context này <b>cố ý loại</b> {@code JpaRepositoriesAutoConfiguration}, mà đó chính là thứ
-     * biến {@code *JPAMapper} thành bean. Không có bản giả thì {@code ProductRepositoryImpl} không
-     * dựng được và cả context sập — nghĩa là câu hỏi "5 module có ráp lại được không" sẽ trả lời
-     * "không" chỉ vì máy chạy build không có MySQL, đúng thứ mà việc tách lane test sinh ra để tránh.
+     * <b>Mọi</b> interface Spring Data phải có bản giả ở đây, và lý do phải viết ra vì nó không
+     * hiển nhiên: context này <b>cố ý loại</b> {@code JpaRepositoriesAutoConfiguration}, mà đó
+     * chính là thứ biến {@code *JPAMapper} thành bean. Không có bản giả thì {@code *RepositoryImpl}
+     * tương ứng không dựng được và cả context sập — nghĩa là câu hỏi "5 module có ráp lại được
+     * không" sẽ trả lời "không" chỉ vì máy chạy build không có MySQL, đúng thứ mà việc tách lane
+     * test sinh ra để tránh.
+     * <p>
+     * <b>Thêm một {@code *JPAMapper} mới ở bất kỳ ticket nào thì phải thêm một dòng vào đây, trong
+     * cùng lần sửa.</b> Ba mapper cuối đến từ backlog 0010.
      * <p>
      * Bản giả không được gọi trong test này; luồng {@code hello} không chạm tới chúng.
      */
@@ -62,6 +77,15 @@ class HelloEndpointTest {
 
     @MockBean
     private BrandJPAMapper brandJPAMapper;
+
+    @MockBean
+    private UserJPAMapper userJPAMapper;
+
+    @MockBean
+    private RefreshTokenJPAMapper refreshTokenJPAMapper;
+
+    @MockBean
+    private UserRoleJPAMapper userRoleJPAMapper;
 
     private final MockMvc mockMvc;
 

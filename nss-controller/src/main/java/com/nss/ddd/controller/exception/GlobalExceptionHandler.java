@@ -71,6 +71,33 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Sai thông tin đăng nhập, hoặc refresh token không còn dùng được.
+     * <p>
+     * <b>Cố ý không log định danh nào của người dùng.</b> Chuỗi {@code detail} trả về giống hệt
+     * nhau cho mọi ca thất bại, và log phải giữ nguyên tính chất đó — một dòng log phân biệt được
+     * "email không tồn tại" với "sai mật khẩu" là cùng một rò rỉ, chỉ đổi nơi đọc. Ca đăng nhập đã
+     * ghi {@code email} ở tầng application, chỗ có ngữ cảnh để ghi đúng mức {@code warn}.
+     *
+     * @param e lỗi xác thực
+     * @return 401 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException e) {
+        log.warn("handleInvalidCredentials: authentication rejected");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
+    }
+
+    /**
+     * @param e lỗi trùng email
+     * @return 409 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ProblemDetail handleDuplicateEmail(DuplicateEmailException e) {
+        log.warn("handleDuplicateEmail: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /**
      * @param e lỗi vi phạm quy tắc nghiệp vụ
      * @return 422 kèm {@code detail} tiếng Việt
      */

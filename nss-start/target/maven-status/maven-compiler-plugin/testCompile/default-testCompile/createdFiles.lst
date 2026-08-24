@@ -1,5 +1,8 @@
 com\nss\PaginatedResponseTest.class
 com\nss\SchemaSmokeTest.class
 com\nss\ProductDomainServiceTest.class
+com\nss\AuthDomainServiceTest.class
+com\nss\SecurityRulesTest.class
 com\nss\ProductMapperTest.class
 com\nss\HelloEndpointTest.class
+com\nss\UserMapperTest.class

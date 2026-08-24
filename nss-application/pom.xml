@@ -27,5 +27,16 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
+    <!-- JwtEncoder / JwtClaimsSet de duc access token trong AuthAppServiceImpl (backlog 0010).
+         Vi sao o day chu khong chi o nss-controller nhu ticket ghi: Maven chi truyen dependency
+         XUOI theo chieu phu thuoc. nss-controller -> nss-application, nen thu khai o controller
+         KHONG co tren classpath bien dich cua application. Ma use case cap phien (register /
+         login / refresh) song o application, nen module do phai tu khai.
+         nss-controller van khai lai ca hai starter mot cach tuong minh cho filter chain.
+         Ca hai nam trong BOM spring-boot-dependencies 3.3.5 — khong khai <version>. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
   </dependencies>
 </project>
