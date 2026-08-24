@@ -2,6 +2,7 @@ package com.nss;
 
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
@@ -86,6 +87,9 @@ class HelloEndpointTest {
 
     @MockBean
     private UserRoleJPAMapper userRoleJPAMapper;
+
+    @MockBean
+    private CouponJPAMapper couponJPAMapper;
 
     private final MockMvc mockMvc;
 

@@ -1,3 +1,6 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartIssue.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartIssueType.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartLine.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Address.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Brand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Category.java
@@ -21,6 +24,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\PageResult.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\BrandRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CategoryRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CouponRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\HelloRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductImageRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductRepository.java
@@ -28,8 +32,12 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\UserRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\UserRoleRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\AuthDomainService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\CartDomainService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\CouponDomainService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\HelloDomainService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\AuthDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\CartDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\CouponDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\ProductDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\ProductDomainService.java

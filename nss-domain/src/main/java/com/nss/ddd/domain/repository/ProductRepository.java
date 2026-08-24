@@ -4,6 +4,8 @@ import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.entity.Product;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,6 +38,25 @@ public interface ProductRepository {
      * @return sản phẩm, hoặc rỗng khi id không tồn tại / sản phẩm đã bị xoá mềm
      */
     Optional<Product> findById(Long id);
+
+    /**
+     * Tìm nhiều sản phẩm <b>còn hiệu lực</b> trong một lượt — đường đọc của giỏ hàng.
+     * <p>
+     * Tồn tại vì {@code POST /api/cart/validate} luôn hỏi cả giỏ cùng lúc: gọi {@link #findById}
+     * cho từng dòng biến một giỏ 20 món thành 20 lượt đi vòng tới MySQL, trên một endpoint mà
+     * frontend gọi lại mỗi lần khách mở giỏ hàng.
+     * <p>
+     * <b>Kết quả có thể ít phần tử hơn {@code ids}, và đó là thông tin chứ không phải lỗi:</b> một
+     * id vắng mặt nghĩa là không có sản phẩm nào như vậy <i>hoặc</i> sản phẩm đã bị xoá mềm. Hai ca
+     * đó cố ý không phân biệt được từ đây — quy ước xoá mềm của port này nói sản phẩm đã xoá hành
+     * xử như thể không tồn tại, và phía giỏ hàng cũng đối xử với chúng như nhau.
+     * <p>
+     * Thứ tự trả về <b>không</b> được đảm bảo; phía gọi tự đánh chỉ mục theo id.
+     *
+     * @param ids các khóa chính cần tra; {@code null} hoặc rỗng cho ra danh sách rỗng
+     * @return các sản phẩm còn hiệu lực khớp {@code ids}; danh sách rỗng khi không khớp dòng nào
+     */
+    List<Product> findByIds(Collection<Long> ids);
 
     /**
      * Một trang sản phẩm còn hiệu lực, sắp xếp ổn định theo id tăng dần.

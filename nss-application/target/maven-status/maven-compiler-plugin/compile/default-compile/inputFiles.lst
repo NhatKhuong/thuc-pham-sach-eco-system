@@ -1,5 +1,8 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\CartMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\CouponMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\ProductMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\UserMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\CartItemCommand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\CreateProductCommand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\LoginCommand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\LogoutCommand.java
@@ -8,6 +11,9 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-applicati
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\command\UpdateProductCommand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\AuthMutationResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\AuthResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\CartIssueResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\CouponResponse.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\CouponValidationResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\HelloResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\PaginatedResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\ProductMutationResponse.java
@@ -15,6 +21,10 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-applicati
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\model\response\UserResponse.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\auth\AuthAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\auth\impl\AuthAppServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\cart\CartAppService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\cart\impl\CartAppServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\coupon\CouponAppService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\coupon\impl\CouponAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\hello\HelloAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\hello\impl\HelloAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\impl\ProductAppServiceImpl.java

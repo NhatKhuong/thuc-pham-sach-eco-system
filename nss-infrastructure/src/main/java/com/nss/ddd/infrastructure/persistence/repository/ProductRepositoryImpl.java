@@ -12,6 +12,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,6 +40,23 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public Optional<Product> findById(Long id) {
         return productJPAMapper.findActiveById(id);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Phép chặn danh sách rỗng nằm ở đây, và nó là thứ duy nhất giữ ca "giỏ rỗng" không thành
+     * lỗi 500.</b> {@code IN :ids} với collection rỗng dịch ra {@code in ()} — MySQL từ chối cú
+     * pháp đó. Chặn tại adapter chứ không ở domain vì đây là ràng buộc của <i>SQL</i>, không phải
+     * một quy tắc nghiệp vụ: domain nói "không có id nào để tra thì không có sản phẩm nào", và câu
+     * đó đúng ở mọi cơ sở dữ liệu.
+     */
+    @Override
+    public List<Product> findByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return productJPAMapper.findActiveByIdIn(ids);
     }
 
     @Override

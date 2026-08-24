@@ -108,6 +108,33 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @param e không tìm thấy mã giảm giá
+     * @return 404 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(CouponNotFoundException.class)
+    public ProblemDetail handleCouponNotFound(CouponNotFoundException e) {
+        log.warn("handleCouponNotFound: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /**
+     * Mã giảm giá có thật nhưng không dùng được cho đơn này.
+     * <p>
+     * <b>422, không phải 400 và không phải 404.</b> Request đúng cú pháp và mã <i>có tồn tại</i>;
+     * thứ sai là ngữ nghĩa nghiệp vụ. Trả 404 ở đây sẽ nói với người dùng rằng mã họ đang cầm không
+     * có thật, còn 400 thì đọc như "client gửi sai" và làm frontend rơi về thông điệp dự phòng
+     * chung chung thay vì lý do thật (§A.3).
+     *
+     * @param e mã giảm giá không dùng được
+     * @return 422 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(CouponNotApplicableException.class)
+    public ProblemDetail handleCouponNotApplicable(CouponNotApplicableException e) {
+        log.warn("handleCouponNotApplicable: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    /**
      * Lỗi của {@code jakarta.validation} trên {@code @Valid @RequestBody}.
      * <p>
      * <b>422, không phải 400.</b> Mặc định của Spring cho lỗi bind là 400; contract §A.3 và ticket

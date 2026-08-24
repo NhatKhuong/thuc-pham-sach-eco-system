@@ -5,10 +5,12 @@ com\nss\ddd\infrastructure\persistence\repository\RefreshTokenRepositoryImpl.cla
 com\nss\ddd\infrastructure\persistence\repository\UserRoleRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\repository\UserRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\ProductImageJPAMapper.class
+com\nss\ddd\infrastructure\persistence\repository\CouponRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\ProductJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\RefreshTokenJPAMapper.class
 com\nss\ddd\infrastructure\persistence\repository\ProductRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.class
+com\nss\ddd\infrastructure\persistence\mapper\CouponJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\UserJPAMapper.class
 com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.class
