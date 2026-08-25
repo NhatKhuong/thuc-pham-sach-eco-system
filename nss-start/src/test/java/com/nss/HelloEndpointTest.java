@@ -6,6 +6,7 @@ import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderStatusHistoryJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.PasswordResetTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
@@ -66,10 +67,17 @@ class HelloEndpointTest {
      * test sinh ra để tránh.
      * <p>
      * <b>Thêm một {@code *JPAMapper} mới ở bất kỳ ticket nào thì phải thêm một dòng vào đây, trong
-     * cùng lần sửa.</b> {@code CouponJPAMapper} đến từ backlog 0014 phase 1; ba mapper cuối
+     * cùng lần sửa.</b> {@code CouponJPAMapper} đến từ backlog 0014 phase 1; ba mapper tiếp theo
      * ({@code order}, {@code order_item}, {@code order_status_history}) đến từ phase 3 của cùng
      * ticket đó. Phase 2 <i>không</i> phải sửa file này vì nó dùng lại đường đọc sản phẩm sẵn có —
      * đúng dấu hiệu cho thấy quy tắc này chỉ động vào khi thật sự có bảng mới.
+     * <p>
+     * <b>{@code PasswordResetTokenJPAMapper} đến từ backlog 0017, và nó là ca đối chứng cho câu
+     * trên.</b> Backlog 0016 <i>không</i> phải sửa file này dù cũng động vào tầng persistence: nó
+     * chỉ thêm method vào một interface đã có ({@code revokeAllOfUserExcept} trên
+     * {@code RefreshTokenJPAMapper}). Ở 0017 thì có một bảng mới thật, nên có một bean mới thật — và
+     * thiếu dòng tương ứng thì {@code PasswordResetTokenRepositoryImpl} không dựng được và <b>cả
+     * context sập</b>, chứ không phải một ca đỏ đọc ra được nguyên nhân.
      * <p>
      * Bản giả không được gọi trong test này; luồng {@code hello} không chạm tới chúng.
      */
@@ -105,6 +113,9 @@ class HelloEndpointTest {
 
     @MockBean
     private OrderStatusHistoryJPAMapper orderStatusHistoryJPAMapper;
+
+    @MockBean
+    private PasswordResetTokenJPAMapper passwordResetTokenJPAMapper;
 
     private final MockMvc mockMvc;
 

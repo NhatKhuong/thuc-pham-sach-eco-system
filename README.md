@@ -30,7 +30,7 @@ java -jar nss-start/target/nss-start-1.0.0-SNAPSHOT.jar \
 
 **Bước `rm -f` là bắt buộc, không phải cho gọn.** Hibernate mở `create-target` ở chế độ **append**:
 chạy lệnh lên một file đã tồn tại thì nội dung mới được **nối thêm** vào cuối chứ không ghi đè, ra
-file 768 dòng thay vì 384 với mọi `CREATE TABLE` lặp hai lần. Xoá file trước khi sinh là cách duy
+file gấp đôi số dòng với mọi `CREATE TABLE` lặp hai lần. Xoá file trước khi sinh là cách duy
 nhất chắc chắn kết quả chỉ chứa đúng một lần kết xuất — đừng trông vào hành vi mặc định của công cụ.
 
 Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1` khiến lệnh chạy được
@@ -39,15 +39,20 @@ Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1`
 Sinh xong thì **kiểm ngay**:
 
 ```bash
-wc -l environment/mysql/init/01-schema.sql            # phải ra 384
+wc -l environment/mysql/init/01-schema.sql            # phải ra 405
 git diff --stat environment/mysql/init/01-schema.sql  # phải RỖNG (không in gì)
 ```
 
 Diff rỗng là **bài kiểm entity chưa trôi khỏi schema**, không phải thủ tục cho có: nó nói rằng schema
 sinh từ entity hiện tại giống hệt bản đang commit. Diff không rỗng nghĩa là entity đã đổi mà bản kết
 xuất chưa theo kịp — đọc diff, xác nhận đúng ý định, rồi commit bản vừa sinh; **tuyệt đối không sửa
-tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 384 khác
+tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 405 khác
 đi mà không do entity đổi thì gần như chắc chắn là quên `rm -f`.
+
+> **Con số này là một literal phải cập nhật cùng lần thêm entity.** 384 → **405** ở
+> [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) khi bảng
+> `password_reset_token` ra đời (20 bảng, 17 khoá ngoại). Quên sửa nó thì bước kiểm ở trên báo động
+> giả mỗi lần chạy, và một cảnh báo luôn sai là một cảnh báo không ai còn đọc.
 
 > **Cảnh báo — `environment/mysql/init/` **đang được mount** vào `docker-entrypoint-initdb.d/`, nên
 > file này được MySQL *thực thi*, không còn nằm im.** Một bản sinh sai — ví dụ file 768 dòng do quên
@@ -149,6 +154,47 @@ stack `pre-event-*` không liên quan cũng sống trong thư mục tên `enviro
 kia (đã xảy ra thật, mất một container), còn `down` sẽ xoá sạch 11 container của họ. Đó cũng là lý
 do mục trên nói dừng DB bằng `docker stop` theo tên chứ không bằng `docker compose down`.
 Xem [bugs/0001](../../management/bugs/0001-compose-project-name-va-cham.md).
+
+## Gửi mail (dev)
+
+`environment/docker-compose-dev.yml` chạy thêm **Mailpit** — một **SMTP catcher**, không phải máy
+chủ mail thật: nó nhận mọi thư gửi tới và **không chuyển tiếp đi đâu cả**. Đó đúng là thứ cần ở máy
+dev, vì không có nguy cơ gửi nhầm một email đặt lại mật khẩu tới một người thật trong lúc kiểm thử.
+
+| | |
+|---|---|
+| SMTP | `localhost:1025` — `spring.mail.*` trỏ sẵn vào đây |
+| Giao diện web | <http://localhost:8025> — nơi **nhìn thấy** email thật |
+| API đọc thư | `curl -s http://localhost:8025/api/v1/messages` |
+
+```bash
+docker compose -f environment/docker-compose-dev.yml up -d   # len ca mysql lan mailpit
+```
+
+**Vì sao phải có nó, và vì sao không thay bằng "ghi token ra log":**
+`POST /auth/forgot-password` **luôn trả 204**, kể cả khi đường gửi mail chết hoàn toàn — SMTP sai
+credential, hộp thư đầy, mail rơi vào spam đều cho ra đúng một kết quả như lúc thành công. Nghĩa là
+**một bộ test chỉ nhìn mã HTTP sẽ xanh với một hệ thống không gửi được email nào**, và người dùng
+thật thì ngồi chờ một lá thư không bao giờ tới. Bằng chứng của luồng này vì vậy không phải mã 204 mà
+là **một email thật đến nơi**. [ADR 0004](../../management/decisions/0004-dat-lai-mat-khau-qua-email.md)
+có xét phương án ghi token ra log và loại nó làm *đích đến*: thiếu một cờ tắt cứng ở production thì
+đó là rò token đặt lại mật khẩu vào file log.
+
+**Môi trường thật** đặt `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` trỏ tới SMTP
+thật, và bật `MAIL_SMTP_AUTH=true` `MAIL_SMTP_STARTTLS=true`. Credential SMTP là **bí mật thứ hai
+của hệ thống sau `jwt-secret`** — không bao giờ commit. Hai giá trị dưới đây fail **ngay lúc khởi
+động** nếu rỗng hoặc sai dạng, đúng tiền lệ `JwtConfig` với `jwt-secret`:
+
+| Biến | Mặc định dev | Fail khi |
+|---|---|---|
+| `MAIL_FROM` | `no-reply@nongsansach.local` | rỗng, hoặc không chứa `@` |
+| `PASSWORD_RESET_URL` | `http://localhost:5173/dat-lai-mat-khau` | rỗng, hoặc không phải URL `http(s)` tuyệt đối |
+| `PASSWORD_RESET_TOKEN_TTL` | `PT15M` | không phải Duration ISO-8601 dương |
+
+> `PASSWORD_RESET_URL` trỏ tới một **trang frontend chưa tồn tại** — lỗ hổng #3 của
+> [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) nằm ở repo khác.
+> Đây là điều đã biết, không phải bất ngờ lúc ghép: link sẽ đúng ngay khi FE dựng trang, và sai một
+> cách hiển nhiên — 404 ngay khi bấm — nếu FE chọn đường khác.
 
 ### Test
 

@@ -36,10 +36,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("db")
 class SchemaSmokeTest {
 
-    /** 5 (sản phẩm) + 6 (user & quyền) + 5 (mua hàng) + 3 (địa giới). */
-    private static final int EXPECTED_TABLE_COUNT = 19;
+    /**
+     * 5 (sản phẩm) + 7 (user & quyền) + 5 (mua hàng) + 3 (địa giới).
+     * <p>
+     * <b>19 → 20 ở backlog 0017, và con số này chỉ được đổi khi có một ADR chống lưng.</b> Nó tồn
+     * tại để chặn việc thêm bảng <i>lặng lẽ</i>: {@code ddl-auto: update} khiến một entity mới biến
+     * thành một bảng mới mà không ai phải phê duyệt gì, và ADR 0003 dòng 41 nêu đúng ví dụ
+     * {@code password_reset_token} làm tín hiệu phải quay lại hỏi PM. ADR 0004 là chỗ Owner duyệt
+     * tường minh <b>đúng một bảng</b> đó — không phải một giấy phép chung. Bảng tiếp theo vẫn phải
+     * quay lại hỏi.
+     * <p>
+     * Sửa hằng số này rồi báo "test vẫn xanh" là làm mất đúng thứ nó bảo vệ.
+     */
+    private static final int EXPECTED_TABLE_COUNT = 20;
 
-    private static final int EXPECTED_FOREIGN_KEY_COUNT = 16;
+    /**
+     * <b>16 → 17 ở backlog 0017</b> — đúng một khoá ngoại mới:
+     * {@code password_reset_token.user_id} → {@code user.id} ({@code fk_password_reset_token_user}).
+     * <p>
+     * Đếm riêng khỏi số bảng vì hai con số hỏng theo hai kiểu khác nhau: một bảng mới <i>quên</i>
+     * khoá ngoại vẫn giữ nguyên số bảng đúng, và một dòng token mồ côi thì không có gì phát hiện ra
+     * cho tới lúc cần biết nó thuộc về ai.
+     */
+    private static final int EXPECTED_FOREIGN_KEY_COUNT = 17;
 
     private final DataSource dataSource;
 
@@ -49,12 +68,12 @@ class SchemaSmokeTest {
     }
 
     @Test
-    @DisplayName("Schema co dung 19 bang")
+    @DisplayName("Schema co dung 20 bang")
     void schemaHasExpectedTableCount() throws SQLException {
         String actual = getScalar("SELECT COUNT(*) FROM information_schema.tables"
                 + " WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'");
         assertEquals(String.valueOf(EXPECTED_TABLE_COUNT), actual,
-                "So bang trong nss_db khong dung 19");
+                "So bang trong nss_db khong dung " + EXPECTED_TABLE_COUNT);
     }
 
     @Test

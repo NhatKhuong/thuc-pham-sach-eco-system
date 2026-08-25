@@ -1,6 +1,7 @@
 package com.nss.ddd.application.mapper;
 
 import com.nss.ddd.application.model.command.RegisterCommand;
+import com.nss.ddd.application.model.command.UpdateProfileCommand;
 import com.nss.ddd.application.model.response.UserResponse;
 import com.nss.ddd.domain.model.entity.User;
 
@@ -58,5 +59,46 @@ public final class UserMapper {
                 .setFullName(command.getFullName())
                 .setEmail(command.getEmail())
                 .setPhone(command.getPhone());
+    }
+
+    /**
+     * Áp một bản vá <b>từng phần</b> lên entity đang được transaction quản lý.
+     * <p>
+     * <b>Đọc kỹ sự đối lập với {@code ProductMapper.applyUpdate} trước khi chép mẫu.</b> Cái kia là
+     * <i>thay thế toàn phần</i>: nó gán <b>mọi</b> trường từ command, kể cả khi giá trị là
+     * {@code null}, vì {@code PUT /products/{id}} thay trọn bản ghi. Method này làm điều ngược lại —
+     * nó <b>bỏ qua</b> mọi trường {@code null}. Chép nhầm chiều: một người sửa mỗi {@code fullName}
+     * sẽ mất trắng {@code email} và {@code phone}, và vì cả hai cột đều {@code NOT NULL} thì lỗi nổ
+     * ở tầng JDBC lúc commit chứ không ở chỗ gây ra nó.
+     * <p>
+     * <b>Ba trường được vá là toàn bộ những gì được phép ghi.</b> {@code id}, {@code passwordHash},
+     * {@code avatar}, {@code createdAt} và mọi thứ liên quan tới vai trò không có mặt ở đây và
+     * không có mặt trong {@code UpdateProfileCommand} — hai lớp chặn cho cùng một luật §B.4 #2:
+     * sửa hồ sơ không được phép tự nâng quyền. Client gửi thừa những trường đó thì Jackson bỏ qua
+     * trong im lặng, đúng như contract yêu cầu.
+     * <p>
+     * <b>Method này sửa entity tại chỗ, nên gọi nó là một hành động KHÔNG hoàn tác được trong
+     * transaction.</b> Entity đọc trong {@code @Transactional} là entity được quản lý: sửa xong rồi
+     * trả về một giá trị thất bại thì transaction <i>vẫn commit</i>. Mọi cổng thất bại phải chạy
+     * <b>trước</b> lời gọi này — xem {@code AuthAppServiceImpl.updateProfile}.
+     *
+     * @param target entity đọc từ DB, đang được quản lý
+     * @param command bản vá; trường {@code null} nghĩa là giữ nguyên giá trị cũ
+     * @return chính {@code target} đã được vá, hoặc {@code null} khi tham số rỗng
+     */
+    public static User applyPatch(User target, UpdateProfileCommand command) {
+        if (target == null || command == null) {
+            return null;
+        }
+        if (command.getFullName() != null) {
+            target.setFullName(command.getFullName());
+        }
+        if (command.getEmail() != null) {
+            target.setEmail(command.getEmail());
+        }
+        if (command.getPhone() != null) {
+            target.setPhone(command.getPhone());
+        }
+        return target;
     }
 }

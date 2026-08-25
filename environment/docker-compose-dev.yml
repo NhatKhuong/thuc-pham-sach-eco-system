@@ -52,3 +52,37 @@ services:
       start_period: 30s
     networks:
       - ssn-event-network
+
+  # SMTP catcher cho moi truong dev (backlog 0017, ADR 0004).
+  #
+  # VI SAO CAN NO — va vi sao no khong duoc thay bang "ghi token ra log":
+  # POST /auth/forgot-password LUON tra 204, ke ca khi duong gui mail chet hoan toan. Nghia la mot
+  # bo test chi nhin ma HTTP se XANH voi mot he thong khong gui duoc email nao. Bang chung cua ticket
+  # 0017 vi vay khong phai ma 204 ma la MOT EMAIL THAT DEN NOI, va container nay la cho no den.
+  # ADR 0004 co xet phuong an ghi token ra log va loai no lam DICH DEN: thieu mot co tat cung o
+  # production thi day la ro token dat lai mat khau vao file log.
+  #
+  # KHONG PHAI MAY CHU MAIL THAT: Mailpit nhan MOI thu gui toi va KHONG chuyen tiep di dau ca. Do
+  # dung la thu can o may dev — khong co nguy co gui nham mail that cho nguoi that trong luc kiem thu.
+  # Moi truong that dat MAIL_HOST / MAIL_PORT / MAIL_USERNAME / MAIL_PASSWORD tro toi SMTP that.
+  #
+  # Ghim phien ban (v1.21) chu khong dung `latest`: mot ban `latest` doi duoi chan lam bang chung
+  # kiem chung khong lap lai duoc. Day la IMAGE, khong phai dependency Maven — no khong di qua BOM
+  # spring-boot-dependencies va khong them truc bao tri nao vao classpath.
+  #
+  # Khong mount volume: mail bat duoc song trong RAM va mat khi container bi xoa. Do la co y — noi
+  # dung o day la du lieu kiem thu, va mot email dat lai mat khau nam lai tren dia sau khi test xong
+  # la mot ban sao cua bi mat ma khong ai con nho la minh dang giu.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: nss-event-mailpit
+    ports:
+      # 1025 = SMTP (spring.mail.port tro san vao day); 8025 = giao dien web de NHIN THAY email that
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - ssn-event-network

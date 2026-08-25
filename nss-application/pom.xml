@@ -56,5 +56,19 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
     </dependency>
+    <!-- JavaMailSender cho MailAppServiceImpl (backlog 0017, ADR 0004). Day la lan MO RONG STACK
+         that su: mail khong co ten trong bang stack architecture §2 o bat ky dang nao truoc ticket
+         nay — khac Redis va Resilience4j, hai thu CO ten trong §2 nhung chua noi day.
+         => architecture/01-overview.md §2 duoc cap nhat trong CUNG ticket nay.
+         Vi sao SMTP chu khong phai mot dich vu HTTP ben ngoai (Resend, SES): artifact nay nam trong
+         BOM spring-boot-dependencies 3.3.5 nen KHONG khai <version> va KHONG them property phien
+         ban nao — dung ly do ADR 0003 da loai jjwt mot lan truoc do. Mot SDK ben ngoai BOM la them
+         mot truc bao tri phai tu pin va tu theo doi.
+         Khai o day chu khong o nss-controller: MailAppServiceImpl song o module nay, va Maven chi
+         truyen dependency XUOI theo chieu phu thuoc. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
+    </dependency>
   </dependencies>
 </project>
