@@ -28,6 +28,37 @@ spring:
     hikari:
       maximum-pool-size: 100
 
+  mail:
+    # Duong gui mail (backlog 0017, ADR 0004). Theo dung nep ${ENV_VAR:dev-default} — khong tao profile moi.
+    #
+    # MAC DINH TRO TOI SMTP CATCHER trong environment/docker-compose-dev.yml (Mailpit, cong 1025),
+    # KHONG phai mot may chu that. Day la lua chon co y: mot cau hinh RONG thi ung dung van len xanh
+    # va endpoint van tra 204, chi co dieu khong email nao roi khoi he thong — dung kieu hong IM LANG
+    # ma ADR 0004 canh bao. Tro san vao catcher thi luong chay tron ven tren may dev, va giao dien web
+    # cua catcher o http://localhost:8025 la cho nhin thay email that.
+    #
+    # MOI TRUONG THAT BAT BUOC dat MAIL_HOST / MAIL_PORT / MAIL_USERNAME / MAIL_PASSWORD va bat
+    # MAIL_SMTP_AUTH=true, MAIL_SMTP_STARTTLS=true. Credential SMTP la bi mat THU HAI cua he thong
+    # sau jwt-secret — khong bao gio commit gia tri that vao file nay.
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    # Catcher noi bo khong doi xac thuc nen hai dong nay rong o dev; moi truong that thi bat buoc co.
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    # UTF-8 tuong minh: tieu de va than thu co dau tieng Viet.
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          # Khong de mot may chu SMTP cham giu mot luong mai mai. Gui chay bat dong bo nen ba timeout
+          # nay khong cham vao thoi gian phan hoi cua endpoint.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
   mvc:
     problemdetails:
       # RFC 7807: loi tra ve dang ProblemDetail thay vi body mac dinh {timestamp,status,error,path}
@@ -59,6 +90,28 @@ nss:
     # 15-60 phut va im lang ve refresh. Dinh dang ISO-8601 Duration.
     access-token-ttl: ${ACCESS_TOKEN_TTL:PT30M}
     refresh-token-ttl: ${REFRESH_TOKEN_TTL:P14D}
+    # Token dat lai mat khau (backlog 0017). Hop dong IM LANG ve con so nay — no la mot gia dinh da
+    # neu ro, khong phai contract.
+    # NGAN HON access token (PT30M) la CO CHU Y: mot link nam trong hop thu lau hon rat nhieu so voi
+    # mot token trong bo nho trinh duyet, va bat ky ai doc duoc hop thu do — hoac doc duoc mot ban
+    # sao lưu cua no — deu doi duoc mat khau. AuthAppServiceImpl fail luc khoi dong neu gia tri
+    # khong duong: mot TTL <= 0 khien moi token chet ngay khi vua sinh ra, va khong endpoint nao
+    # bao loi ve dieu do.
+    password-reset-token-ttl: ${PASSWORD_RESET_TOKEN_TTL:PT15M}
+    # Chong do tan suat cho POST /auth/forgot-password (backlog 0017 dieu 8). Dem theo CA hai khoa:
+    # IP nguoi goi va email dich — xem javadoc ForgotPasswordRateLimiter ve vi sao thieu mot trong
+    # hai la con duong.
+    forgot-password-max-attempts: ${FORGOT_PASSWORD_MAX_ATTEMPTS:5}
+    forgot-password-window: ${FORGOT_PASSWORD_WINDOW:PT15M}
+
+  mail:
+    # Dia chi nguoi gui. Fail luc khoi dong neu rong hoac khong chua '@' (MailAppServiceImpl).
+    from: ${MAIL_FROM:no-reply@nongsansach.local}
+    # Trang dat lai mat khau phia FRONTEND — CHUA TON TAI o thoi diem backlog 0017 dong (lo hong #3
+    # nam o repo khac). Dat sau bien moi truong nen no dung ngay khi FE dung trang, va sai mot cach
+    # hien nhien — 404 ngay khi bam — neu FE chon duong khac. Token di kem dang ?token=...
+    # Fail luc khoi dong neu khong phai mot URL http(s) tuyet doi.
+    password-reset-url: ${PASSWORD_RESET_URL:http://localhost:5173/dat-lai-mat-khau}
 
 # Swagger / OpenAPI 3 (backlog 0009). Bat mac dinh, tat duoc bang bien moi truong — khong tao profile moi.
 # Hai co tach rieng vi chung tat hai thu khac nhau: api-docs tat endpoint JSON /v3/api-docs,

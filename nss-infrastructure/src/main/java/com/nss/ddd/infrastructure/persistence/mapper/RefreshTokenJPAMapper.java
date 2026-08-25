@@ -63,4 +63,26 @@ public interface RefreshTokenJPAMapper extends JpaRepository<RefreshToken, Long>
     @Query("UPDATE RefreshToken rt SET rt.isRevoked = true"
             + " WHERE rt.token = :token AND rt.user.id = :userId AND rt.isRevoked = false")
     int markRevokedForUser(@Param("token") String token, @Param("userId") Long userId);
+
+    /**
+     * Thu hồi mọi dòng còn sống của một người dùng <b>trừ một dòng</b> — đường của
+     * {@code PUT /auth/password}.
+     * <p>
+     * {@code AND rt.isRevoked = false} giữ đúng nếp của hai câu trên: không đếm lại những dòng đã
+     * thu hồi từ trước, nên con số trả về là số phiên <i>thật sự</i> vừa bị đá ra.
+     * <p>
+     * <b>{@code keepId} phải là một giá trị thật, không bao giờ {@code null}.</b> {@code rt.id <>
+     * :keepId} với {@code keepId = NULL} cho ra UNKNOWN trên <i>mọi</i> dòng, tức câu lệnh thu hồi
+     * 0 dòng và im lặng. Việc chuẩn hoá nằm ở {@code RefreshTokenRepositoryImpl}; đừng gọi thẳng
+     * method này với một giá trị có thể rỗng.
+     *
+     * @param userId chủ sở hữu
+     * @param keepId id dòng được giữ lại — phiên đang gọi
+     * @return số dòng bị ảnh hưởng
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE RefreshToken rt SET rt.isRevoked = true"
+            + " WHERE rt.user.id = :userId AND rt.isRevoked = false AND rt.id <> :keepId")
+    int markRevokedForUserExcept(@Param("userId") Long userId, @Param("keepId") Long keepId);
 }

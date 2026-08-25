@@ -4,6 +4,7 @@ import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.User;
 import com.nss.ddd.domain.model.entity.UserRole;
+import com.nss.ddd.domain.repository.PasswordResetTokenRepository;
 import com.nss.ddd.domain.repository.RefreshTokenRepository;
 import com.nss.ddd.domain.repository.UserRepository;
 import com.nss.ddd.domain.repository.UserRoleRepository;
@@ -25,6 +26,8 @@ import java.time.temporal.ChronoUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -59,6 +62,9 @@ class AuthDomainServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
     /**
      * Dựng service với {@code BCryptPasswordEncoder} thật.
      *
@@ -66,7 +72,7 @@ class AuthDomainServiceTest {
      */
     private AuthDomainServiceImpl genService() {
         return new AuthDomainServiceImpl(userRepository, userRoleRepository, refreshTokenRepository,
-                new BCryptPasswordEncoder());
+                passwordResetTokenRepository, new BCryptPasswordEncoder());
     }
 
     @Test
@@ -164,6 +170,81 @@ class AuthDomainServiceTest {
         RefreshToken issued = service.issueRefreshToken(new User().setId(1L), Duration.ofDays(14));
 
         assertEquals(issued.getCreatedAt().plusDays(14), issued.getExpiresAt());
+    }
+
+    // ========== HO SO VA DOI MAT KHAU (backlog 0016) ==========
+
+    @Test
+    @DisplayName("updateProfile dong dau updatedAt theo gio UTC va khong cham truong nao khac")
+    void updateProfileStampsUpdatedAtInUtc() {
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AuthDomainServiceImpl service = genService();
+        LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        User user = new User()
+                .setId(1L)
+                .setFullName("Tên đã sửa")
+                .setEmail("demo@nongsansach.vn")
+                .setPhone("0900000000")
+                .setPasswordHash(SEEDED_DEMO_HASH)
+                .setCreatedAt(before.minusDays(3));
+
+        User saved = service.updateProfile(user);
+
+        assertNotNull(saved.getUpdatedAt());
+        assertFalse(saved.getUpdatedAt().isBefore(before), "updatedAt phai la gio UTC hien tai");
+        // Cac truong khac giu nguyen — domain service chi dong dau va ghi
+        assertEquals("Tên đã sửa", saved.getFullName());
+        assertEquals(SEEDED_DEMO_HASH, saved.getPasswordHash());
+        assertEquals(before.minusDays(3), saved.getCreatedAt());
+    }
+
+    /**
+     * Mật khẩu thô <b>không bao giờ</b> đi xuống DB. Encoder ở file này là bản thật, nên ca này
+     * chứng minh cả hai điều cùng lúc: hash được thay, và hash mới đúng là bcrypt của chuỗi mới.
+     */
+    @Test
+    @DisplayName("changePassword bam mat khau moi, khong bao gio luu chuoi tho")
+    void changePasswordHashesTheNewPassword() {
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AuthDomainServiceImpl service = genService();
+        User user = new User().setId(1L).setPasswordHash(SEEDED_DEMO_HASH);
+
+        User saved = service.changePassword(user, "mat-khau-moi");
+
+        assertNotEquals(SEEDED_DEMO_HASH, saved.getPasswordHash(), "Hash cu phai bi thay");
+        assertNotEquals("mat-khau-moi", saved.getPasswordHash(), "Khong duoc luu chuoi tho");
+        assertTrue(saved.getPasswordHash().startsWith("$2a$10$"), "Van phai la bcrypt strength 10");
+        assertEquals(60, saved.getPasswordHash().length());
+        assertTrue(service.hasMatchingPassword("mat-khau-moi", saved.getPasswordHash()));
+        assertFalse(service.hasMatchingPassword("123456", saved.getPasswordHash()));
+        assertNotNull(saved.getUpdatedAt(), "Doi mat khau cung phai dong dau updatedAt");
+    }
+
+    /**
+     * <b>{@code null} phải đi xuyên qua tầng này chứ không bị chặn lại.</b> Chặn ở đây sẽ biến ca
+     * "token cũ không có {@code sid}" thành "không thu hồi gì" — đúng hướng hỏng nguy hiểm mà ticket
+     * cấm. Việc chuẩn hoá thành giá trị canh gác là của adapter.
+     */
+    @Test
+    @DisplayName("revokeOtherSessions truyen sid xuong nguyen ven, ke ca khi no la null")
+    void revokeOtherSessionsPassesSessionIdThrough() {
+        AuthDomainServiceImpl service = genService();
+        when(refreshTokenRepository.revokeAllOfUserExcept(1L, null)).thenReturn(3);
+        when(refreshTokenRepository.revokeAllOfUserExcept(1L, 42L)).thenReturn(2);
+
+        assertEquals(3, service.revokeOtherSessions(1L, null));
+        assertEquals(2, service.revokeOtherSessions(1L, 42L));
+        verify(refreshTokenRepository).revokeAllOfUserExcept(1L, null);
+        verify(refreshTokenRepository).revokeAllOfUserExcept(1L, 42L);
+    }
+
+    @Test
+    @DisplayName("findById va revokeOtherSessions chiu duoc userId null ma khong nem exception")
+    void nullUserIdIsHandled() {
+        AuthDomainServiceImpl service = genService();
+
+        assertNull(service.findById(null));
+        assertEquals(0, service.revokeOtherSessions(null, 42L));
     }
 
     /**

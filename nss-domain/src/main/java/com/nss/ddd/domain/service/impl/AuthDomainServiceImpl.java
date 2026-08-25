@@ -1,9 +1,11 @@
 package com.nss.ddd.domain.service.impl;
 
+import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.User;
 import com.nss.ddd.domain.model.entity.UserRole;
+import com.nss.ddd.domain.repository.PasswordResetTokenRepository;
 import com.nss.ddd.domain.repository.RefreshTokenRepository;
 import com.nss.ddd.domain.repository.UserRepository;
 import com.nss.ddd.domain.repository.UserRoleRepository;
@@ -15,6 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -47,11 +52,32 @@ public class AuthDomainServiceImpl implements AuthDomainService {
 
     private static final Base64.Encoder TOKEN_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
+    /**
+     * Hàm băm của cột {@code password_reset_token.token_hash}.
+     * <p>
+     * <b>SHA-256 chứ không phải bcrypt, và lý do phải viết ra vì nó đi ngược trực giác "mật khẩu thì
+     * dùng bcrypt".</b> Thứ bcrypt bảo vệ là bí mật <i>entropy thấp</i> do người đặt: nó cố ý chậm để
+     * một cuộc dò từ điển trở nên đắt. Chuỗi ở đây là {@value #RESET_TOKEN_BYTES} byte ngẫu nhiên mã
+     * hoá — không có từ điển nào để dò, nên cái giá của bcrypt mua về đúng con số không. Đổi lại,
+     * salt riêng từng dòng của bcrypt làm cột này <b>không tra ngược được</b>: một câu
+     * {@code WHERE token_hash = :hash} sẽ không bao giờ khớp, và đường tra buộc phải quét cả bảng
+     * rồi {@code matches} từng dòng.
+     */
+    private static final String TOKEN_HASH_ALGORITHM = "SHA-256";
+
+    /**
+     * 32 byte ngẫu nhiên cho token đặt lại — cùng mức entropy với refresh token, và cùng lý do:
+     * đây là bí mật cho phép chiếm tài khoản, nên nó phải đến từ nguồn ngẫu nhiên mã hoá.
+     */
+    private static final int RESET_TOKEN_BYTES = 32;
+
     private final UserRepository userRepository;
 
     private final UserRoleRepository userRoleRepository;
 
     private final RefreshTokenRepository refreshTokenRepository;
+
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -68,6 +94,14 @@ public class AuthDomainServiceImpl implements AuthDomainService {
             return null;
         }
         return userRepository.findByEmail(email).orElse(null);
+    }
+
+    @Override
+    public User findById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return userRepository.findById(id).orElse(null);
     }
 
     @Override
@@ -160,6 +194,94 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         return revoked;
     }
 
+    @Override
+    public User updateProfile(User user) {
+        // Chi dong dau thoi gian va ghi. Ban va da duoc ap o tang application, va cong email trung
+        // da chay XONG truoc khi entity bi cham vao — xem AuthAppServiceImpl.updateProfile.
+        user.setUpdatedAt(genUtcNow());
+        User saved = userRepository.save(user);
+        log.info("updateProfile: saved user | userId={}", saved.getId());
+        return saved;
+    }
+
+    @Override
+    public User changePassword(User user, String rawNewPassword) {
+        // Mat khau tho khong bao gio di xuong DB va khong bao gio vao log (§9).
+        user.setPasswordHash(passwordEncoder.encode(rawNewPassword))
+                .setUpdatedAt(genUtcNow());
+        User saved = userRepository.save(user);
+        log.info("changePassword: password hash replaced | userId={}", saved.getId());
+        return saved;
+    }
+
+    @Override
+    public int revokeOtherSessions(Long userId, Long keepSessionId) {
+        if (userId == null) {
+            return 0;
+        }
+        // keepSessionId = null di thang xuong adapter, noi no duoc chuan hoa thanh gia tri canh gac.
+        // KHONG chan null o day: chan o day se bien "token cu khong co sid" thanh "khong thu hoi gi",
+        // dung huong hong nguy hiem ma ticket cam.
+        int revoked = refreshTokenRepository.revokeAllOfUserExcept(userId, keepSessionId);
+        log.info("revokeOtherSessions: revoked | userId={} count={} keptSession={}",
+                userId, revoked, keepSessionId);
+        return revoked;
+    }
+
+    @Override
+    public int revokeAllSessions(Long userId) {
+        if (userId == null) {
+            return 0;
+        }
+        // keepId = null di thang xuong adapter, noi no duoc chuan hoa thanh gia tri canh gac (-1).
+        // Cot id la AUTO_INCREMENT nen khong dong nao mang gia tri am => `rt.id <> -1` dung voi MOI
+        // dong => thu hoi TAT CA, ke ca phien dang goi (backlog 0017 §Contract dieu 5).
+        int revoked = refreshTokenRepository.revokeAllOfUserExcept(userId, null);
+        log.info("revokeAllSessions: revoked every live session | userId={} count={}", userId, revoked);
+        return revoked;
+    }
+
+    // ========== PASSWORD RESET TOKEN ==========
+
+    @Override
+    public String issuePasswordResetToken(User user, Duration ttl) {
+        // 1. Sinh chuoi tho — gia tri nay ton tai trong bo nho DUNG mot lan va di thang vao email
+        String rawToken = genResetTokenValue();
+        LocalDateTime now = genUtcNow();
+        // 2. Chi HASH di xuong DB. Khong log rawToken o bat ky muc nao (§9 + javadoc PasswordResetToken)
+        PasswordResetToken saved = passwordResetTokenRepository.save(new PasswordResetToken()
+                .setUser(user)
+                .setTokenHash(genTokenHash(rawToken))
+                .setExpiresAt(now.plus(ttl))
+                .setIsUsed(Boolean.FALSE)
+                .setCreatedAt(now));
+        log.info("issuePasswordResetToken: issued | userId={} tokenId={} expiresAt={}",
+                user.getId(), saved.getId(), saved.getExpiresAt());
+        return rawToken;
+    }
+
+    @Override
+    public PasswordResetToken findUsablePasswordResetToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return null;
+        }
+        return passwordResetTokenRepository
+                .findUsableByTokenHash(genTokenHash(rawToken), genUtcNow())
+                .orElse(null);
+    }
+
+    @Override
+    public boolean consumePasswordResetToken(String rawToken) {
+        boolean consumed = rawToken != null && !rawToken.isBlank()
+                && passwordResetTokenRepository.markUsed(genTokenHash(rawToken), genUtcNow());
+        if (!consumed) {
+            // Khong log chuoi token va khong log userId: ba ca that bai gop lam mot o be mat day thi
+            // log cung phai giu nguyen tinh chat do (cung ky luat voi handleInvalidCredentials).
+            log.warn("consumePasswordResetToken: no usable row matched");
+        }
+        return consumed;
+    }
+
     // ========== HELPERS ==========
 
     /**
@@ -184,5 +306,53 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         byte[] bytes = new byte[REFRESH_TOKEN_BYTES];
         SECURE_RANDOM.nextBytes(bytes);
         return TOKEN_ENCODER.encodeToString(bytes);
+    }
+
+    /**
+     * Sinh chuỗi token đặt lại mật khẩu.
+     * <p>
+     * Base64 <b>URL-safe</b> là bắt buộc ở đây chứ không chỉ là thói quen như với refresh token:
+     * chuỗi này sống trong một link email dưới dạng query parameter, và {@code +} trên query string
+     * được giải mã thành dấu cách — token sẽ hỏng ở đúng ca thường gặp nhất, khi người dùng bấm vào
+     * link.
+     *
+     * @return chuỗi ngẫu nhiên 43 ký tự
+     */
+    private String genResetTokenValue() {
+        byte[] bytes = new byte[RESET_TOKEN_BYTES];
+        SECURE_RANDOM.nextBytes(bytes);
+        return TOKEN_ENCODER.encodeToString(bytes);
+    }
+
+    /**
+     * Băm chuỗi token thô thành giá trị của cột {@code token_hash}.
+     * <p>
+     * <b>Đây là hàm một chiều duy nhất đứng giữa một lần rò đọc DB và quyền chiếm tài khoản</b> —
+     * lý do đầy đủ nằm ở javadoc của {@code PasswordResetToken}. Vì sao SHA-256 chứ không phải
+     * bcrypt: xem {@link #TOKEN_HASH_ALGORITHM}.
+     * <p>
+     * {@code MessageDigest} <b>không</b> thread-safe nên phải lấy thể hiện mới mỗi lần gọi; đừng
+     * "tối ưu" nó thành một hằng dùng chung như {@code SECURE_RANDOM}.
+     *
+     * @param rawToken chuỗi token thô, không rỗng
+     * @return SHA-256 dạng hex thường, đúng 64 ký tự
+     */
+    private String genTokenHash(String rawToken) {
+        try {
+            byte[] digest = MessageDigest.getInstance(TOKEN_HASH_ALGORITHM)
+                    .digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                hex.append(Character.forDigit((b >> 4) & 0xF, 16))
+                        .append(Character.forDigit(b & 0xF, 16));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 la thuat toan BAT BUOC co mat trong moi ban Java SE — nhanh nay khong the xay
+            // ra tren mot JVM hop le. Nem IllegalStateException thay vi nuot: mot he thong khong bam
+            // duoc token thi khong duoc phep chay tiep va cap ra nhung dong khong tra nguoc duoc.
+            log.error("genTokenHash: {} is unavailable on this JVM", TOKEN_HASH_ALGORITHM, e);
+            throw new IllegalStateException(TOKEN_HASH_ALGORITHM + " is unavailable on this JVM", e);
+        }
     }
 }

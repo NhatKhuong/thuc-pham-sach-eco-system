@@ -7,6 +7,7 @@ com\nss\ddd\domain\model\entity\Address.class
 com\nss\ddd\domain\service\impl\CartDomainServiceImpl.class
 com\nss\ddd\domain\model\entity\District.class
 com\nss\ddd\domain\repository\UserRoleRepository.class
+com\nss\ddd\domain\repository\PasswordResetTokenRepository.class
 com\nss\ddd\domain\repository\ProductImageRepository.class
 com\nss\ddd\domain\service\impl\OrderDomainServiceImpl.class
 com\nss\ddd\domain\repository\ProductRepository.class
@@ -15,6 +16,7 @@ com\nss\ddd\domain\model\entity\OrderStatusHistory.class
 com\nss\ddd\domain\service\AuthDomainService.class
 com\nss\ddd\domain\service\HelloDomainService.class
 com\nss\ddd\domain\model\CartIssueType.class
+com\nss\ddd\domain\model\entity\PasswordResetToken.class
 com\nss\ddd\domain\model\entity\Product.class
 com\nss\ddd\domain\service\impl\CouponDomainServiceImpl.class
 com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.class

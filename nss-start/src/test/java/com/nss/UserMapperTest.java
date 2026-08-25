@@ -3,6 +3,7 @@ package com.nss;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nss.ddd.application.mapper.UserMapper;
 import com.nss.ddd.application.model.command.RegisterCommand;
+import com.nss.ddd.application.model.command.UpdateProfileCommand;
 import com.nss.ddd.application.model.response.AuthResponse;
 import com.nss.ddd.application.model.response.UserResponse;
 import com.nss.ddd.domain.model.entity.User;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -102,10 +104,81 @@ class UserMapperTest {
     }
 
     @Test
-    @DisplayName("Null vao thi null ra o ca hai chieu")
+    @DisplayName("Null vao thi null ra o ca ba chieu")
     void nullGuards() {
         assertNull(UserMapper.toResponse(null));
         assertNull(UserMapper.toEntity(null));
+        assertNull(UserMapper.applyPatch(null, new UpdateProfileCommand()));
+        assertNull(UserMapper.applyPatch(genUser(), null));
+    }
+
+    // ========== applyPatch — va TAI SAO no khac applyUpdate ==========
+
+    /**
+     * <b>Đối lập với {@code ProductMapper.applyUpdate}.</b> Cái kia là <i>thay thế toàn phần</i>:
+     * nó gán MỌI trường từ command, kể cả khi giá trị là {@code null}. Cái này bỏ qua trường
+     * {@code null}. Chép nhầm chiều: một người sửa mỗi {@code fullName} sẽ mất trắng {@code email}
+     * và {@code phone}, và vì cả hai cột đều {@code NOT NULL} thì lỗi nổ ở tầng JDBC lúc commit chứ
+     * không ở chỗ gây ra nó.
+     */
+    @Test
+    @DisplayName("applyPatch bo qua truong null — nguoc voi thay the toan phan cua applyUpdate")
+    void applyPatchKeepsFieldsLeftNull() {
+        User target = genUser();
+
+        UserMapper.applyPatch(target, new UpdateProfileCommand()
+                .setUserId(7L)
+                .setFullName("Tên Mới")
+                .setEmail(null)
+                .setPhone(null));
+
+        assertEquals("Tên Mới", target.getFullName());
+        assertEquals("demo@nongsansach.vn", target.getEmail(), "null nghia la giu nguyen");
+        assertEquals("0901234567", target.getPhone(), "null nghia la giu nguyen");
+    }
+
+    @Test
+    @DisplayName("applyPatch ghi de dung ba truong duoc gui len")
+    void applyPatchWritesEveryProvidedField() {
+        User target = genUser();
+
+        UserMapper.applyPatch(target, new UpdateProfileCommand()
+                .setUserId(7L)
+                .setFullName("Tên Mới")
+                .setEmail("moi@nongsansach.vn")
+                .setPhone("0909999999"));
+
+        assertEquals("Tên Mới", target.getFullName());
+        assertEquals("moi@nongsansach.vn", target.getEmail());
+        assertEquals("0909999999", target.getPhone());
+    }
+
+    /**
+     * §B.4 #2: sửa hồ sơ <b>không được phép tự nâng quyền</b>. {@code UpdateProfileCommand} không
+     * có chỗ nào mang {@code id} / {@code avatar} / {@code passwordHash} / {@code createdAt}, và ca
+     * này khoá lại việc chúng vẫn nguyên vẹn sau khi vá.
+     */
+    @Test
+    @DisplayName("applyPatch khong bao gio cham id, avatar, passwordHash hay createdAt")
+    void applyPatchNeverTouchesProtectedFields() {
+        User target = genUser();
+
+        UserMapper.applyPatch(target, new UpdateProfileCommand()
+                .setUserId(999L)
+                .setFullName("Tên Mới"));
+
+        assertEquals(7L, target.getId(), "userId cua command la CHU ho so, khong phai gia tri ghi de");
+        assertEquals("/images/avatar/an.jpg", target.getAvatar());
+        assertEquals(PASSWORD_HASH, target.getPasswordHash());
+        assertEquals(LocalDateTime.of(2026, 8, 22, 0, 0), target.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("applyPatch sua tai cho, tra ve chinh entity duoc truyen vao")
+    void applyPatchMutatesInPlace() {
+        User target = genUser();
+
+        assertSame(target, UserMapper.applyPatch(target, new UpdateProfileCommand()));
     }
 
     /**

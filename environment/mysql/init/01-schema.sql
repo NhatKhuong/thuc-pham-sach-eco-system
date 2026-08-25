@@ -109,6 +109,16 @@
         primary key (id)
     ) comment='Nhat ky chuyen trang thai cua don hang' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
+    create table password_reset_token (
+        is_used bit not null comment 'Da dung hay chua; dat mat khau thanh cong dat cot nay thanh true',
+        created_at datetime(6) not null comment 'Thoi diem phat token, luu theo gio UTC',
+        expires_at datetime(6) not null comment 'Thoi diem het han, luu theo gio UTC',
+        id bigint not null auto_increment comment 'Khoa chinh',
+        user_id bigint not null comment 'Nguoi dung yeu cau dat lai mat khau',
+        token_hash varchar(64) not null comment 'SHA-256 cua token dang hex, duy nhat; chuoi tho khong bao gio duoc luu',
+        primary key (id)
+    ) comment='Token dat lai mat khau, dung mot lan, luu duoi dang hash' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
     create table permission (
         created_at datetime(6) not null comment 'Thoi diem tao, luu theo gio UTC',
         id bigint not null auto_increment comment 'Khoa chinh',
@@ -252,6 +262,12 @@
     create index idx_order_id 
        on order_status_history (order_id);
 
+    create index idx_user_id 
+       on password_reset_token (user_id);
+
+    alter table password_reset_token 
+       add constraint uk_token_hash unique (token_hash);
+
     alter table permission 
        add constraint uk_code unique (code);
 
@@ -332,6 +348,11 @@
        add constraint fk_order_status_history_order 
        foreign key (order_id) 
        references customer_order (id);
+
+    alter table password_reset_token 
+       add constraint fk_password_reset_token_user 
+       foreign key (user_id) 
+       references user (id);
 
     alter table product 
        add constraint fk_product_brand 

@@ -48,9 +48,48 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 | logstash-logback-encoder | 8.0 | Log JSON → Logstash TCP                                                            |
 | Spring Security |  | Xác thực và phân quyền theo RBAC                                                   |
 | Swagger | **2.6.0** | `springdoc-openapi-starter-webmvc-ui`, khai ở `*-controller`; BOM không quản version nên pin ở root pom |
+| Gửi mail (SMTP) |  | `spring-boot-starter-mail`, khai ở `*-application`. Cấu hình qua `spring.mail.*` theo nếp `${ENV_VAR:dev-default}`; **credential SMTP là bí mật thứ hai của hệ thống sau `jwt-secret`**. Dev trỏ sẵn vào SMTP catcher trong `environment/docker-compose-dev.yml` (Mailpit, SMTP 1025, giao diện web 8025) — bắt mọi thư và **không chuyển tiếp đi đâu**, nên không có nguy cơ gửi nhầm mail thật lúc kiểm thử. Gửi chạy `@Async` (ADR 0004) |
+
 **Cố ý không có** — đừng thêm nếu không có lý do được duyệt:
 
 - **MapStruct** → converter viết tay (`*Mapper` với method `public static`). Đổi lấy tính minh bạch khi debug.
+
+**Có tên ở bảng trên nhưng CHƯA nối dây.** Đo trên source, không phỏng đoán — đếm **khai báo
+`<artifactId>` thật**, không đếm chuỗi xuất hiện trong file:
+
+```bash
+# Dem dependency THAT, khong dinh vao comment
+for t in kafka guava actuator micrometer logstash resilience redis lettuce redisson; do
+  echo "$t: $(grep -rhoi "<artifactId>[^<]*$t[^<]*</artifactId>" --include=pom.xml . | wc -l)"
+done
+# Control duong — phai ra khac 0
+grep -rhoi "<artifactId>[^<]*mysql[^<]*</artifactId>" --include=pom.xml . | wc -l   # 1
+grep -rhoi "<artifactId>[^<]*mail[^<]*</artifactId>"  --include=pom.xml . | wc -l   # 1
+```
+
+Đo ngày 2026-08-25: **cả chín đều ra 0** — Redis, Lettuce, Redisson, Resilience4j, Kafka, Guava,
+Actuator, micrometer, logstash-logback-encoder. `application.yml` cũng **0 hit** `redis`,
+`resilience`, `kafka`.
+
+> **Vì sao phải đếm `<artifactId>` chứ không `grep` chuỗi trần:** phép đo cũ trong tài liệu này đếm
+> chuỗi, và nó **tự hỏng ngay trong ticket đầu tiên viết một comment nhắc tên Redis** —
+> `nss-application/pom.xml` giải thích vì sao *không* dùng Resilience4j, thế là `grep -ril resilience`
+> ra 1 file và con số "0 hit" thành sai trong khi không có dependency nào được thêm. Một phép đo mà
+> việc *ghi lại lý do* làm nó sai thì nó đang phạt đúng thứ đáng khuyến khích.
+
+Phân biệt "có tên nhưng chưa nối dây" với "không có tên" là **load-bearing, đừng xoá cho gọn**: một
+thành phần *có tên* trong bảng thì nối nó lên là **thi hành tài liệu**; một thành phần *không có
+tên* ở bất kỳ dạng nào thì thêm nó là **mở rộng stack** và phải cập nhật bảng này trong cùng ticket.
+Mail vừa đi qua đúng con đường thứ hai ở backlog 0017 — đó là lý do dòng "Gửi mail (SMTP)" ra đời.
+
+Hệ quả thực tế đã gặp: cả Redis lẫn Resilience4j đều **nằm ngoài BOM `spring-boot-dependencies`
+3.3.5**, nên nối dây chúng là thêm một `<version>` phải tự pin và tự theo dõi — đúng trục bảo trì mà
+ADR 0003 đã từ chối một lần khi loại `jjwt`. Vì vậy chống dò tần suất của
+`POST /auth/forgot-password` được làm bằng một bộ đếm cửa sổ cố định **trong bộ nhớ**
+(`ForgotPasswordRateLimiter`) thay vì kéo Resilience4j vào cho một `Map` đếm số. Giới hạn đã biết:
+bộ đếm là process-local, nên chạy nhiều instance thì ngưỡng thực tế nhân lên theo số instance. Khi
+cần một bộ đếm **dùng chung giữa các instance** thì Redis mới là câu trả lời đúng, không phải
+Resilience4j.
 
 ---
 
@@ -264,4 +303,4 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-08-23 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-25 — cập nhật stamp này trong cùng lần sửa nội dung.*

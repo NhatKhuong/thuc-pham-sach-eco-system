@@ -98,6 +98,77 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Không tìm thấy tài khoản ứng với claim {@code sub}.
+     *
+     * @param e lỗi không tìm thấy người dùng
+     * @return 404 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ProblemDetail handleUserNotFound(UserNotFoundException e) {
+        log.warn("handleUserNotFound: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /**
+     * Sai mật khẩu hiện tại khi đổi mật khẩu.
+     * <p>
+     * <b>422, không phải 401</b> — 401 là tín hiệu "access token hỏng" mà {@code client.ts} phản
+     * ứng bằng cách gọi {@code /auth/refresh} rồi đăng xuất; xem javadoc của
+     * {@link InvalidCurrentPasswordException}.
+     * <p>
+     * <b>Cố ý KHÔNG đặt khoá {@code errors}</b>: sự vắng mặt của nó là thứ phân biệt 422 này với
+     * 422 của validate. Và <b>cố ý không log định danh nào</b>, đúng kỷ luật của
+     * {@link #handleInvalidCredentials}: một dòng log gắn userId vào mỗi lần đoán sai mật khẩu biến
+     * file log thành bản ghi các nỗ lực dò mật khẩu theo từng tài khoản.
+     *
+     * @param e lỗi sai mật khẩu hiện tại
+     * @return 422 kèm {@code detail} tiếng Việt, <b>không</b> có khoá {@code errors}
+     */
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ProblemDetail handleInvalidCurrentPassword(InvalidCurrentPasswordException e) {
+        log.warn("handleInvalidCurrentPassword: current password rejected");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    /**
+     * Token đặt lại mật khẩu không dùng được — <b>một handler cho cả ba ca</b> (không tồn tại, đã
+     * dùng, đã hết hạn).
+     * <p>
+     * <b>422, không phải 401</b> — người gọi đang <i>không đăng nhập</i>, nên 401 vô nghĩa ở đây;
+     * lý do đầy đủ nằm ở javadoc của {@link InvalidResetTokenException}.
+     * <p>
+     * <b>Cố ý KHÔNG đặt khoá {@code errors}</b>: sự vắng mặt của nó là thứ phân biệt 422 này với
+     * 422 của validate — cùng quy ước đã chốt ở {@link #handleInvalidCurrentPassword}. Và <b>cố ý
+     * không log gì ngoài một câu cố định</b>: ba ca gộp làm một ở bề mặt dây thì log cũng phải giữ
+     * nguyên tính chất đó, còn chuỗi token thì tuyệt đối không được ghi ra — DB chỉ giữ hash, nên
+     * một dòng log sẽ là nơi duy nhất chuỗi thô còn tồn tại.
+     *
+     * @param e lỗi token đặt lại không hợp lệ
+     * @return 422 kèm {@code detail} tiếng Việt, <b>không</b> có khoá {@code errors}
+     */
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ProblemDetail handleInvalidResetToken(InvalidResetTokenException e) {
+        log.warn("handleInvalidResetToken: reset token rejected");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    /**
+     * Vượt ngưỡng tần suất — hiện chỉ {@code POST /auth/forgot-password} (backlog 0017 điều 8).
+     * <p>
+     * <b>429, không phải 403.</b> 403 đọc như một trạng thái vĩnh viễn mà người dùng không sửa
+     * được; 429 nói đúng sự thật — quá nhanh, thử lại sau — và là mã duy nhất frontend dịch được
+     * thành một câu hướng dẫn có ích.
+     *
+     * @param e lỗi vượt ngưỡng tần suất
+     * @return 429 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ProblemDetail handleTooManyRequests(TooManyRequestsException e) {
+        log.warn("handleTooManyRequests: forgot-password rate limit rejected a call");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
+    }
+
+    /**
      * @param e lỗi vi phạm quy tắc nghiệp vụ
      * @return 422 kèm {@code detail} tiếng Việt
      */
