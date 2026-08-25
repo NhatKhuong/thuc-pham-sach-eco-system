@@ -100,4 +100,26 @@ public interface ProductRepository {
      *         sản phẩm đã bị xoá mềm từ trước
      */
     boolean softDelete(Long id, LocalDateTime deletedAt);
+
+    /**
+     * Trừ tồn kho bằng <b>conditional UPDATE</b>: {@code stock = stock - :quantity} với điều kiện
+     * {@code stock >= :quantity} (backlog 0014 §Contract 8).
+     * <p>
+     * <b>Không đọc-rồi-ghi, và không {@code @Version}.</b> Điều kiện nằm trong chính câu UPDATE nên
+     * hai người cùng mua món cuối cùng thì đúng một người thắng — không có cửa sổ nào giữa lúc đọc
+     * và lúc ghi để lọt qua. Khoá lạc quan giải cùng bài toán bằng cách phát hiện xung đột
+     * <i>sau khi</i> đã đọc sai, và coding-conventions §6 chốt là dự án này không dùng nó.
+     * <p>
+     * Vế {@code isActive = true} nằm cùng điều kiện: một sản phẩm đã xoá mềm hành xử như thể không
+     * tồn tại theo đúng quy ước của port này, nên nó không bán được nữa dù kho còn hàng.
+     * <p>
+     * <b>Không đụng tới {@code sold}.</b> Cột thống kê đó không nằm trong phạm vi backlog 0014; gộp
+     * nó vào đây là một thay đổi lặng lẽ về ý nghĩa của một con số đang hiển thị trên trang sản phẩm.
+     *
+     * @param id khoá chính của sản phẩm
+     * @param quantity số lượng cần trừ, phải dương
+     * @return true khi có đúng một dòng bị trừ; false khi không đủ tồn kho, id không tồn tại, hoặc
+     *         sản phẩm đã bị xoá mềm
+     */
+    boolean decreaseStock(Long id, int quantity);
 }

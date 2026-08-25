@@ -3,8 +3,10 @@ package com.nss.ddd.infrastructure.persistence.mapper;
 import com.nss.ddd.domain.model.entity.Coupon;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,4 +64,32 @@ public interface CouponJPAMapper extends JpaRepository<Coupon, String> {
             + " AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)"
             + " ORDER BY c.code ASC")
     List<Coupon> findRedeemable(@Param("now") LocalDateTime now);
+
+    /**
+     * Đốt một lượt của mã bằng <b>conditional UPDATE</b> (backlog 0014 §Contract 8).
+     * <p>
+     * <b>Vế {@code usedCount < usageLimit} nằm trong chính câu UPDATE</b>, cùng kỷ luật với
+     * {@code ProductJPAMapper.decreaseStock} và cùng lý do: {@code CouponDomainService.isRedeemable}
+     * đã trả lời "còn lượt" ở một thời điểm trước đó trong cùng transaction, nhưng một đơn khác có
+     * thể đã lấy mất lượt cuối trong khoảng giữa. Một chiến dịch giới hạn 100 lượt mà kiểm-rồi-ghi
+     * sẽ phát ra 103 mã giảm giá vào giờ cao điểm, và không có gì báo lỗi.
+     * <p>
+     * {@code usageLimit} {@code null} nghĩa là không giới hạn nên phải có nhánh {@code IS NULL} —
+     * thiếu nó thì cả ba mã seed (đều để {@code NULL}) không đốt được lượt nào và <b>mọi</b> đơn có
+     * mã giảm giá rơi xuống 422.
+     * <p>
+     * So khớp {@code UPPER()} giữ đúng quy ước của {@link #findByCodeIgnoreCase} — nhưng tầng gọi
+     * luôn truyền vào mã <i>chuẩn trong DB</i> lấy từ chính bản ghi vừa tra, không truyền chuỗi
+     * người dùng gõ.
+     *
+     * @param code mã giảm giá
+     * @return số dòng bị ảnh hưởng — {@code 1} là đốt được một lượt, {@code 0} là đã hết lượt hoặc
+     *         mã không tồn tại
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Coupon c SET c.usedCount = c.usedCount + 1"
+            + " WHERE UPPER(c.code) = UPPER(:code)"
+            + " AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)")
+    int increaseUsedCount(@Param("code") String code);
 }

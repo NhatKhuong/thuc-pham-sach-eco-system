@@ -83,4 +83,17 @@ public class ProductRepositoryImpl implements ProductRepository {
         // Rows-affected la khai niem cua tang nay; domain chi thay boolean (coding-conventions §12)
         return productJPAMapper.markInactive(id, deletedAt) > 0;
     }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>So sánh {@code != 1} chứ không {@code > 0}, và khác biệt đó là có thật:</b> một câu UPDATE
+     * khoá theo khoá chính không bao giờ đụng được hai dòng, nên một kết quả khác 1 nghĩa là có gì
+     * đó sai ở mức giả định chứ không chỉ là "không đủ hàng". Biến nó thành {@code false} ở đây, và
+     * tầng trên rollback — đúng như §Contract 8 chốt: số dòng ảnh hưởng khác 1 thì huỷ cả đơn.
+     */
+    @Override
+    public boolean decreaseStock(Long id, int quantity) {
+        return productJPAMapper.decreaseStock(id, quantity) == 1;
+    }
 }

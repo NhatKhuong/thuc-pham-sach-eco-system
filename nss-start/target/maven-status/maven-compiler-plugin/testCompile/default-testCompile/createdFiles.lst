@@ -1,12 +1,14 @@
+com\nss\SecurityRulesTest.class
+com\nss\OrderDomainServiceTest.class
+com\nss\UserMapperTest.class
+com\nss\CartDomainServiceTest.class
 com\nss\PaginatedResponseTest.class
 com\nss\SchemaSmokeTest.class
 com\nss\CouponMapperTest.class
 com\nss\ProductDomainServiceTest.class
 com\nss\AuthDomainServiceTest.class
-com\nss\SecurityRulesTest.class
 com\nss\CouponDomainServiceTest.class
+com\nss\OrderMapperTest.class
 com\nss\ProductMapperTest.class
 com\nss\HelloEndpointTest.class
-com\nss\UserMapperTest.class
-com\nss\CartDomainServiceTest.class
 com\nss\CartMapperTest.class

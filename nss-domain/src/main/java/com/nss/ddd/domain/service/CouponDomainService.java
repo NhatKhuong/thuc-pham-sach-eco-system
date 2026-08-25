@@ -20,6 +20,23 @@ import java.util.List;
 public interface CouponDomainService {
 
     /**
+     * Kiểu giảm giá theo phần trăm — cột {@code coupon.type} lưu {@code 0}, dây mang chuỗi
+     * {@code percent} (backlog 0014 §Contract 4).
+     * <p>
+     * <b>Hai hằng này khai ở domain vì có hai người dùng ở hai tầng khác nhau.</b>
+     * {@code OrderDomainServiceImpl.calcDiscount} đọc chúng để biết nhân phần trăm hay lấy số tiền
+     * trần, còn {@code CouponMapper} đọc chúng để dịch sang chuỗi của dây. Chiều phụ thuộc chỉ cho
+     * phép một hướng — application thấy domain, domain không thấy application — nên chỗ duy nhất
+     * chứa được cả hai người dùng là domain. Khai hai bản thì một ngày nào đó phép tính coi
+     * {@code 0} là {@code fixed} trong khi bảng dịch vẫn nói {@code percent}, và triệu chứng là một
+     * đơn giảm 10 ₫ thay vì 10%.
+     */
+    int TYPE_PERCENT = 0;
+
+    /** Kiểu giảm giá theo số tiền cố định — cột lưu {@code 1}, dây mang {@code fixed}. */
+    int TYPE_FIXED = 1;
+
+    /**
      * Tra mã theo chuỗi người dùng gõ.
      * <p>
      * <b>Cắt khoảng trắng hai đầu và bỏ qua hoa thường</b> (backlog 0014 §Contract 4): frontend gửi

@@ -2,6 +2,7 @@ package com.nss.ddd.application.mapper;
 
 import com.nss.ddd.application.model.response.CouponResponse;
 import com.nss.ddd.domain.model.entity.Coupon;
+import com.nss.ddd.domain.service.CouponDomainService;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,11 +26,17 @@ import java.util.List;
  */
 public final class CouponMapper {
 
-    /** Giá trị {@code type} trong DB cho mã giảm theo phần trăm. */
-    private static final int TYPE_PERCENT = 0;
+    /**
+     * Giá trị {@code type} trong DB cho mã giảm theo phần trăm.
+     * <p>
+     * <b>Tham chiếu hằng của domain chứ không khai lại con số</b> (backlog 0014 phase 3): phép tính
+     * {@code discount} ở {@code OrderDomainServiceImpl} đọc cùng hai giá trị này, và một bản chép ở
+     * đây sẽ là bản thứ hai của đúng bảng ánh xạ mà javadoc phía trên vừa cấm nhân đôi.
+     */
+    private static final int TYPE_PERCENT = CouponDomainService.TYPE_PERCENT;
 
-    /** Giá trị {@code type} trong DB cho mã giảm số tiền cố định. */
-    private static final int TYPE_FIXED = 1;
+    /** Giá trị {@code type} trong DB cho mã giảm số tiền cố định — xem {@link #TYPE_PERCENT}. */
+    private static final int TYPE_FIXED = CouponDomainService.TYPE_FIXED;
 
     /** Chuỗi {@code type} trên dây cho mã giảm theo phần trăm — khớp {@code src/types/cart.ts}. */
     public static final String WIRE_TYPE_PERCENT = "percent";

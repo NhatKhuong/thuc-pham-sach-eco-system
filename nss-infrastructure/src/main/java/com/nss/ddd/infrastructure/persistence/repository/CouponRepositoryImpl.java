@@ -34,4 +34,10 @@ public class CouponRepositoryImpl implements CouponRepository {
     public List<Coupon> findRedeemable(LocalDateTime now) {
         return couponJPAMapper.findRedeemable(now);
     }
+
+    @Override
+    public boolean increaseUsedCount(String code) {
+        // Rows-affected la khai niem cua tang nay; domain chi thay boolean (coding-conventions §12)
+        return couponJPAMapper.increaseUsedCount(code) > 0;
+    }
 }

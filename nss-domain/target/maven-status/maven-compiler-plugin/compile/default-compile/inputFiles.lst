@@ -26,6 +26,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CategoryRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CouponRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\HelloRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\OrderRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductImageRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\RefreshTokenRepository.java
@@ -39,5 +40,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\CartDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\CouponDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\OrderDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\ProductDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\OrderDomainService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\ProductDomainService.java

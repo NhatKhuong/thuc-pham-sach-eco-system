@@ -116,6 +116,46 @@ public class SecurityConfig {
     public static final String PATH_CART_VALIDATE = "/api/cart/validate";
 
     /**
+     * Đặt hàng — công khai theo API_CONTRACT §B.6, và <b>chỉ với {@code POST}</b>.
+     * <p>
+     * <b>Đây là đường GHI công khai đầu tiên của dự án, và lý do là nghiệp vụ chứ không phải sơ
+     * suất.</b> §B.6 đánh dấu {@code createOrder} là ⬜ vì khách vãng lai phải mua được hàng trước
+     * khi có tài khoản. Thứ được bảo vệ ở đây không phải "ai được gọi" mà là "cái gì được ghi": mọi
+     * con số tiền do backend tự tính lại từ database (§C.1) và {@code userId} chỉ đến từ claim
+     * {@code sub} (§C.2), nên một lời gọi ẩn danh không đặt được đơn hộ người khác và không tự chọn
+     * được giá.
+     * <p>
+     * <b>Công khai nghĩa là đi được khi KHÔNG có token, không phải khi token sai.</b> Request vẫn
+     * qua bộ lọc bearer của resource server: một token hỏng hoặc hết hạn bị chặn <b>401</b> trước
+     * khi tới handler. Đây là ca test bắt buộc của backlog 0014 §Contract 5, không phải chi tiết
+     * cài đặt.
+     */
+    public static final String PATH_ORDER_CREATE = "/api/orders";
+
+    /**
+     * Đơn hàng của chính người đang đăng nhập — <b>bắt buộc có token</b> (§B.6, §C.4.1).
+     * <p>
+     * <b>Dòng luật của đường dẫn này PHẢI đứng trên dòng {@code permitAll} của
+     * {@link #PATH_ORDER_BY_CODE}.</b> Mẫu {@code /api/orders/*} khớp cả {@code /api/orders/me}, và
+     * {@code authorizeHttpRequests} áp dòng <i>khớp đầu tiên</i> — đảo lại thì lịch sử mua hàng
+     * riêng của từng khách thành công khai, chỉ cần biết đường dẫn. Không exception nào, không dòng
+     * log nào: endpoint vẫn trả 200, chỉ là trả cho bất kỳ ai. Luật hẹp trước, luật rộng sau — đúng
+     * kỷ luật đã ghi ở javadoc cấp class.
+     */
+    public static final String PATH_ORDER_ME = "/api/orders/me";
+
+    /**
+     * Tra đơn theo mã — công khai theo §B.6, và <b>chỉ với {@code GET}</b>.
+     * <p>
+     * <b>Một dấu sao chứ không hai.</b> {@code /api/orders/*} khớp đúng một đoạn đường dẫn, tức chỉ
+     * {@code /api/orders/{code}}. {@code /api/orders/**} sẽ mở công khai mọi đường lồng ra đời sau
+     * này — {@code POST /api/orders/{code}/cancel} chẳng hạn — <i>trước khi</i> chúng kịp tồn tại.
+     * Nới quyền phải là một quyết định viết ra, không phải hệ quả phụ của việc chọn một mẫu rộng
+     * hơn mức cần (backlog 0012).
+     */
+    public static final String PATH_ORDER_BY_CODE = "/api/orders/*";
+
+    /**
      * Mã vai trò quản trị — <b>không</b> kèm tiền tố {@code ROLE_}.
      * <p>
      * {@code hasRole(...)} tự thêm tiền tố; truyền {@code "ROLE_ADMIN"} vào đây sẽ thành
@@ -223,7 +263,20 @@ public class SecurityConfig {
                         //    gio hang cua khach da dang nhap la du lieu rieng, nen moi duong gio
                         //    hang ra doi sau nay phai mac dinh bi khoa.
                         .requestMatchers(HttpMethod.POST, PATH_CART_VALIDATE).permitAll()
-                        // 5. Ba nhom con lai giu nguyen nhu truoc backlog 0012 — khong giao voi
+                        // 5. Don hang (§B.6, backlog 0014 phase 3). BA dong, va THU TU giua chung
+                        //    la mot phan cua luat:
+                        //    - /api/orders/me phai dung TRUOC /api/orders/* vi mau mot-sao khop ca
+                        //      hai. Dao lai thi lich su mua hang rieng cua tung khach thanh cong
+                        //      khai, endpoint van tra 200 va khong co gi bao loi.
+                        //    - Mot dau sao chu khong hai: /api/orders/** se mo san moi duong long
+                        //      ra doi sau nay (POST /api/orders/{code}/cancel chang han).
+                        //    - POST /api/orders la duong GHI cong khai — co y, xem javadoc hang.
+                        //      "Cong khai" o day nghia la di duoc khi KHONG co token; mot token
+                        //      hong van bi resource server chan 401 truoc khi toi handler.
+                        .requestMatchers(HttpMethod.GET, PATH_ORDER_ME).authenticated()
+                        .requestMatchers(HttpMethod.POST, PATH_ORDER_CREATE).permitAll()
+                        .requestMatchers(HttpMethod.GET, PATH_ORDER_BY_CODE).permitAll()
+                        // 6. Ba nhom con lai giu nguyen nhu truoc backlog 0012 — khong giao voi
                         //    ba nhom tren nen thu tu giua chung khong anh huong gi.
                         .requestMatchers(PATH_HELLO).permitAll()
                         .requestMatchers(PATHS_AUTH_PUBLIC).permitAll()

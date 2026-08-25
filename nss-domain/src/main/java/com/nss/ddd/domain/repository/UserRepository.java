@@ -25,6 +25,19 @@ public interface UserRepository {
     Optional<User> findByEmail(String email);
 
     /**
+     * Tra tài khoản theo khoá chính — đường dùng khi định danh đến từ claim {@code sub} của JWT.
+     * <p>
+     * Tồn tại vì {@code POST /orders} phải gắn chủ đơn cho một đơn hàng, và §C.2 nói định danh đó
+     * <b>chỉ</b> đến từ token chứ không bao giờ từ body. Tra lại bằng id là bước duy nhất biến một
+     * con số trong token thành một bản ghi có thật; bỏ bước đó và tin thẳng vào {@code sub} sẽ ghi
+     * được khoá ngoại trỏ tới một tài khoản không còn tồn tại.
+     *
+     * @param id khoá chính, lấy từ claim {@code sub}
+     * @return tài khoản, hoặc rỗng khi id không khớp dòng nào
+     */
+    Optional<User> findById(Long id);
+
+    /**
      * Email đã có ai giữ chưa — cổng kiểm trước khi {@code INSERT} để trả 409 thay vì lỗi ràng buộc
      * {@code uk_email} ở tầng dưới.
      *

@@ -114,4 +114,30 @@ public interface ProductJPAMapper extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.isActive = false, p.updatedAt = :deletedAt"
             + " WHERE p.id = :id AND p.isActive = true")
     int markInactive(@Param("id") Long id, @Param("deletedAt") LocalDateTime deletedAt);
+
+    /**
+     * Trừ tồn kho bằng <b>conditional UPDATE</b> (backlog 0014 §Contract 8).
+     * <p>
+     * <b>Vế {@code p.stock >= :quantity} là toàn bộ cơ chế chống bán quá kho, và nó phải nằm trong
+     * chính câu UPDATE này.</b> Đọc tồn kho, so trong Java, rồi mới ghi sẽ để lại một cửa sổ giữa
+     * hai bước: hai request đồng thời cùng đọc thấy còn 1 sẽ cùng ghi thành -1, và không ràng buộc
+     * nào của MySQL chặn lại. Ở đây engine khoá dòng ngay trong UPDATE, nên bên thua nhận về 0 dòng
+     * ảnh hưởng và tầng trên biến nó thành 409 kèm rollback.
+     * <p>
+     * <b>Không {@code clearAutomatically}, không {@code flushAutomatically}.</b> Luồng tạo đơn đọc
+     * {@code Product} <i>trước</i> bước này và không bao giờ đọc lại {@code stock} sau đó, nên con
+     * số tồn kho cũ còn nằm trong persistence context không đi vào phép tính nào. Bật
+     * {@code clearAutomatically} sẽ đẩy mọi entity khác của cùng transaction ra khỏi context và
+     * biến một luồng đang đúng thành một luồng phải nạp lại tất cả.
+     *
+     * @param id khóa chính của sản phẩm
+     * @param quantity số lượng cần trừ, phải dương
+     * @return số dòng bị ảnh hưởng — {@code 1} là trừ được; {@code 0} là không đủ tồn kho, id không
+     *         tồn tại, hoặc sản phẩm đã bị xoá mềm
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Product p SET p.stock = p.stock - :quantity"
+            + " WHERE p.id = :id AND p.isActive = true AND p.stock >= :quantity")
+    int decreaseStock(@Param("id") Long id, @Param("quantity") int quantity);
 }

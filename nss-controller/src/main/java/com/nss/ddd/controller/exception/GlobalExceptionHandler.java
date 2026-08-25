@@ -135,6 +135,58 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @param e không tìm thấy đơn hàng
+     * @return 404 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ProblemDetail handleOrderNotFound(OrderNotFoundException e) {
+        log.warn("handleOrderNotFound: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /**
+     * Đặt hàng với giỏ trống.
+     * <p>
+     * <b>400, không phải 422</b> — API_CONTRACT §B.6 khai đúng chữ "400 giỏ trống". Đây là ca duy
+     * nhất trong dự án trả 400 cho một lỗi <i>nội dung</i> body: mọi lỗi theo từng trường đều là
+     * 422 kèm map {@code errors}, còn giỏ trống thì không có ô nhập nào để chỉ vào.
+     *
+     * @param e giỏ hàng không có dòng nào
+     * @return 400 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(EmptyOrderException.class)
+    public ProblemDetail handleEmptyOrder(EmptyOrderException e) {
+        log.warn("handleEmptyOrder: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /**
+     * Một dòng hàng không mua được lúc đặt đơn.
+     * <p>
+     * <b>409, không phải 422.</b> Request hợp lệ cả về cú pháp lẫn nghiệp vụ tại thời điểm khách
+     * bấm nút; thứ đã đổi là trạng thái của tài nguyên. Đơn hàng tương ứng đã được rollback trọn
+     * vẹn trước khi exception này tới đây.
+     *
+     * @param e dòng hàng hết hàng, hoặc sản phẩm đã bị gỡ khỏi cửa hàng
+     * @return 409 kèm {@code detail} tiếng Việt có nêu tên món hàng
+     */
+    @ExceptionHandler(OutOfStockException.class)
+    public ProblemDetail handleOutOfStock(OutOfStockException e) {
+        log.warn("handleOutOfStock: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /**
+     * @param e dữ liệu đơn hàng vi phạm quy tắc nghiệp vụ
+     * @return 422 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(InvalidOrderDataException.class)
+    public ProblemDetail handleInvalidOrderData(InvalidOrderDataException e) {
+        log.warn("handleInvalidOrderData: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    /**
      * Lỗi của {@code jakarta.validation} trên {@code @Valid @RequestBody}.
      * <p>
      * <b>422, không phải 400.</b> Mặc định của Spring cho lỗi bind là 400; contract §A.3 và ticket

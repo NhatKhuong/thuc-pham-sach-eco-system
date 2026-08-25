@@ -4,6 +4,9 @@ import com.nss.ddd.domain.model.entity.Product;
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderStatusHistoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
@@ -123,6 +126,15 @@ class SecurityRulesTest {
 
     @MockBean
     private CouponJPAMapper couponJPAMapper;
+
+    @MockBean
+    private OrderJPAMapper orderJPAMapper;
+
+    @MockBean
+    private OrderItemJPAMapper orderItemJPAMapper;
+
+    @MockBean
+    private OrderStatusHistoryJPAMapper orderStatusHistoryJPAMapper;
 
     private final MockMvc mockMvc;
 
@@ -448,6 +460,158 @@ class SecurityRulesTest {
                 Arguments.of(HttpMethod.GET, "/api/cart"));
     }
 
+    // ========== DON HANG: HAI CONG KHAI, MOT CAN TOKEN (§B.6) ==========
+
+    /**
+     * {@code POST /api/orders} gọi được khi <b>không</b> có token — khách vãng lai đặt hàng được.
+     * <p>
+     * Body rỗng là một phần của phép kiểm, cùng lý do với các ca bên trên: 422 chỉ phát ra từ tầng
+     * validate, tức request đã đi <i>xuyên qua</i> filter chain. Đây là đường <b>ghi</b> công khai
+     * đầu tiên của dự án, nên ca này cũng là chỗ duy nhất chứng minh việc mở nó ra là có chủ ý chứ
+     * không phải một dòng {@code permitAll} lỡ tay.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("POST /api/orders cong khai — khong token van toi duoc tang validate")
+    void createOrderStaysPublic() throws Exception {
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors.items").exists())
+                .andExpect(jsonPath("$.errors.shipping").exists())
+                .andExpect(jsonPath("$.errors.paymentMethod").exists());
+    }
+
+    /**
+     * <b>Ca quan trọng nhất của nhóm này: công khai nghĩa là đi được khi KHÔNG có token, không phải
+     * khi token sai.</b>
+     * <p>
+     * {@code permitAll} chỉ nói "đường này không đòi xác thực"; nó <i>không</i> tắt bộ lọc bearer
+     * của resource server. Một chuỗi {@code Authorization} hỏng vẫn bị chặn 401 trước khi tới
+     * handler, và điều đó phải đúng — nếu không thì một token hết hạn sẽ im lặng biến thành một đơn
+     * hàng của khách vãng lai, tức khách đã đăng nhập mất đơn của chính mình vào lịch sử của không ai.
+     * <p>
+     * Backlog 0014 §Contract 5 gọi đây là ca test bắt buộc, không phải chi tiết cài đặt.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("POST /api/orders voi token HONG -> 401, permitAll khong cuu duoc token sai")
+    void createOrderRejectsBrokenToken() throws Exception {
+        mockMvc.perform(post("/api/orders")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer khong-phai-mot-jwt-hop-le")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    /**
+     * {@code GET /api/orders/me} <b>bắt buộc có token</b> (§C.4.1).
+     * <p>
+     * <b>Ca này là bằng chứng về THỨ TỰ matcher, không chỉ về sự tồn tại của một dòng luật.</b>
+     * Mẫu {@code /api/orders/*} của {@code GET /orders/{code}} khớp cả đường dẫn này; nếu dòng
+     * {@code permitAll} ấy đứng trước thì request không token sẽ đi thẳng tới handler và nhận
+     * <b>200 kèm mảng rỗng</b> — một endpoint trả lịch sử mua hàng cho bất kỳ ai, không exception
+     * nào và không dòng log nào. 401 ở đây nghĩa là dòng {@code authenticated()} vẫn đứng trên.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("GET /api/orders/me khong token -> 401, KHONG bi /api/orders/* nuot mat")
+    void myOrdersRequireToken() throws Exception {
+        mockMvc.perform(get("/api/orders/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_UNAUTHENTICATED));
+    }
+
+    /**
+     * {@code GET /api/orders/me} với token CUSTOMER đi tới được handler.
+     * <p>
+     * <b>Positive control cho ca ngay trên:</b> nó chứng minh 401 kia đến từ việc <i>thiếu token</i>
+     * chứ không phải từ một đường dẫn viết sai hay một handler không tồn tại — hai nguyên nhân đó
+     * cũng cho ra "không phải 200" và sẽ khiến ca trên xanh vì lý do sai.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("GET /api/orders/me co token CUSTOMER -> 200 va mang rong")
+    void myOrdersReachHandlerWithToken() throws Exception {
+        mockMvc.perform(get("/api/orders/me")
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    /**
+     * {@code GET /api/orders/{code}} công khai — mã không có thật thì <b>404, không phải 401</b>.
+     * <p>
+     * 404 chỉ phát ra từ handler, nên nó chứng minh request đã xuyên hết filter chain. Đặt cạnh ca
+     * {@link #myOrdersRequireToken()}, hai ca này khoá lại đúng ranh giới tinh tế nhất của cả
+     * ticket: cùng một hình dạng đường dẫn, hai kết quả khác nhau, và khác biệt ấy do <i>thứ tự</i>
+     * hai dòng luật quyết định chứ không do ý định của ai.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("GET /api/orders/{code} cong khai — ma khong co that thi 404, KHONG phai 401")
+    void orderByCodeStaysPublic() throws Exception {
+        mockMvc.perform(get("/api/orders/NSS-20260101-9999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    /**
+     * Ba dòng {@code permitAll} / {@code authenticated} của đơn hàng khai <b>đúng method của
+     * chúng</b>, không mở cả đường dẫn.
+     * <p>
+     * Cùng cái bẫy của backlog 0012, và ở đây nó nguy hiểm nhất trong ba nhóm: namespace này chứa
+     * một đường <i>ghi</i> công khai, nên một mẫu viết thiếu {@code HttpMethod} sẽ mở luôn
+     * {@code PUT} và {@code DELETE} trên chính đơn hàng — tức cho phép sửa hoặc xoá một chứng từ,
+     * đúng thứ §B.12.2 nói là không bao giờ được mở.
+     * <p>
+     * Mọi ca dưới đây phải trả 401, không phải 404 hay 405: 404/405 nghĩa là request đã lọt qua
+     * tầng bảo mật rồi mới dừng ở tầng định tuyến.
+     *
+     * @param method verb không được mở trên đường dẫn đơn hàng
+     * @param path đường dẫn đơn hàng
+     * @throws Exception khi MockMvc lỗi
+     */
+    @ParameterizedTest(name = "{0} {1} khong duoc cong khai -> 401")
+    @MethodSource("orderMethodsThatMustStayClosed")
+    @DisplayName("permitAll cua don hang chi mo DUNG method cua no, khong mo ca duong dan")
+    void orderPathsOpenOnlyTheirOwnMethod(HttpMethod method, String path) throws Exception {
+        mockMvc.perform(request(method, path)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    /**
+     * @return các cặp (method, path) trên đường dẫn đơn hàng mà luật <b>không</b> được mở
+     */
+    private static Stream<Arguments> orderMethodsThatMustStayClosed() {
+        return Stream.of(
+                // Chi POST duoc mo tren /api/orders — liet ke moi don la viec cua /admin/orders (§C.4.3b)
+                Arguments.of(HttpMethod.GET, "/api/orders"),
+                Arguments.of(HttpMethod.PUT, "/api/orders"),
+                Arguments.of(HttpMethod.DELETE, "/api/orders"),
+                // Chi GET duoc mo tren /api/orders/{code} — don da dat la chung tu, khong sua khong xoa
+                Arguments.of(HttpMethod.PUT, "/api/orders/NSS-20260101-0001"),
+                Arguments.of(HttpMethod.PATCH, "/api/orders/NSS-20260101-0001"),
+                Arguments.of(HttpMethod.DELETE, "/api/orders/NSS-20260101-0001"),
+                Arguments.of(HttpMethod.POST, "/api/orders/NSS-20260101-0001"),
+                // Duong long tuong lai chua ton tai — mot dau sao giu chung dong san
+                Arguments.of(HttpMethod.POST, "/api/orders/NSS-20260101-0001/cancel"),
+                // Khu quan tri chua ton tai va phai dong san
+                Arguments.of(HttpMethod.GET, "/api/admin/orders"));
+    }
+
     // ========== DUONG XAC THUC ==========
 
     @Test
@@ -564,5 +728,51 @@ class SecurityRulesTest {
                 .andExpect(jsonPath("$.paths['/api/cart/validate'].get").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/cart/validate'].put").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/cart/validate'].delete").doesNotExist());
+    }
+
+    /**
+     * Ba operation đơn hàng có mặt trong tài liệu, và <b>đúng một</b> trong ba mang {@code security}.
+     * <p>
+     * Đây là ca duy nhất trong file khẳng định cả hai chiều trên cùng một nhóm endpoint, nên nó cần
+     * <b>hai</b> positive control chứ không một:
+     * <ol>
+     *   <li>đường ghi sản phẩm <i>có</i> {@code security} — chứng minh phép đo nhìn thấy được thuộc
+     *       tính đó khi nó có mặt;</li>
+     *   <li>{@code /api/orders/me} <i>có</i> {@code security} — chứng minh nhóm đơn hàng
+     *       <i>cũng</i> khai được nó, nên hai lần {@code doesNotExist()} phía sau không phải hệ quả
+     *       của việc springdoc bỏ sót cả nhóm.</li>
+     * </ol>
+     * Không có bước 2, một lỗi cấu hình khiến mọi operation đơn hàng mất {@code security} vẫn cho
+     * ra hai dòng cuối màu xanh.
+     * <p>
+     * Ca này cũng khoá <b>số động từ</b> trên hai đường dẫn mới: một {@code @RequestMapping} rộng
+     * tay sẽ sinh cả bảy động từ trong tài liệu, và tài liệu khi ấy sẽ hứa những thứ
+     * {@code SecurityConfig} đóng.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("api-docs khai du ba operation don hang; CHI /orders/me mang security")
+    void apiDocsDeclareOrderOperationsWithCorrectSecurity() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                // 1. POSITIVE CONTROL A: phep do nhin thay duoc `security` o mot nhom khac
+                .andExpect(jsonPath("$.paths['/api/products'].post.security[0].bearerAuth").exists())
+                // 2. Ba operation moi co mat, kem summary tieng Viet
+                .andExpect(jsonPath("$.paths['/api/orders'].post.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/me'].get.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/orders/{code}'].get.summary").exists())
+                // 3. POSITIVE CONTROL B: chinh nhom don hang CO khai duoc `security`
+                .andExpect(jsonPath("$.paths['/api/orders/me'].get.security[0].bearerAuth").exists())
+                // 4. Hai cai con lai cong khai (§B.6) — chi co nghia sau buoc 3
+                .andExpect(jsonPath("$.paths['/api/orders'].post.security").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders/{code}'].get.security").doesNotExist())
+                // 5. Dung mot dong tu tren moi duong dan moi
+                .andExpect(jsonPath("$.paths['/api/orders'].get").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders'].put").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders'].delete").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders/{code}'].post").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders/{code}'].put").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/orders/{code}'].delete").doesNotExist());
     }
 }
