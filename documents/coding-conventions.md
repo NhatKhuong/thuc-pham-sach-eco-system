@@ -344,6 +344,8 @@ thật; ngoài ra half-up là thứ người dùng chờ đợi.
 Quy tắc tổng quát rút ra: **giá trị nào được tính ở nhiều hơn một nơi thì quy ước làm tròn là một
 phần của contract** — pin ở mục này *trước khi* viết chỗ tính thứ hai.
 
+Cùng loại lỗi, khác phép toán: quy ước **bỏ dấu** cho tìm kiếm được pin ở §18.
+
 ---
 
 ## 16. Format & tooling
@@ -375,7 +377,56 @@ phần của contract** — pin ở mục này *trước khi* viết chỗ tính
 - [ ] Không để lại khối code comment-out
 - [ ] Không thêm nhánh return / catch sau cổng Lua mà thiếu compensation
 - [ ] Không đưa `INSERT IGNORE idempotency_key` ra ngoài transaction của consumer
+- [ ] Không chép lại phép bỏ dấu thành bản thứ hai — dùng lại đúng một hàm (§18)
 
 ---
 
-*Last updated: 2026-08-22 — cập nhật stamp này trong cùng lần sửa nội dung.*
+## 18. Chuẩn hoá chuỗi để tìm kiếm
+
+Cùng loại với §15, chỉ khác phép toán: **`name_normalized` được sinh ở một nơi và được đối chiếu ở
+một nơi khác**, nên cách bỏ dấu là *một phần của contract*, không phải chi tiết cài đặt.
+
+**Quy ước đã chốt — bốn bước, đúng thứ tự này:**
+
+1. `Normalizer.normalize(text, NFD)` — tách dấu thanh khỏi nguyên âm;
+2. bỏ dải `\p{InCombiningDiacriticalMarks}`;
+3. **`đ` → `d`, `Đ` → `D`** — bước hay bị quên nhất;
+4. `toLowerCase()`.
+
+Bước 3 phải viết tay vì `đ` **không phải** một `d` có dấu — nó là một chữ cái Latin riêng và NFD
+không tách nó ra được. Thiếu nó thì "Đậu Hà Lan" ra `dau ha lan` chỉ nhờ `toLowerCase` bắt được `Đ`
+hoa, còn `đ` thường thì lọt lại — và tìm kiếm bỏ dấu trượt đúng những từ tiếng Việt hay gặp nhất.
+Collation `utf8mb4_unicode_ci` gập được hoa/thường và dấu thanh nhưng **không** gập `đ`, nên không
+mượn được collation để khỏi phải làm bước này.
+
+**Hàm này có đúng MỘT bản.** `ProductDomainServiceImpl#genNameNormalized` sinh giá trị lưu vào cột,
+và `#genSearchKeyword` chuẩn hoá tham số `q` bằng cách gọi lại chính nó. Slug dùng lại luôn bốn bước
+đó rồi thêm ba bước riêng (`#genSlugified`). **Chép phép bỏ dấu ra bản thứ hai là cách chắc chắn để
+hai bên lệch nhau vào đúng lúc chỉ một bên được sửa** — và triệu chứng là "tìm không ra", không phải
+một lỗi.
+
+### Lệch đã biết với frontend — chấp nhận được, nhưng phải ghi ra
+
+`normalize()` trong `src/api/adminProducts.api.ts` **không** làm bước 3 (chỉ `slugify` bên đó mới
+làm). Backend có làm, và còn khớp thêm cột `slug` bên cạnh `name_normalized`.
+
+⇒ **Tập kết quả của backend là _siêu tập_ của mock frontend**, không bao giờ là tập con. `q=dau` ở
+backend ra "Đậu Hà Lan" qua *cả* tên lẫn slug; mock chỉ ra qua slug.
+
+Chiều lệch này là chiều an toàn: người dùng thấy *nhiều* kết quả hơn mock, không phải *ít* hơn. Nếu
+FE muốn hai bên khớp tuyệt đối thì sửa `normalize()` bên họ — **không** gỡ bước 3 ở đây, vì làm vậy
+là phá tìm kiếm tiếng Việt để chiều một lớp mock sắp bị thay.
+
+### Mẫu `LIKE` là việc của adapter, không phải của domain
+
+Domain trả về **từ khoá đã bỏ dấu**; `ProductRepositoryImpl#genLikePattern` mới bọc `%` và escape.
+Đầu vào người dùng phải được escape (`%`, `_`, và chính ký tự escape) rồi khai `ESCAPE '!'` — không
+escape thì `q=100%` biến thành ký tự đại diện và trả về **nhiều dòng hơn số dòng thật sự khớp**, một
+kết quả sai trông y hệt một kết quả đúng. Dùng `!` chứ không dùng gạch chéo ngược: gạch chéo ngược
+còn là ký tự escape của chính chuỗi MySQL nên nó phải nhân đôi qua hai tầng và rất dễ đếm nhầm.
+
+Ghi nhận ở [backlog 0018](../../../management/backlog/0018-admin-products-namespace.md).
+
+---
+
+*Last updated: 2026-08-25 — cập nhật stamp này trong cùng lần sửa nội dung.*

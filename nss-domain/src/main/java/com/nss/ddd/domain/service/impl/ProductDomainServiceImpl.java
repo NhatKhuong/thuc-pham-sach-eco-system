@@ -1,6 +1,9 @@
 package com.nss.ddd.domain.service.impl;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.StockStatus;
+import com.nss.ddd.domain.model.TextNormalizer;
 import com.nss.ddd.domain.model.entity.Brand;
 import com.nss.ddd.domain.model.entity.Category;
 import com.nss.ddd.domain.model.entity.Product;
@@ -17,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -38,8 +40,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductDomainServiceImpl implements ProductDomainService {
 
-    /** Dấu thanh và dấu phụ sau khi tách bằng NFD — bảng Unicode "Combining Diacritical Marks". */
-    private static final Pattern COMBINING_MARKS = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+    /**
+     * Mọi ký tự <b>không</b> được phép có mặt trong slug: giữ lại {@code a-z}, {@code 0-9}, khoảng
+     * trắng và gạch ngang.
+     * <p>
+     * {@code UNICODE_CHARACTER_CLASS} để {@code \s} bắt cả khoảng trắng Unicode (nhất là
+     * {@code U+00A0} no-break space, thứ hay lọt vào khi copy tên sản phẩm từ trình duyệt). Mặc
+     * định của Java, {@code \s} chỉ là bảy ký tự ASCII, còn {@code \s} của JavaScript thì theo
+     * Unicode — thiếu cờ này thì {@code "Cà rốt"} ra {@code carot} ở backend và
+     * {@code ca-rot} ở frontend, hai slug khác nhau cho cùng một cái tên.
+     */
+    private static final Pattern SLUG_FORBIDDEN =
+            Pattern.compile("[^a-z0-9\\s-]", Pattern.UNICODE_CHARACTER_CLASS);
+
+    /** Một hoặc nhiều khoảng trắng liên tiếp — cùng lý do dùng {@code UNICODE_CHARACTER_CLASS}. */
+    private static final Pattern SLUG_WHITESPACE =
+            Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+
+    /** Hai gạch ngang trở lên liên tiếp, gộp lại thành một. */
+    private static final Pattern SLUG_DASHES = Pattern.compile("-+");
 
     /** Điểm đánh giá của sản phẩm chưa có lượt nào — {@code DECIMAL(2,1)} nên phải đúng 1 chữ số thập phân. */
     private static final BigDecimal RATING_NONE = new BigDecimal("0.0");
@@ -59,9 +78,36 @@ public class ProductDomainServiceImpl implements ProductDomainService {
         return productRepository.findPage(page, limit);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Dựng một {@code ProductFilter} MỚI thay vì sửa cái được truyền vào.</b> Sửa tại chỗ thì
+     * đối tượng của phía gọi âm thầm đổi nghĩa giữa chừng — {@code keyword} vào là chuỗi có dấu, ra
+     * là chuỗi không dấu — và một dòng log ở tầng trên in ra sau lời gọi này sẽ nói sai về chính
+     * cái request nó đang xử lý.
+     */
+    @Override
+    public PageResult<Product> findAdminPage(ProductFilter filter) {
+        return productRepository.findAdminPage(ProductFilter.of(
+                genSearchKeyword(filter.getKeyword()),
+                filter.getCategorySlug(),
+                filter.getStockStatus(),
+                filter.getSort(),
+                filter.getPage(),
+                filter.getLimit()));
+    }
+
     @Override
     public Product findBySlug(String slug) {
         return productRepository.findBySlug(slug).orElse(null);
+    }
+
+    @Override
+    public long countLowStockProducts() {
+        // Bo loc dung y het GET /admin/products?stockStatus=low_stock: `sort` / `page` / `limit`
+        // khong tham gia phep dem, nen truyen gia tri trung tinh.
+        return productRepository.countAdminProducts(
+                ProductFilter.of(null, null, StockStatus.LOW_STOCK, null, 1, 1));
     }
 
     @Override
@@ -90,6 +136,13 @@ public class ProductDomainServiceImpl implements ProductDomainService {
     @Override
     public boolean hasSlugTaken(String slug) {
         return productRepository.existsBySlug(slug);
+    }
+
+    @Override
+    public String genSlug(String requestedSlug, String name) {
+        // Slug client gui CUNG duoc slugify, khong chi khi bo trong (adminProducts.api.ts:117)
+        String source = requestedSlug == null || requestedSlug.isBlank() ? name : requestedSlug;
+        return genSlugified(source);
     }
 
     @Override
@@ -207,23 +260,68 @@ public class ProductDomainServiceImpl implements ProductDomainService {
     /**
      * Sinh {@code name_normalized}: bỏ dấu, hạ chữ thường.
      * <p>
-     * Hai bước, và bước thứ hai là bước hay bị quên: {@link Normalizer} tách được dấu thanh khỏi
-     * nguyên âm, nhưng <b>{@code đ} không phải nguyên âm có dấu</b> — nó là một ký tự Latin riêng,
-     * NFD không tách nó ra được. Thiếu bước đó thì "đậu" ra "đau" chứ không phải "dau", và tìm kiếm
-     * bỏ dấu trượt đúng những từ tiếng Việt hay gặp nhất.
+     * <b>Uỷ thác cho {@link TextNormalizer#genNormalized(String)} — phép bỏ dấu có đúng MỘT bản
+     * trong toàn dự án</b> ({@code coding-conventions.md} §18). Method này giữ lại vì nó là tên mà
+     * §18 gọi đích danh, và vì nó nói đúng ngữ cảnh: <i>đây</i> là nơi giá trị của cột
+     * {@code name_normalized} được sinh ra. Từ backlog 0019 có thêm hai cột nữa dùng chung phép
+     * này ({@code customer_order.full_name_normalized}, {@code user.full_name_normalized}), nên
+     * phần cài đặt đã chuyển lên chỗ dùng chung thay vì bị chép thành bản thứ hai.
      *
      * @param name tên hiển thị
      * @return tên đã bỏ dấu và hạ chữ thường, hoặc {@code null} khi {@code name} rỗng
      */
     private String genNameNormalized(String name) {
-        if (name == null) {
+        return TextNormalizer.genNormalized(name);
+    }
+
+    /**
+     * Chuẩn hoá từ khoá {@code q} về đúng dạng đang nằm trong cột {@code name_normalized}.
+     * <p>
+     * <b>Uỷ thác cho {@link TextNormalizer#genSearchKeyword(String)}</b> — cùng lý do đã viết ở
+     * {@link #genNameNormalized(String)}: hai vế của một phép so sánh chuỗi phải đi qua cùng một
+     * hàm, và hàm đó chỉ được có một bản.
+     * <p>
+     * <b>Khác biệt đã biết với frontend, và nó nghiêng về phía an toàn.</b> Hàm {@code normalize()}
+     * của {@code adminProducts.api.ts:45-47} <i>không</i> đổi {@code đ} thành {@code d} — chỉ
+     * {@code slugify} mới làm. Backend thì có, và còn khớp thêm cả cột {@code slug}, nên tập kết
+     * quả của backend là <b>siêu tập</b> của mock: {@code q=dau} ra "Đậu Hà Lan" qua cả tên lẫn
+     * slug, mock chỉ ra qua slug. Ghi ở {@code coding-conventions.md} §18.
+     *
+     * @param keyword từ khoá thô client gửi, có thể {@code null}
+     * @return từ khoá đã bỏ dấu và hạ chữ thường, hoặc {@code null} khi không có gì để tìm
+     */
+    private String genSearchKeyword(String keyword) {
+        return TextNormalizer.genSearchKeyword(keyword);
+    }
+
+    /**
+     * Bảy bước sinh slug, theo đúng thứ tự của {@code slugify} ở {@code src/lib/utils.ts:21-32}.
+     * <p>
+     * Bốn bước đầu chính là {@link #genNameNormalized(String)}; ba bước sau là phần riêng của slug.
+     * <b>Thứ tự {@code trim} trước khi đổi khoảng trắng thành gạch ngang là load-bearing:</b> đảo
+     * lại thì {@code " Cà rốt "} ra {@code -ca-rot-} thay vì {@code ca-rot}, và cái slug ấy đi
+     * thẳng lên URL công khai.
+     *
+     * @param text chuỗi nguồn
+     * @return slug, hoặc {@code null} khi nguồn rỗng hoặc không còn ký tự hợp lệ nào
+     */
+    private String genSlugified(String text) {
+        if (text == null) {
             return null;
         }
-        String decomposed = Normalizer.normalize(name, Normalizer.Form.NFD);
-        String withoutMarks = COMBINING_MARKS.matcher(decomposed).replaceAll("");
-        return withoutMarks
-                .replace('đ', 'd')
-                .replace('Đ', 'D')
-                .toLowerCase();
+        // 1-4. NFD, bo dau phu, d/D, ha chu thuong — dung lai dung ham sinh name_normalized
+        String normalized = genNameNormalized(text);
+        // 5. trim TRUOC khi doi khoang trang thanh gach ngang
+        String trimmed = normalized.trim();
+        // 6. bo moi ky tu ngoai [a-z0-9], khoang trang, gach ngang
+        String allowedOnly = SLUG_FORBIDDEN.matcher(trimmed).replaceAll("");
+        // 7. khoang trang lien tiep -> mot gach ngang, roi gop gach ngang lien tiep
+        String hyphenated = SLUG_WHITESPACE.matcher(allowedOnly).replaceAll("-");
+        String slug = SLUG_DASHES.matcher(hyphenated).replaceAll("-");
+        if (slug.isEmpty()) {
+            log.warn("genSlugified: empty slug from source text");
+            return null;
+        }
+        return slug;
     }
 }

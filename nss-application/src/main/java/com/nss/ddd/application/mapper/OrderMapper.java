@@ -61,6 +61,38 @@ public final class OrderMapper {
     /** Chuỗi {@code status} trên dây cho đơn đã huỷ. */
     public static final String WIRE_STATUS_CANCELLED = "cancelled";
 
+    /**
+     * Nhãn tiếng Việt của {@code pending} — <b>dùng cho thông điệp lỗi 422</b> của
+     * {@code PATCH /admin/orders/{code}/status}.
+     * <p>
+     * <b>Năm nhãn ở đây chỉ phục vụ MỘT chỗ: câu {@code detail} của {@code ProblemDetail}.</b> §A.3
+     * chốt {@code detail} viết tiếng Việt và frontend đổ thẳng chuỗi đó ra màn hình, nên một câu
+     * "không thể chuyển từ delivered sang confirmed" là một câu tiếng Anh lọt vào giao diện tiếng
+     * Việt.
+     * <p>
+     * <b>Chúng KHÔNG phải một bản sao của {@code ORDER_STATUS_LABELS} phía frontend theo nghĩa gây
+     * hại.</b> Nhãn hiển thị trên mọi màn hình vẫn do frontend tự dựng từ bảng của nó; hai bên lệch
+     * chữ thì hậu quả là một câu lỗi đọc hơi khác nhãn trên nút bấm, không phải một con số sai.
+     * Đây là khác biệt cốt lõi so với {@code LOW_STOCK_THRESHOLD} hay quy ước bỏ dấu — những thứ mà
+     * hai bản lệch nhau sẽ cho ra <i>hai tập dữ liệu khác nhau</i>.
+     * <p>
+     * Đặt cạnh {@link #WIRE_STATUS_PENDING} vì chúng nói về cùng một bảng: file này đã là "đúng một
+     * chỗ" của phép dịch trạng thái, nên nhãn cũng thuộc về đây chứ không mọc ra một class riêng.
+     */
+    public static final String LABEL_STATUS_PENDING = "Chờ xác nhận";
+
+    /** Nhãn tiếng Việt của {@code confirmed} — xem {@link #LABEL_STATUS_PENDING}. */
+    public static final String LABEL_STATUS_CONFIRMED = "Đã xác nhận";
+
+    /** Nhãn tiếng Việt của {@code shipping} — xem {@link #LABEL_STATUS_PENDING}. */
+    public static final String LABEL_STATUS_SHIPPING = "Đang giao";
+
+    /** Nhãn tiếng Việt của {@code delivered} — xem {@link #LABEL_STATUS_PENDING}. */
+    public static final String LABEL_STATUS_DELIVERED = "Đã giao";
+
+    /** Nhãn tiếng Việt của {@code cancelled} — xem {@link #LABEL_STATUS_PENDING}. */
+    public static final String LABEL_STATUS_CANCELLED = "Đã huỷ";
+
     /** Chuỗi {@code paymentMethod} trên dây — thanh toán khi nhận hàng. */
     public static final String WIRE_PAYMENT_COD = "cod";
 
@@ -270,11 +302,16 @@ public final class OrderMapper {
      * <b>Giá trị lạ trả {@code null} chứ không đoán.</b> Một trạng thái thứ sáu ra đời mà quên khai
      * ở đây thì rơi về một trong năm chuỗi cũ sẽ khiến frontend hiển thị <i>một cái gì đó</i> — một
      * đơn đã huỷ trông như đang giao; {@code null} thì hỏng ngay và hỏng ở chỗ đọc được.
+     * <p>
+     * <b>{@code public} từ backlog 0019</b>: {@code PATCH /admin/orders/{code}/status} cần chính
+     * bảng này để dựng câu lỗi 422, và {@code OrderControllerMapper} cần nó cho bộ lọc
+     * {@code ?status=}. Mở nó ra rẻ hơn nhiều so với một bảng dịch thứ hai — xem javadoc cấp class
+     * về hậu quả của việc nhân đôi bảng này.
      *
      * @param status con số trong cột {@code status}
      * @return chuỗi của dây, hoặc {@code null} khi giá trị không nằm trong bảng dịch
      */
-    private static String toWireStatus(Integer status) {
+    public static String toWireStatus(Integer status) {
         if (status == null) {
             return null;
         }
@@ -285,6 +322,66 @@ public final class OrderMapper {
             case OrderDomainService.STATUS_DELIVERED -> WIRE_STATUS_DELIVERED;
             case OrderDomainService.STATUS_CANCELLED -> WIRE_STATUS_CANCELLED;
             default -> null;
+        };
+    }
+
+    /**
+     * Bảng dịch {@code status} từ chuỗi của dây sang con số của DB — <b>chiều ngược của
+     * {@link #toWireStatus}, và nó ra đời ở backlog 0019</b>.
+     * <p>
+     * Trước ticket này chỉ có chiều {@code int} {@literal ->} {@code wire}, vì chưa endpoint nào
+     * <i>nhận</i> một trạng thái từ client: đơn luôn ra đời ở {@code pending}. Hai endpoint mới cần
+     * chiều này — bộ lọc {@code GET /admin/orders?status=} và thân của
+     * {@code PATCH /admin/orders/{code}/status}.
+     * <p>
+     * <b>Chuỗi lạ trả {@code null} chứ không đoán</b> — đúng khuôn {@link #toPaymentMethodCode}, và
+     * ở đây hậu quả của việc đoán còn nặng hơn: rơi về một trạng thái mặc định nghĩa là một lệnh
+     * {@code PATCH} gõ sai sẽ <i>đổi thật</i> trạng thái của một chứng từ sang một giá trị admin
+     * không hề chọn. {@code null} thì tầng use case biến nó thành 422 với thông điệp đọc được.
+     * <p>
+     * {@code trim()} chứ không {@code toLowerCase()}: bảng này là ánh xạ đúng-chữ, và một
+     * {@code "PENDING"} gửi lên là một client đang nói sai hợp đồng — nới ra ở đây chỉ giấu lỗi đó
+     * đi.
+     *
+     * @param wireValue chuỗi client gửi
+     * @return con số tương ứng, hoặc {@code null} khi chuỗi không nằm trong bảng dịch
+     */
+    public static Integer toStatusCode(String wireValue) {
+        if (wireValue == null) {
+            return null;
+        }
+        return switch (wireValue.trim()) {
+            case WIRE_STATUS_PENDING -> OrderDomainService.STATUS_PENDING;
+            case WIRE_STATUS_CONFIRMED -> OrderDomainService.STATUS_CONFIRMED;
+            case WIRE_STATUS_SHIPPING -> OrderDomainService.STATUS_SHIPPING;
+            case WIRE_STATUS_DELIVERED -> OrderDomainService.STATUS_DELIVERED;
+            case WIRE_STATUS_CANCELLED -> OrderDomainService.STATUS_CANCELLED;
+            default -> null;
+        };
+    }
+
+    /**
+     * Nhãn tiếng Việt của một trạng thái — chỉ dùng cho thông điệp lỗi (§A.3).
+     * <p>
+     * <b>Giá trị lạ trả về chính chuỗi trên dây thay vì {@code null}</b>, khác hai bảng dịch kia:
+     * đây là đường dựng <i>câu lỗi</i>, và một {@code null} rơi vào giữa câu sẽ biến một thông điệp
+     * đọc được thành chuỗi {@code "null"} trước mắt người dùng. Đường dây thì đã có
+     * {@link #toWireStatus} gác.
+     *
+     * @param status con số trong cột {@code status}
+     * @return nhãn tiếng Việt; hoặc con số dạng chuỗi khi giá trị không nằm trong bảng
+     */
+    public static String toStatusLabel(Integer status) {
+        if (status == null) {
+            return "";
+        }
+        return switch (status) {
+            case OrderDomainService.STATUS_PENDING -> LABEL_STATUS_PENDING;
+            case OrderDomainService.STATUS_CONFIRMED -> LABEL_STATUS_CONFIRMED;
+            case OrderDomainService.STATUS_SHIPPING -> LABEL_STATUS_SHIPPING;
+            case OrderDomainService.STATUS_DELIVERED -> LABEL_STATUS_DELIVERED;
+            case OrderDomainService.STATUS_CANCELLED -> LABEL_STATUS_CANCELLED;
+            default -> String.valueOf(status);
         };
     }
 

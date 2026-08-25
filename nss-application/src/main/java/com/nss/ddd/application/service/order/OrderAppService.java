@@ -1,8 +1,10 @@
 package com.nss.ddd.application.service.order;
 
 import com.nss.ddd.application.model.command.CreateOrderCommand;
+import com.nss.ddd.application.model.response.PaginatedResponse;
 import com.nss.ddd.application.model.response.OrderMutationResponse;
 import com.nss.ddd.application.model.response.OrderResponse;
+import com.nss.ddd.domain.model.OrderFilter;
 
 import java.util.List;
 
@@ -14,10 +16,14 @@ import java.util.List;
  * dây. Thứ duy nhất thuộc về tầng này là <b>chuỗi tiếng Việt</b> mà người dùng cuối đọc, vì đó là
  * chuyện trình bày chứ không phải chuyện nghiệp vụ.
  * <p>
- * <b>Hai đường đọc dưới đây không nhận {@code userId} qua bất kỳ đường nào ngoài tham số do
- * controller lấy từ claim {@code sub}</b> (§C.4.1). Không có biến thể nào nhận bộ lọc người dùng —
- * việc liệt kê chéo người dùng thuộc namespace {@code /admin} và phải là một endpoint song sinh
- * riêng (§C.4.3b). Nới lỏng ở đây là <b>rò rỉ dữ liệu</b>, không phải lỗi hiển thị.
+ * <b>{@link #findMyOrders(Long)} không nhận {@code userId} qua bất kỳ đường nào ngoài tham số do
+ * controller lấy từ claim {@code sub}</b> (§C.4.1), và <b>nó vẫn không có biến thể nào nhận bộ lọc
+ * người dùng</b> — kể cả sau khi backlog 0019 thêm ba use case quản trị vào chính interface này.
+ * Việc liệt kê chéo người dùng đi qua {@link #findAdminOrders(OrderFilter)}, một method
+ * <i>riêng</i> nằm sau hàng rào {@code /api/admin/**} (§C.4.3b). Nhập hai đường đó lại làm một —
+ * chẳng hạn thêm {@code userId} vào {@code findMyOrders} rồi để controller quyết định — là <b>rò
+ * rỉ dữ liệu</b>, không phải một sự gọn gàng: hàng rào khi ấy sống trong một câu {@code if} thay vì
+ * trong filter chain.
  */
 public interface OrderAppService {
 
@@ -54,4 +60,41 @@ public interface OrderAppService {
      * @return đơn hàng, hoặc {@code null} khi không có mã nào như vậy
      */
     OrderResponse findOrderByCode(String code);
+
+    // ========== KHU QUAN TRI (§B.12.2) ==========
+
+    /**
+     * Đơn hàng của <b>mọi</b> người dùng — {@code GET /admin/orders}.
+     * <p>
+     * <b>Song sinh của {@link #findMyOrders(Long)}, và việc hai method cùng tồn tại CHÍNH LÀ cách
+     * giữ §C.4.1 không bị nới lỏng</b> (§B.12.2). Ở đây {@code userId} là một <i>bộ lọc</i> hợp lệ;
+     * ở kia nó là <i>danh tính</i> lấy từ token và không bao giờ đến từ query.
+     * <p>
+     * <b>Có phân trang, khác {@code /orders/me}</b> — cái kia trả {@code Order[]} trần theo §B.6,
+     * còn bảng quản trị đọc chéo toàn hệ nên không có trần nào để dựa vào.
+     *
+     * @param filter điều kiện lọc; {@code keyword} là chuỗi thô client gửi
+     * @return trang đơn hàng theo §A.4
+     */
+    PaginatedResponse<OrderResponse> findAdminOrders(OrderFilter filter);
+
+    /**
+     * Đổi trạng thái một đơn — {@code PATCH /admin/orders/{code}/status}.
+     * <p>
+     * <b>Backend cưỡng chế luồng trạng thái; ô chọn ở giao diện chỉ là tiện tay</b> (§B.12.2).
+     * Luật sống ở {@code OrderDomainService.canTransition} và chỉ ở đó; method này chỉ điều phối và
+     * dịch một {@code false} thành mã lỗi nghiệp vụ.
+     * <p>
+     * <b>Cả hai write nằm trong MỘT transaction:</b> cột {@code status} của đơn và một dòng
+     * {@code order_status_history} mới. Ghi được cái này mà hỏng cái kia thì bảng nhật ký — thứ tồn
+     * tại để trả lời "đơn đi qua đâu, lúc nào, do ai" — trở thành một câu trả lời không còn kiểm
+     * chứng được.
+     *
+     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param wireStatus trạng thái muốn chuyển sang, <b>chuỗi trên dây</b> ({@code confirmed}…)
+     * @param changedBy định danh admin thực hiện, lấy từ claim {@code sub}
+     * @return đơn sau khi chuyển khi thành công; ngược lại là mã lỗi nghiệp vụ kèm thông điệp
+     *         tiếng Việt
+     */
+    OrderMutationResponse changeOrderStatus(String code, String wireStatus, String changedBy);
 }

@@ -1,5 +1,9 @@
 package com.nss.ddd.domain.service;
 
+import com.nss.ddd.domain.model.DailyRevenue;
+import com.nss.ddd.domain.model.OrderFilter;
+import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.StatusCount;
 import com.nss.ddd.domain.model.entity.Coupon;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OrderItem;
@@ -7,7 +11,9 @@ import com.nss.ddd.domain.model.entity.OrderStatusHistory;
 import com.nss.ddd.domain.model.entity.Product;
 import com.nss.ddd.domain.model.entity.User;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +63,25 @@ public interface OrderDomainService {
 
     /** Trạng thái {@code cancelled} (§Contract 4) — xem javadoc {@link #STATUS_PENDING}. */
     int STATUS_CANCELLED = 4;
+
+    /**
+     * <b>Múi giờ CỬA HÀNG — hằng đầu tiên loại này của dự án</b> (§B.12.4, backlog 0019).
+     * <p>
+     * Cột {@code created_at} lưu giờ UTC, nhưng "đơn này thuộc ngày nào" là một câu hỏi
+     * <i>nghiệp vụ</i> và câu trả lời phải theo giờ nơi cửa hàng bán hàng: một đơn đặt lúc 20:00
+     * giờ Việt Nam phải rơi vào <b>đúng ngày đó</b>. Cắt theo UTC sẽ cắt lúc 07:00 giờ Việt Nam,
+     * và cột "Ngày đặt" ở bảng đơn sẽ lệch biểu đồ Tổng quan một ngày — <b>không có gì báo lỗi</b>.
+     * <p>
+     * <b>{@code Asia/Ho_Chi_Minh} chứ không {@code Asia/Saigon}:</b> hai chuỗi trỏ cùng một vùng,
+     * nhưng cái sau là bí danh cũ. Chọn tên chuẩn IANA hiện hành. Chuỗi {@code Asia/Saigon} có
+     * xuất hiện trong vài comment của repo, nhưng đó là comment — trước ticket này dự án chưa dựng
+     * một {@code ZoneId} nào.
+     * <p>
+     * <b>Nó nằm ở domain vì nó là quy tắc nghiệp vụ.</b> Adapter chỉ nhận độ lệch dạng
+     * {@code +07:00} do domain truyền xuống (xem {@code OrderRepository.sumRevenueByDay}) — hạ tầng
+     * không cần biết cửa hàng đặt ở đâu.
+     */
+    ZoneId STORE_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     /**
      * Định danh tác nhân cho đơn của khách vãng lai, ghi vào {@code order_status_history.changed_by}.
@@ -132,6 +157,45 @@ public interface OrderDomainService {
      */
     String genOrderCode(LocalDateTime nowUtc);
 
+    // ========== LUONG TRANG THAI ==========
+
+    /**
+     * <b>Máy trạng thái của đơn hàng — luật này tồn tại ở ĐÚNG MỘT chỗ, và đây là chỗ đó</b>
+     * (§B.12.2, khớp {@code src/lib/orderStatus.ts#ORDER_STATUS_TRANSITIONS}).
+     * <table border="1">
+     *   <caption>Bảng chuyển hợp lệ</caption>
+     *   <tr><th>Từ</th><th>Được chuyển sang</th></tr>
+     *   <tr><td>{@code pending}</td><td>{@code confirmed}, {@code cancelled}</td></tr>
+     *   <tr><td>{@code confirmed}</td><td>{@code shipping}, {@code cancelled}</td></tr>
+     *   <tr><td>{@code shipping}</td><td>{@code delivered}, {@code cancelled}</td></tr>
+     *   <tr><td>{@code delivered}</td><td>khong con nuoc di nao (trang thai cuoi)</td></tr>
+     *   <tr><td>{@code cancelled}</td><td>khong con nuoc di nao (trang thai cuoi)</td></tr>
+     * </table>
+     * <b>Ba điều dễ làm sai, cả ba đều được hợp đồng nói thẳng:</b>
+     * <ul>
+     *   <li><b>Chuyển sang CHÍNH trạng thái hiện tại là KHÔNG hợp lệ</b>, không phải một no-op trả
+     *       200. Nó không nằm trong danh sách được phép, nên nó là 422. Đây là ca dễ "sửa cho
+     *       tiện" nhất của cả endpoint.</li>
+     *   <li><b>{@code delivered} và {@code cancelled} có bảng chuyển RỖNG</b> — đó là "không quay
+     *       lui được", không phải "chưa liệt kê". Đã giao rồi thì không "chưa xác nhận" lại được;
+     *       đã huỷ rồi thì phải tạo đơn mới.</li>
+     *   <li><b>Giá trị ngoài dải {@code 0..4} luôn cho {@code false}</b> — không đoán, không rơi về
+     *       một nhánh mặc định nào.</li>
+     * </ul>
+     * <b>Trả {@code boolean} chứ không ném exception</b> (coding-conventions §11 Pattern A) — cùng
+     * khuôn với {@link CouponDomainService#isRedeemable}: domain trả lời "được hay không", tầng
+     * application dịch {@code false} thành một mã lỗi nghiệp vụ, controller dịch mã đó thành 422.
+     * <p>
+     * <b>Ô chọn ở giao diện chỉ là tiện tay, không phải hàng rào</b> — chính lớp mock của frontend
+     * cũng {@code throw} ở hàm API chứ không chỉ ở component.
+     *
+     * @param fromStatus trạng thái hiện tại của đơn, con số của cột {@code status}
+     * @param toStatus trạng thái muốn chuyển sang, con số của cột {@code status}
+     * @return true khi cặp chuyển nằm trong bảng trên; false với mọi cặp còn lại, kể cả cặp trùng
+     *         nhau và kể cả con số ngoài dải
+     */
+    boolean canTransition(int fromStatus, int toStatus);
+
     // ========== DOC ==========
 
     /**
@@ -171,6 +235,22 @@ public interface OrderDomainService {
      * @return các đơn của người dùng này, mới nhất trước; danh sách rỗng khi chưa có đơn nào
      */
     List<Order> findByUserId(Long userId);
+
+    /**
+     * Một trang đơn hàng <b>của mọi người dùng</b> — đường đọc của {@code GET /admin/orders}
+     * (§B.12.2).
+     * <p>
+     * <b>Đây là nơi từ khoá {@code q} được bỏ dấu</b>, không phải ở adapter: bỏ dấu là một quy tắc
+     * nghiệp vụ (coding-conventions §18), và chuẩn hoá hai lần là hai bản sao của cùng một quy tắc.
+     * <p>
+     * <b>Dựng một {@link OrderFilter} MỚI thay vì sửa cái được truyền vào</b> — cùng lý do đã viết
+     * ở {@code ProductDomainService.findAdminPage}: sửa tại chỗ thì một dòng log ở tầng trên in ra
+     * sau lời gọi này sẽ nói sai về chính cái request nó đang xử lý.
+     *
+     * @param filter điều kiện lọc; {@code keyword} là chuỗi thô client gửi
+     * @return trang đơn hàng kèm tổng số dòng khớp điều kiện
+     */
+    PageResult<Order> findAdminPage(OrderFilter filter);
 
     /**
      * Dòng hàng của nhiều đơn, gom nhóm theo id đơn — <b>một</b> truy vấn cho cả danh sách.
@@ -238,4 +318,76 @@ public interface OrderDomainService {
      * @return bản ghi nhật ký, đã có id
      */
     OrderStatusHistory recordCreation(Order order, String changedBy, LocalDateTime createdAt);
+
+    /**
+     * Ghi trạng thái mới lên đơn.
+     * <p>
+     * <b>KHÔNG kiểm {@link #canTransition} ở đây, và đó là chủ ý.</b> Method này là <i>một mảnh</i>
+     * của transaction do tầng application mở: cổng kiểm chạy trước, dòng nhật ký ghi sau, và cả ba
+     * bước phải cùng sống hoặc cùng chết. Nhét phép kiểm vào đây sẽ có hai chỗ cùng cưỡng chế một
+     * luật, và chỗ thứ hai là chỗ sẽ bị quên khi luật đổi.
+     *
+     * @param order đơn đang được transaction quản lý
+     * @param toStatus trạng thái mới, con số của cột {@code status}
+     * @param nowUtc thời điểm chuyển, <b>giờ UTC</b>; cùng mốc ghi vào dòng nhật ký
+     * @return bản ghi sau khi ghi
+     */
+    Order updateStatus(Order order, int toStatus, LocalDateTime nowUtc);
+
+    /**
+     * Ghi một dòng nhật ký <b>chuyển trạng thái</b> (§B.12.2 — mỗi lần chuyển ghi một dòng).
+     * <p>
+     * Khác {@link #recordCreation}: ở đó {@code fromStatus} để {@code null} vì đơn không đi
+     * <i>từ</i> đâu cả; ở đây {@code fromStatus} luôn có giá trị — nó chính là trạng thái đơn vừa
+     * rời khỏi, và không có nó thì bảng nhật ký chỉ trả lời được "đơn đã ở đâu", không trả lời được
+     * "đơn đi từ đâu tới".
+     *
+     * @param order đơn vừa chuyển trạng thái
+     * @param fromStatus trạng thái trước khi chuyển
+     * @param toStatus trạng thái sau khi chuyển
+     * @param changedBy định danh admin thực hiện, lấy từ claim {@code sub}
+     * @param createdAt thời điểm chuyển, giờ UTC — cùng mốc với {@code updated_at} của đơn
+     * @return bản ghi nhật ký, đã có id
+     */
+    OrderStatusHistory recordTransition(Order order, Integer fromStatus, int toStatus,
+                                        String changedBy, LocalDateTime createdAt);
+
+    // ========== TONG HOP (§B.12.4) ==========
+
+    /**
+     * Đúng {@code days} ngày liên tiếp <b>theo giờ cửa hàng</b>, tăng dần, kết thúc ở <b>hôm
+     * nay</b>.
+     * <p>
+     * Đây là bộ khung zero-fill của {@code revenueByDay} và cũng là thứ định nghĩa khoảng thời gian
+     * của cả bốn số phụ thuộc {@code days}. Khớp {@code buildDateWindow} của frontend
+     * ({@code adminStats.api.ts:59-69}): hôm nay <b>nằm trong</b> khoảng, nên {@code days=7} là
+     * "hôm nay và sáu ngày trước", không phải "bảy ngày trước hôm nay".
+     *
+     * @param days số ngày, đã được tầng trên kiểm nằm trong dải hợp lệ
+     * @return danh sách ngày tăng dần, đúng {@code days} phần tử
+     */
+    List<LocalDate> genDateWindow(int days);
+
+    /**
+     * Doanh thu gom theo ngày cửa hàng trong khoảng {@code [fromDate, toDate]}.
+     * <p>
+     * <b>Đây là nơi ngày cửa hàng được đổi thành mốc UTC</b> — {@link #STORE_ZONE} không đi xuống
+     * dưới domain. Kết quả <b>thưa</b>: chỉ những ngày có đơn.
+     *
+     * @param fromDate ngày đầu khoảng, giờ cửa hàng, đã bao gồm
+     * @param toDate ngày cuối khoảng, giờ cửa hàng, đã bao gồm
+     * @return doanh thu theo ngày, tăng dần
+     */
+    List<DailyRevenue> findRevenueByDay(LocalDate fromDate, LocalDate toDate);
+
+    /**
+     * Số đơn gom theo trạng thái trong <b>cùng</b> khoảng với {@link #findRevenueByDay}.
+     * <p>
+     * Kết quả <b>thưa</b>: chỉ những trạng thái có đơn.
+     *
+     * @param fromDate ngày đầu khoảng, giờ cửa hàng, đã bao gồm
+     * @param toDate ngày cuối khoảng, giờ cửa hàng, đã bao gồm
+     * @return số đơn theo trạng thái
+     */
+    List<StatusCount> countOrdersByStatus(LocalDate fromDate, LocalDate toDate);
 }

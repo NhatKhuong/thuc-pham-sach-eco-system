@@ -151,19 +151,49 @@ class SecurityRulesTest {
     }
 
     /**
-     * Ba đường ghi sản phẩm, kèm mã trạng thái mà <b>ADMIN</b> phải nhận được.
+     * <b>Năm</b> endpoint quản trị sản phẩm, kèm mã trạng thái mà <b>ADMIN</b> phải nhận được.
      * <p>
      * Mã của cột ADMIN cố ý <i>không</i> phải mã thành công: đó là mã của tầng <i>sau</i> tầng bảo
-     * mật ({@code 422} do validate body rỗng, {@code 404} do id không khớp dòng nào). Nó chứng minh
-     * đúng điều cần chứng minh — luật đã cho ADMIN đi qua — mà không cần một database sống.
+     * mật ({@code 422} do validate body rỗng, {@code 404} do id không khớp dòng nào, {@code 200} do
+     * mapper giả trả về trang rỗng). Nó chứng minh đúng điều cần chứng minh — luật đã cho ADMIN đi
+     * qua — mà không cần một database sống.
+     * <p>
+     * <b>Ba đường ghi ở đây từng nằm dưới {@code /api/products} và đã CHUYỂN sang
+     * {@code /api/admin/products} ở backlog 0018.</b> Danh sách này đổi theo <i>hành vi mới</i>,
+     * không phải đổi cho test xanh: hai đường đọc được cộng thêm vì chúng cũng nằm sau cùng một
+     * hàng rào, và ma trận quyền phải phủ cả năm chứ không riêng ba đường ghi.
      *
      * @return bộ bốn (method, path, body, mã trạng thái của ADMIN)
      */
-    private static Stream<Arguments> writeEndpoints() {
+    private static Stream<Arguments> adminProductEndpoints() {
         return Stream.of(
-                Arguments.of(HttpMethod.POST, "/api/products", "{}", 422),
-                Arguments.of(HttpMethod.PUT, "/api/products/1", "{}", 422),
-                Arguments.of(HttpMethod.DELETE, "/api/products/1", "{}", 404));
+                Arguments.of(HttpMethod.GET, "/api/admin/products", "{}", 200),
+                Arguments.of(HttpMethod.GET, "/api/admin/products/1", "{}", 404),
+                Arguments.of(HttpMethod.POST, "/api/admin/products", "{}", 422),
+                Arguments.of(HttpMethod.PUT, "/api/admin/products/1", "{}", 422),
+                Arguments.of(HttpMethod.DELETE, "/api/admin/products/1", "{}", 404));
+    }
+
+    /**
+     * Ba đường ghi <b>cũ</b> dưới {@code /api/products}, kèm mã mà một ADMIN phải nhận được.
+     * <p>
+     * <b>Đây là control dương của việc "chuyển hẳn, không nhân bản".</b> Gỡ ba dòng {@code hasRole}
+     * mà quên gỡ ba mapping sẽ mở lại đúng lỗ hổng backlog 0012 — và ca duy nhất phát hiện ra là ca
+     * này: nếu handler còn sống, một token ADMIN sẽ nhận {@code 422} / {@code 404} (tức đã vào tới
+     * business logic) thay vì {@code 405}.
+     * <p>
+     * <b>{@code 405} chứ không phải {@code 404}</b>, và khác biệt đó nói đúng điều cần biết: đường
+     * dẫn {@code /api/products} và {@code /api/products/{slug}} <i>vẫn tồn tại</i> cho {@code GET}
+     * công khai, chỉ là không còn động từ ghi nào trên chúng. Một {@code 404} ở đây sẽ có nghĩa là
+     * đường đọc công khai cũng biến mất — một regression khác hẳn.
+     *
+     * @return bộ ba (method, path, body)
+     */
+    private static Stream<Arguments> removedProductWriteEndpoints() {
+        return Stream.of(
+                Arguments.of(HttpMethod.POST, "/api/products", "{}"),
+                Arguments.of(HttpMethod.PUT, "/api/products/1", "{}"),
+                Arguments.of(HttpMethod.DELETE, "/api/products/1", "{}"));
     }
 
     /**
@@ -234,8 +264,8 @@ class SecurityRulesTest {
     // ========== TANG 2: GHI CHI ADMIN ==========
 
     /**
-     * Nguyên một cột của ma trận quyền cho mỗi đường ghi: không token → 401, CUSTOMER → 403,
-     * ADMIN → đi qua được tầng bảo mật.
+     * Nguyên một cột của ma trận quyền cho mỗi endpoint quản trị: không token → 401,
+     * CUSTOMER → 403, ADMIN → đi qua được tầng bảo mật.
      * <p>
      * Ba khẳng định nằm chung một ca là có chủ ý: chúng chỉ có nghĩa khi <b>cùng đúng</b>. Một luật
      * trả 401 cho cả CUSTOMER trông "an toàn" nhưng làm người dùng bị đăng xuất; một luật trả 403
@@ -249,11 +279,14 @@ class SecurityRulesTest {
      * @throws Exception khi MockMvc lỗi
      */
     @ParameterizedTest(name = "{0} {1}: khong token->401, CUSTOMER->403, ADMIN->{3}")
-    @MethodSource("writeEndpoints")
-    @DisplayName("Duong ghi san pham: khong token 401, CUSTOMER 403, ADMIN di qua")
-    void writeEndpointEnforcesAdminOnly(HttpMethod method, String path, String body, int adminStatus)
+    @MethodSource("adminProductEndpoints")
+    @DisplayName("Nam endpoint quan tri san pham: khong token 401, CUSTOMER 403, ADMIN di qua")
+    void adminProductEndpointEnforcesAdminOnly(HttpMethod method, String path, String body, int adminStatus)
             throws Exception {
         when(productJPAMapper.markInactive(any(), any())).thenReturn(0);
+        when(productJPAMapper.findAdminPage(any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        when(productJPAMapper.findActiveById(any())).thenReturn(Optional.empty());
 
         // 1. Khach vang lai: 401 — tin hieu "hay dang nhap"
         mockMvc.perform(request(method, path)
@@ -282,20 +315,239 @@ class SecurityRulesTest {
                 .andExpect(status().is(adminStatus));
     }
 
+    /**
+     * Body rỗng với token ADMIN dừng ở tầng validate với <b>đúng năm</b> trường lỗi — và
+     * {@code slug} <b>KHÔNG</b> nằm trong số đó.
+     * <p>
+     * <b>Sáu trở thành năm ở backlog 0018, và đó là hành vi mới chứ không phải một test được sửa
+     * cho xanh.</b> {@code @NotBlank} và {@code @Pattern} trên {@code slug} đã được gỡ khỏi hai DTO
+     * vì chúng từ chối đúng thứ frontend gửi: §B.12.1 nói {@code slug} bỏ trống thì backend tự sinh
+     * từ {@code name}, nên "bỏ trống" phải là ca hợp lệ nhất của cả endpoint chứ không phải một lỗi
+     * validate.
+     * <p>
+     * <b>Dòng {@code doesNotExist()} cho {@code slug} là phần quan trọng nhất của ca này.</b> Năm
+     * dòng {@code exists()} phía trên vẫn xanh y nguyên nếu ai đó vô tình thêm lại
+     * {@code @NotBlank}; chỉ dòng cuối bắt được điều đó. Và năm dòng {@code exists()} chính là
+     * positive control cho nó — chúng chứng minh phép đo <i>nhìn thấy được</i> map {@code errors},
+     * nên một {@code doesNotExist()} xanh không phải vì {@code jsonPath} viết sai đường dẫn.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
     @Test
-    @DisplayName("POST /api/products voi token ADMIN + body rong: 422 du 6 truong, khong phai 403")
-    void adminReachesValidationWithAllSixFieldErrors() throws Exception {
-        mockMvc.perform(post("/api/products")
+    @DisplayName("POST /api/admin/products voi ADMIN + body rong: 422 du 5 truong, slug KHONG con bat buoc")
+    void adminReachesValidationWithFiveFieldErrorsAndNoSlugError() throws Exception {
+        mockMvc.perform(post("/api/admin/products")
                         .header(HttpHeaders.AUTHORIZATION, genBearer("ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnprocessableEntity())
+                // 1. POSITIVE CONTROL: phep do nhin thay duoc map `errors` khi no CO mat
                 .andExpect(jsonPath("$.errors.name").exists())
-                .andExpect(jsonPath("$.errors.slug").exists())
                 .andExpect(jsonPath("$.errors.price").exists())
                 .andExpect(jsonPath("$.errors.stock").exists())
                 .andExpect(jsonPath("$.errors.unit").exists())
-                .andExpect(jsonPath("$.errors.categoryId").exists());
+                .andExpect(jsonPath("$.errors.categoryId").exists())
+                // 2. slug KHONG con bat buoc — khang dinh nay chi co nghia sau buoc 1
+                .andExpect(jsonPath("$.errors.slug").doesNotExist());
+    }
+
+    /**
+     * <b>Ba đường ghi cũ dưới {@code /api/products} không còn tồn tại.</b>
+     * <p>
+     * Ca này là nửa còn lại của "chuyển hẳn, không nhân bản" — xem javadoc
+     * {@link #removedProductWriteEndpoints()}. Không token phải là <b>401</b> (rơi vào
+     * {@code anyRequest().authenticated()}, đúng hành vi đã biết của bugs/0002), và có token ADMIN
+     * phải là <b>405</b>: đường dẫn còn sống cho {@code GET} nhưng không còn động từ ghi nào trên nó.
+     * <p>
+     * <b>Vế ADMIN mới là vế bắt được lỗi.</b> Vế 401 vẫn xanh kể cả khi handler còn nguyên — nó chỉ
+     * nói "cần token". Chỉ khi đã đi qua tầng bảo mật thì mới phân biệt được "handler đã biến mất"
+     * (405) với "handler vẫn ở đó và vừa nhận request" (422 / 404).
+     *
+     * @param method HTTP method của đường ghi đã gỡ
+     * @param path đường dẫn cũ
+     * @param body thân request
+     * @throws Exception khi MockMvc lỗi
+     */
+    @ParameterizedTest(name = "{0} {1} da bi go: khong token->401, ADMIN->405")
+    @MethodSource("removedProductWriteEndpoints")
+    @DisplayName("Ba duong ghi cu duoi /api/products khong con handler nao")
+    void removedProductWriteEndpointsAreGone(HttpMethod method, String path, String body)
+            throws Exception {
+        // 1. Khong token: roi vao anyRequest().authenticated()
+        mockMvc.perform(request(method, path)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnauthorized());
+
+        // 2. ADMIN: di qua duoc tang bao mat va dung o tang dinh tuyen — 405, KHONG phai 422/404
+        mockMvc.perform(request(method, path)
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    /**
+     * <b>Hàng rào gác cả tiền tố {@code /api/admin/**} — kể cả một đường dẫn KHÔNG CÓ HANDLER
+     * NÀO.</b> Đây là bằng chứng của §C.4.3a, và nó vẫn có nghĩa sau backlog 0019.
+     * <p>
+     * <b>Ca này từng mang tên "GET /api/admin/orders CHUA TON TAI"; backlog 0019 đã dựng đúng
+     * endpoint đó, nên cái tên cũ trở thành một lời nói dối.</b> Điều nó đo thì <i>không</i> mất đi
+     * — chỉ cần một đường dẫn không có handler để đo, và {@code /api/admin/khong-ton-tai} là đường
+     * đó. Sửa tên chứ không xoá ca: thứ nó khoá là "luật gắn vào TIỀN TỐ, không gắn vào từng
+     * handler", và đó vẫn là điều duy nhất giữ cho endpoint quản trị <i>tiếp theo</i> ra đời đã
+     * được gác sẵn.
+     * <p>
+     * Một token CUSTOMER phải nhận <b>403</b> — không phải 401 (người gọi đã đăng nhập rồi), và
+     * <b>không phải 404</b> (luật chạy trước khi Spring đi tìm handler). Nếu nó ra 404 thì nghĩa là
+     * luật đang gắn vào từng handler chứ không vào tiền tố.
+     * <p>
+     * Kèm hai control. Một: không token ra 401, chứng minh hàng rào phân biệt được "chưa đăng nhập"
+     * với "sai vai trò". Hai — <b>control âm</b>: {@code /api/adminx} <i>không</i> bị nuốt. Thiếu
+     * nó, một mẫu viết nhầm thành {@code /api/admin**} (thiếu dấu gạch chéo) vẫn cho mọi dòng phía
+     * trên xanh, trong khi nó đang khoá cả những đường dẫn chỉ tình cờ trùng tiền tố chuỗi.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("Duong /api/admin KHONG CO HANDLER van bi hang rao chan: CUSTOMER->403, khong token->401")
+    void adminPrefixGuardsPathsWithoutHandler() throws Exception {
+        // 1. CUSTOMER: 403 — luat cua tien to chay TRUOC khi Spring di tim handler.
+        //    Duong dan nay khong co @RequestMapping nao; neu luat gan vao handler thi day se la 404.
+        mockMvc.perform(get("/api/admin/khong-ton-tai")
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_FORBIDDEN));
+
+        // 2. Khong token: 401 — hang rao van phan biet duoc hai ca
+        mockMvc.perform(get("/api/admin/khong-ton-tai"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_UNAUTHENTICATED));
+
+        // 3. Ke ca mot dong tu khong ai dinh mo tren mot duong dan quan tri co that
+        mockMvc.perform(request(HttpMethod.DELETE, "/api/admin/orders/NSS-20260101-0001")
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER")))
+                .andExpect(status().isForbidden());
+
+        // 4. CONTROL AM: mau khong duoc nuot mot duong chi TRUNG TIEN TO CHUOI
+        mockMvc.perform(get("/api/adminx")
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER")))
+                .andExpect(status().isNotFound());
+    }
+
+    /**
+     * <b>Ma trận quyền của SÁU endpoint quản trị mới</b> (backlog 0019): không token {@literal ->}
+     * 401, CUSTOMER {@literal ->} 403, ADMIN {@literal ->} mã của tầng <i>sau</i> bảo mật.
+     * <p>
+     * Cùng khuôn — và cùng lý do gộp ba khẳng định vào một ca — với
+     * {@link #adminProductEndpointEnforcesAdminOnly}: ba ô chỉ có nghĩa khi <b>cùng đúng</b>. Ô
+     * CUSTOMER {@literal ->} <b>403</b> là ô quan trọng nhất: một 401 ở đó sẽ khiến
+     * {@code client.ts} tưởng access token hết hạn, gọi {@code /auth/refresh}, rồi <i>đăng xuất</i>
+     * một khách chỉ vì họ bấm nhầm nút quản trị.
+     * <p>
+     * <b>{@code PATCH} có mặt trong ma trận này, và đó là điểm cần đo.</b> Dòng
+     * {@code PATH_ADMIN_ALL} cố ý <i>không</i> khai {@code HttpMethod} — nếu nó khai, một động từ
+     * không được liệt kê sẽ lọt lưới. Đây là động từ đầu tiên của dự án nằm ngoài bộ
+     * {@code GET/POST/PUT/DELETE}, nên nó là ca duy nhất chứng minh điều đó.
+     * <p>
+     * <b>Mã của cột ADMIN cố ý không phải mã thành công ở mọi dòng</b>: {@code 404} do mapper giả
+     * trả về rỗng, {@code 422} do validate body rỗng, {@code 200} do trang rỗng. Nó chứng minh đúng
+     * điều cần chứng minh — luật đã cho ADMIN đi qua — mà không cần một database sống.
+     * <p>
+     * <b>Context này KHÔNG có {@code TransactionManager}</b> (autoconfig JPA bị loại), nên dòng
+     * {@code PATCH} cố ý gửi body rỗng để dừng ở tầng validate. Hành vi nghiệp vụ đầy đủ của máy
+     * trạng thái thuộc {@code OrderStatusMachineTest} và ma trận request thật ở mục Verification
+     * của ticket.
+     *
+     * @param method HTTP method
+     * @param path đường dẫn
+     * @param body thân request
+     * @param adminStatus mã trạng thái ADMIN phải nhận — mã của tầng sau bảo mật
+     * @throws Exception khi MockMvc lỗi
+     */
+    @ParameterizedTest(name = "{0} {1}: khong token->401, CUSTOMER->403, ADMIN->{3}")
+    @MethodSource("adminEndpointsOf0019")
+    @DisplayName("Sau endpoint quan tri moi: khong token 401, CUSTOMER 403, ADMIN di qua")
+    void newAdminEndpointsEnforceAdminOnly(HttpMethod method, String path, String body, int adminStatus)
+            throws Exception {
+        when(orderJPAMapper.findAdminPage(any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        when(userJPAMapper.findAdminPage(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        // 1. Khach vang lai: 401 — tin hieu "hay dang nhap"
+        mockMvc.perform(request(method, path)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_UNAUTHENTICATED))
+                .andExpect(jsonPath("$.instance").value(path));
+
+        // 2. CUSTOMER: 403 — KHONG duoc la 401, neu khong client.ts se dang xuat nguoi dung
+        mockMvc.perform(request(method, path)
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_FORBIDDEN))
+                .andExpect(jsonPath("$.instance").value(path));
+
+        // 3. ADMIN: luat cho di qua — request dung o tang nghiep vu, khong dung o tang bao mat
+        mockMvc.perform(request(method, path)
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().is(adminStatus));
+    }
+
+    /**
+     * <b>Sáu</b> endpoint quản trị của backlog 0019, kèm mã trạng thái mà <b>ADMIN</b> phải nhận.
+     *
+     * @return bộ bốn (method, path, body, mã trạng thái của ADMIN)
+     */
+    private static Stream<Arguments> adminEndpointsOf0019() {
+        return Stream.of(
+                Arguments.of(HttpMethod.GET, "/api/admin/orders", "{}", 200),
+                Arguments.of(HttpMethod.GET, "/api/admin/orders/NSS-20260101-0001", "{}", 404),
+                Arguments.of(HttpMethod.PATCH, "/api/admin/orders/NSS-20260101-0001/status", "{}", 422),
+                Arguments.of(HttpMethod.GET, "/api/admin/customers", "{}", 200),
+                Arguments.of(HttpMethod.GET, "/api/admin/customers/1", "{}", 404),
+                Arguments.of(HttpMethod.GET, "/api/admin/stats/overview", "{}", 200));
+    }
+
+    /**
+     * {@code days} ngoài dải trả <b>400</b>, không phải một khoảng bị kẹp im lặng — §B.12.4.
+     * <p>
+     * <b>Kèm control dương ngay trong cùng ca:</b> {@code days=30} phải ra 200. Không có nó, một
+     * cấu hình làm mọi lời gọi tới endpoint này hỏng cũng cho ra 400 và ca vẫn xanh.
+     * <p>
+     * Phép kiểm dải nằm ở tầng controller nên nó chạy được ở context không có JPA — nó không chạm
+     * tới truy vấn nào.
+     *
+     * @param days giá trị ngoài dải
+     * @throws Exception khi MockMvc lỗi
+     */
+    @ParameterizedTest(name = "days={0} -> 400")
+    @ValueSource(ints = {0, -1, 366, 9999})
+    @DisplayName("days ngoai dai 1..365 tra 400, KHONG am tham kep gia tri")
+    void statsRejectsDaysOutsideRange(int days) throws Exception {
+        // 1. CONTROL DUONG: mot `days` hop le van ra 200
+        mockMvc.perform(get("/api/admin/stats/overview")
+                        .param("days", "30")
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("ADMIN")))
+                .andExpect(status().isOk());
+
+        // 2. Ngoai dai -> 400, va KHONG kem map `errors` (day la loi tham so, khong theo truong)
+        mockMvc.perform(get("/api/admin/stats/overview")
+                        .param("days", String.valueOf(days))
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("ADMIN")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors").doesNotExist());
     }
 
     // ========== MA GIAM GIA: HAI ENDPOINT CONG KHAI (§B.7) ==========
@@ -612,8 +864,10 @@ class SecurityRulesTest {
                 Arguments.of(HttpMethod.POST, "/api/orders/NSS-20260101-0001"),
                 // Duong long tuong lai chua ton tai — mot dau sao giu chung dong san
                 Arguments.of(HttpMethod.POST, "/api/orders/NSS-20260101-0001/cancel"),
-                // Khu quan tri chua ton tai va phai dong san
-                Arguments.of(HttpMethod.GET, "/api/admin/orders"));
+                // Khu quan tri DA TON TAI tu backlog 0019, va van phai doi token: mot dong
+                // permitAll viet rong tay o nhom /api/orders khong duoc cham toi no.
+                Arguments.of(HttpMethod.GET, "/api/admin/orders"),
+                Arguments.of(HttpMethod.PATCH, "/api/admin/orders/NSS-20260101-0001/status"));
     }
 
     // ========== DUONG XAC THUC ==========
@@ -728,24 +982,55 @@ class SecurityRulesTest {
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
     }
 
+    /**
+     * <b>Năm operation quản trị có mặt trong tài liệu và CẢ NĂM mang {@code security}; ba operation
+     * ghi cũ dưới {@code /api/products} đã biến mất khỏi tài liệu.</b>
+     * <p>
+     * Ca này khoá cả hai nửa của việc chuyển namespace ở backlog 0018, và hai nửa đó hỏng theo hai
+     * kiểu khác nhau:
+     * <ul>
+     *   <li><b>Thiếu {@code security} trên một operation quản trị</b> — endpoint vẫn được bảo vệ
+     *       đúng (hàng rào nằm ở {@code SecurityConfig}, không ở annotation), nhưng Swagger UI sẽ
+     *       không gửi header {@code Authorization} và người đọc tài liệu đọc ra một sự thật sai.
+     *       Dự án không có security requirement toàn cục, nên mỗi {@code @Operation} phải tự khai.</li>
+     *   <li><b>Ba operation ghi cũ còn sót lại trong tài liệu</b> — nghĩa là mapping chưa được gỡ
+     *       thật, tức vẫn còn một cửa thứ hai vào cùng chỗ ghi.</li>
+     * </ul>
+     * <b>Khẳng định "đường đọc công khai KHÔNG mang {@code security}" đi kèm positive control ngay
+     * trong cùng ca:</b> năm dòng {@code exists()} phía trên chứng minh phép đo nhìn thấy được
+     * thuộc tính đó, nên hai dòng {@code doesNotExist()} cuối không phải hệ quả của một
+     * {@code jsonPath} viết sai đường dẫn.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
     @Test
-    @DisplayName("api-docs khai security cho ba lenh ghi va khong khai cho duong doc")
-    void apiDocsDeclareSecurityOnProductWriteOperations() throws Exception {
+    @DisplayName("api-docs: nam operation quan tri deu mang security, ba operation ghi cu da bien mat")
+    void apiDocsDeclareSecurityOnAdminProductOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paths['/api/products'].post.security[0].bearerAuth").exists())
-                .andExpect(jsonPath("$.paths['/api/products/{id}'].put.security[0].bearerAuth").exists())
-                .andExpect(jsonPath("$.paths['/api/products/{id}'].delete.security[0].bearerAuth").exists())
-                // Hai operation ho so cua backlog 0016. Du an KHONG co security requirement toan
-                // cuc, nen thieu `security` tren @Operation lam api-docs sai trong khi endpoint van
-                // duoc bao ve dung — Swagger UI se khong gui header va nguoi doc doc ra thong tin sai.
+                // 1. Ca NAM operation quan tri mang security
+                .andExpect(jsonPath("$.paths['/api/admin/products'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].put.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].delete.security[0].bearerAuth").exists())
+                // 2. Ca nam deu khai 401 va 403 — tai lieu noi dung ve hang rao
+                .andExpect(jsonPath("$.paths['/api/admin/products'].get.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].get.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].get.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].put.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products/{id}'].delete.responses['403']").exists())
+                // 3. Hai operation ho so cua backlog 0016 — khong lien quan namespace, giu nguyen
                 .andExpect(jsonPath("$.paths['/api/auth/me'].put.security[0].bearerAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/auth/password'].put.security[0].bearerAuth").exists())
-                .andExpect(jsonPath("$.paths['/api/products'].post.responses['403']").exists())
-                .andExpect(jsonPath("$.paths['/api/products/{id}'].put.responses['403']").exists())
-                .andExpect(jsonPath("$.paths['/api/products/{id}'].delete.responses['403']").exists())
-                // Duong doc cong khai thi KHONG duoc mang security — Swagger noi dung §B.1
-                .andExpect(jsonPath("$.paths['/api/products'].get.security").doesNotExist());
+                // 4. BA OPERATION GHI CU DA BIEN MAT khoi tai lieu — nua con lai cua viec chuyen han
+                .andExpect(jsonPath("$.paths['/api/products'].post").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/products/{id}']").doesNotExist())
+                // 5. Duong doc cong khai van con va KHONG mang security (§B.1) — chi co nghia sau (1)
+                .andExpect(jsonPath("$.paths['/api/products'].get.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/products'].get.security").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/products/{slug}'].get.security").doesNotExist());
     }
 
     /**
@@ -765,7 +1050,7 @@ class SecurityRulesTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 // 1. POSITIVE CONTROL: phep do nhin thay duoc thuoc tinh `security` khi no CO mat
-                .andExpect(jsonPath("$.paths['/api/products'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.security[0].bearerAuth").exists())
                 // 2. Hai operation moi co mat trong tai lieu, kem summary
                 .andExpect(jsonPath("$.paths['/api/coupons/validate'].post.summary").exists())
                 .andExpect(jsonPath("$.paths['/api/coupons/active'].get.summary").exists())
@@ -794,7 +1079,7 @@ class SecurityRulesTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 // 1. POSITIVE CONTROL: phep do nhin thay duoc thuoc tinh `security` khi no CO mat
-                .andExpect(jsonPath("$.paths['/api/products'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.security[0].bearerAuth").exists())
                 // 2. Operation moi co mat trong tai lieu, kem summary tieng Viet
                 .andExpect(jsonPath("$.paths['/api/cart/validate'].post.summary").exists())
                 // 3. Cong khai (§B.6) — khang dinh nay chi co nghia sau buoc 1
@@ -832,7 +1117,7 @@ class SecurityRulesTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 // 1. POSITIVE CONTROL A: phep do nhin thay duoc `security` o mot nhom khac
-                .andExpect(jsonPath("$.paths['/api/products'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.security[0].bearerAuth").exists())
                 // 2. Ba operation moi co mat, kem summary tieng Viet
                 .andExpect(jsonPath("$.paths['/api/orders'].post.summary").exists())
                 .andExpect(jsonPath("$.paths['/api/orders/me'].get.summary").exists())
@@ -849,6 +1134,69 @@ class SecurityRulesTest {
                 .andExpect(jsonPath("$.paths['/api/orders/{code}'].post").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/orders/{code}'].put").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/orders/{code}'].delete").doesNotExist());
+    }
+
+    /**
+     * <b>Sáu operation quản trị mới của backlog 0019 có mặt trong tài liệu và CẢ SÁU mang
+     * {@code security}.</b>
+     * <p>
+     * Dự án <i>không</i> có security requirement toàn cục, nên mỗi {@code @Operation} phải tự khai.
+     * Thiếu {@code security} thì endpoint vẫn được bảo vệ đúng — hàng rào nằm ở
+     * {@code SecurityConfig}, không ở annotation — nhưng Swagger UI sẽ không gửi header
+     * {@code Authorization}, và người đọc tài liệu đọc ra một sự thật sai.
+     * <p>
+     * <b>Ca này cũng khoá SỐ ĐỘNG TỪ trên ba đường dẫn mới.</b> Ba đường đơn hàng quản trị mở đúng
+     * {@code GET} / {@code GET} / {@code PATCH}; §B.12.2 cấm tường minh việc xoá đơn và sửa
+     * items/tiền, nên một {@code DELETE} hay {@code PUT} xuất hiện trong tài liệu là dấu hiệu ai đó
+     * vừa mở đúng cái cửa hợp đồng đóng lại. Tài liệu khi ấy sẽ hứa những thứ contract cấm.
+     * <p>
+     * <b>Positive control</b> nằm ở dòng đầu: một operation đã biết là có {@code security}. Không
+     * có nó, một {@code jsonPath} viết sai đường dẫn cũng cho ra {@code doesNotExist()} màu xanh.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("api-docs: sau operation quan tri moi deu mang security; khong co dong tu ghi nao thua")
+    void apiDocsDeclareSecurityOnNewAdminOperations() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                // 1. POSITIVE CONTROL: phep do nhin thay duoc thuoc tinh `security` khi no CO mat
+                .andExpect(jsonPath("$.paths['/api/admin/products'].post.security[0].bearerAuth").exists())
+                // 2. Ca SAU operation moi co mat va mang security
+                .andExpect(jsonPath("$.paths['/api/admin/orders'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}/status'].patch"
+                        + ".security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/customers'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}'].get.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/stats/overview'].get"
+                        + ".security[0].bearerAuth").exists())
+                // 3. Ca sau deu khai 401 va 403 — tai lieu noi dung ve hang rao
+                .andExpect(jsonPath("$.paths['/api/admin/orders'].get.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/orders'].get.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}'].get.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}/status'].patch"
+                        + ".responses['422']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/customers'].get.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}'].get.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/admin/stats/overview'].get.responses['400']").exists())
+                // 4. KHONG co dong tu ghi nao tren don hang quan tri (§B.12.2 cam xoa don va sua don)
+                .andExpect(jsonPath("$.paths['/api/admin/orders'].post").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/orders'].delete").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}'].put").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}'].patch").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/orders/{code}'].delete").doesNotExist())
+                // 5. Khach hang CHI DOC (§B.12.3) — khong sua, khong xoa, va KHONG doi vai tro
+                .andExpect(jsonPath("$.paths['/api/admin/customers'].post").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}'].put").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}'].patch").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}'].delete").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}/role']").doesNotExist())
+                // 6. Khong co duong don-hang-cua-mot-khach rieng (§B.12.3)
+                .andExpect(jsonPath("$.paths['/api/admin/customers/{id}/orders']").doesNotExist())
+                // 7. Tong quan CHI DOC va se luon chi doc (§B.12.4)
+                .andExpect(jsonPath("$.paths['/api/admin/stats/overview'].post").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/admin/stats/overview'].put").doesNotExist());
     }
 
     // ========== DAT LAI MAT KHAU: HAI ENDPOINT CONG KHAI (backlog 0017) ==========

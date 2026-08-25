@@ -61,6 +61,19 @@ public class OrderMutationResponse {
     /** Dữ liệu đơn không qua được quy tắc nghiệp vụ — controller dịch thành <b>422</b>. */
     public static final String CODE_INVALID_ORDER_DATA = "INVALID_ORDER_DATA";
 
+    /**
+     * Không có đơn nào mang mã đó — controller dịch thành <b>404</b> (backlog 0019).
+     *
+     * <p>Ra đời cùng {@code PATCH /admin/orders/{code}/status}: đó là lệnh ghi đầu tiên khoá theo
+     * một mã do client cung cấp, nên nó là chỗ đầu tiên "không tìm thấy" trở thành một kết quả
+     * <i>của lệnh ghi</i> chứ không phải một {@code null} trả về từ đường đọc.
+     *
+     * <p><b>404 chứ không 422</b>, khác ba mã trên: ở đây tài nguyên của request — chính cái đơn
+     * trong đường dẫn — không tồn tại. Ba mã kia nói về <i>nội dung</i> của một request trỏ đúng
+     * tài nguyên. §B.12.2 cũng liệt kê đúng 404 cho ca này.
+     */
+    public static final String CODE_ORDER_NOT_FOUND = "ORDER_NOT_FOUND";
+
     /** Đơn hàng sau khi ghi; {@code null} khi thất bại. */
     private OrderResponse order;
 

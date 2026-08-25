@@ -12,6 +12,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controlle
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\RegisterRequest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\ResetPasswordRequest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\ShippingInfoRequest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\UpdateOrderStatusRequest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\UpdateProductRequest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\UpdateProfileRequest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\dto\ValidateCartRequest.java
@@ -24,6 +25,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controlle
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\GlobalExceptionHandler.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidCredentialsException.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidCurrentPasswordException.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidDateRangeException.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidOrderDataException.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidProductDataException.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\InvalidResetTokenException.java
@@ -34,6 +36,10 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controlle
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\TooManyRequestsException.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\UnexpectedExceptionHandler.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\exception\UserNotFoundException.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\AdminCustomerController.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\AdminOrderController.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\AdminProductController.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\AdminStatsController.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\AuthController.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\CartController.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\CouponController.java
@@ -42,5 +48,6 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controlle
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\http\ProductController.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\mapper\AuthControllerMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\mapper\CartControllerMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\mapper\CustomerControllerMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\mapper\OrderControllerMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\src\main\java\com\nss\ddd\controller\mapper\ProductControllerMapper.java

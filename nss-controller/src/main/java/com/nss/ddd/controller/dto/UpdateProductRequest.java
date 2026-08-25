@@ -2,7 +2,6 @@ package com.nss.ddd.controller.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -34,10 +33,24 @@ import java.util.List;
 @Data
 public class UpdateProductRequest {
 
-    @NotBlank(message = "slug must not be blank")
+    /**
+     * Slug do admin gõ; <b>bỏ trống nghĩa là "tự sinh từ {@code name}"</b> (§B.12.1).
+     * <p>
+     * <b>Cố ý KHÔNG còn {@code @NotBlank} và {@code @Pattern("^[a-z0-9-]+$")}.</b> Hai ràng buộc
+     * đó từ chối đúng thứ frontend gửi lên: ô slug của màn quản trị cho gõ tự do, và
+     * {@code adminProducts.api.ts:117} slugify cả slug client gửi chứ không chỉ khi bỏ trống. Giữ
+     * chúng lại thì "Cà Rốt Hữu Cơ" gõ vào ô slug trả 422 thay vì thành {@code ca-rot-huu-co}, và
+     * bỏ trống ô slug — ca dùng phổ biến nhất — cũng trả 422.
+     * <p>
+     * <b>Nới ở đây KHÔNG phải nới luật:</b> hình dạng slug vẫn được cưỡng chế, chỉ là ở chỗ khác và
+     * bằng cách khác. {@code ProductDomainService#genSlug} chuẩn hoá về đúng tập ký tự cũ, và trả
+     * lỗi nghiệp vụ khi không còn ký tự hợp lệ nào. Khác biệt là nó <i>sửa</i> đầu vào hợp lý thay
+     * vì <i>từ chối</i> nó.
+     * <p>
+     * {@code @Size} thì giữ: nó chặn một chuỗi dài hơn cột {@code varchar(160)} <b>trước</b> khi
+     * chuỗi ấy đi tới tầng dữ liệu.
+     */
     @Size(max = 160, message = "slug must not exceed 160 characters")
-    @Pattern(regexp = "^[a-z0-9-]+$",
-            message = "slug must contain only lowercase letters, digits and hyphens")
     private String slug;
 
     @NotBlank(message = "name must not be blank")

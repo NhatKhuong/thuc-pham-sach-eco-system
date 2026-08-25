@@ -1,5 +1,6 @@
 package com.nss.ddd.domain.service.impl;
 
+import com.nss.ddd.domain.model.TextNormalizer;
 import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
@@ -138,8 +139,12 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         //    ProductDomainServiceImpl.genUtcNow(): now() lay dong ho may, lech 7 tieng o VN va
         //    khong co gi bao loi; cot la datetime(6) nen phan le nano se lech giua RAM va DB.
         LocalDateTime now = genUtcNow();
-        // 2. Bam mat khau — mat khau tho khong bao gio di xuong DB
+        // 2. Bam mat khau — mat khau tho khong bao gio di xuong DB.
+        //    full_name_normalized la cot phai sinh, dien bang CUNG mot ham voi product.name_normalized
+        //    (coding-conventions §18): thieu no thi tai khoan moi khong bao gio tim ra o
+        //    GET /admin/customers, va khong co gi bao loi.
         draft.setPasswordHash(passwordEncoder.encode(rawPassword))
+                .setFullNameNormalized(TextNormalizer.genNormalized(draft.getFullName()))
                 .setCreatedAt(now)
                 .setUpdatedAt(now);
         User saved = userRepository.save(draft);
@@ -196,9 +201,15 @@ public class AuthDomainServiceImpl implements AuthDomainService {
 
     @Override
     public User updateProfile(User user) {
-        // Chi dong dau thoi gian va ghi. Ban va da duoc ap o tang application, va cong email trung
-        // da chay XONG truoc khi entity bi cham vao — xem AuthAppServiceImpl.updateProfile.
-        user.setUpdatedAt(genUtcNow());
+        // Dong dau thoi gian, sinh lai cot phai sinh, roi ghi. Ban va da duoc ap o tang application,
+        // va cong email trung da chay XONG truoc khi entity bi cham vao — xem
+        // AuthAppServiceImpl.updateProfile.
+        //
+        // full_name_normalized phai sinh lai o CA duong nay chu khong chi luc dang ky: doi ho ten
+        // ma khong doi cot chuan hoa thi bang khach hang van tim ra ten CU va khong bao gio tim ra
+        // ten MOI — mot ket qua sai trong y het mot ket qua dung.
+        user.setFullNameNormalized(TextNormalizer.genNormalized(user.getFullName()))
+                .setUpdatedAt(genUtcNow());
         User saved = userRepository.save(user);
         log.info("updateProfile: saved user | userId={}", saved.getId());
         return saved;

@@ -1,6 +1,7 @@
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartIssue.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartIssueType.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\CartLine.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\DailyRevenue.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Address.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Brand.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Category.java
@@ -22,7 +23,14 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\User.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\UserRole.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Ward.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\OrderFilter.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\PageResult.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\ProductFilter.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\ProductSort.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\StatusCount.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\StockStatus.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\TextNormalizer.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\UserFilter.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\BrandRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CategoryRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CouponRepository.java
@@ -44,5 +52,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\OrderDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\ProductDomainServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\impl\UserDomainServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\OrderDomainService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\ProductDomainService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\service\UserDomainService.java

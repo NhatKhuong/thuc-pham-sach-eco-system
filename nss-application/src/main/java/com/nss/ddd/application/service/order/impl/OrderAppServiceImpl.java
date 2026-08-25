@@ -6,7 +6,10 @@ import com.nss.ddd.application.model.command.CreateOrderCommand;
 import com.nss.ddd.application.model.response.CouponValidationResponse;
 import com.nss.ddd.application.model.response.OrderMutationResponse;
 import com.nss.ddd.application.model.response.OrderResponse;
+import com.nss.ddd.application.model.response.PaginatedResponse;
 import com.nss.ddd.application.service.order.OrderAppService;
+import com.nss.ddd.domain.model.OrderFilter;
+import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.entity.Coupon;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OrderItem;
@@ -86,6 +89,22 @@ public class OrderAppServiceImpl implements OrderAppService {
 
     private static final String MESSAGE_COUPON_USED_UP =
             "Mã giảm giá này vừa hết lượt sử dụng, vui lòng thử mã khác.";
+
+    /** §A.4 — mặc định 12 đơn mỗi trang, khớp {@code ORDERS_PER_PAGE} của bảng quản trị. */
+    private static final int DEFAULT_ADMIN_LIMIT = 12;
+
+    private static final String MESSAGE_ORDER_NOT_FOUND =
+            "Không tìm thấy đơn hàng với mã này.";
+
+    /**
+     * Thông điệp cho ca {@code status} là một chuỗi không nằm trong bảng dịch.
+     * <p>
+     * <b>Tách khỏi thông điệp "chuyển không hợp lệ" dù cả hai cùng ra 422</b>: một cái nói "chuỗi
+     * bạn gửi không phải một trạng thái", cái kia nói "trạng thái đó có thật nhưng đơn không đi
+     * được tới đó". Gộp làm một sẽ bắt người đọc tự đoán mình sai kiểu nào.
+     */
+    private static final String MESSAGE_UNKNOWN_STATUS =
+            "Trạng thái đơn hàng không hợp lệ, vui lòng chọn lại.";
 
     private final OrderDomainService orderDomainService;
 
@@ -257,6 +276,87 @@ public class OrderAppServiceImpl implements OrderAppService {
         return OrderMapper.toResponse(order, items);
     }
 
+    // ========== KHU QUAN TRI (§B.12.2) ==========
+
+    @Override
+    public PaginatedResponse<OrderResponse> findAdminOrders(OrderFilter filter) {
+        // 1. Keo tham so ve khoang dung duoc — dung mot luat voi bang san pham (§A.4)
+        int safePage = Math.max(filter.getPage(), 1);
+        int safeLimit = filter.getLimit() < 1 ? DEFAULT_ADMIN_LIMIT : filter.getLimit();
+        // 2. Dung filter MOI thay vi sua cai duoc truyen vao: doi tuong cua phia goi khong duoc
+        //    am tham doi nghia giua chung mot lan xu ly
+        OrderFilter safeFilter = OrderFilter.of(filter.getKeyword(), filter.getStatus(),
+                filter.getUserId(), safePage, safeLimit);
+        PageResult<Order> pageResult = orderDomainService.findAdminPage(safeFilter);
+        List<Order> orders = pageResult.getItems();
+        // 3. Dong hang cua CA trang lay trong MOT truy van — cung ly do da viet o findMyOrders
+        Map<Long, List<OrderItem>> itemsByOrderId = orderDomainService.findItemsGroupedByOrderId(
+                orders.stream().map(Order::getId).toList());
+        List<OrderResponse> items = new ArrayList<>(orders.size());
+        for (Order order : orders) {
+            items.add(OrderMapper.toResponse(order,
+                    itemsByOrderId.getOrDefault(order.getId(), Collections.emptyList())));
+        }
+        log.info("findAdminOrders: success | q={} status={} userId={} page={} limit={} total={}",
+                safeFilter.getKeyword(), safeFilter.getStatus(), safeFilter.getUserId(),
+                safePage, safeLimit, pageResult.getTotal());
+        return PaginatedResponse.of(items, pageResult.getTotal(), safePage, safeLimit);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Bốn cổng, và thứ tự của chúng là contract chứ không phải thẩm mỹ.</b> Đơn phải tồn tại
+     * trước khi bàn tới trạng thái (404 chứ không 422); chuỗi phải là một trạng thái có thật trước
+     * khi hỏi máy trạng thái (nếu không thì không có gì để so). Đảo lại sẽ trả 422 cho một mã đơn
+     * không tồn tại — một câu trả lời nói sai về nguyên nhân.
+     * <p>
+     * <b>KHÔNG có {@code setRollbackOnly} như {@code createOrder}, và đó không phải chỗ quên:</b>
+     * cả bốn cổng thất bại đều chạy <i>trước</i> lời ghi đầu tiên, nên không có gì để hoàn lại.
+     * Khác hẳn {@code createOrder}, nơi bước trừ kho nằm giữa các cổng. Ai chèn thêm một bước ghi
+     * vào giữa method này thì phải mang {@code failedAndRollback} sang cùng lúc.
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderMutationResponse changeOrderStatus(String code, String wireStatus, String changedBy) {
+        // 1. Don phai ton tai — 404, khong phai 422
+        Order order = orderDomainService.findByCode(code);
+        if (order == null) {
+            log.warn("changeOrderStatus: order not found | code={}", code);
+            return OrderMutationResponse.failed(OrderMutationResponse.CODE_ORDER_NOT_FOUND,
+                    MESSAGE_ORDER_NOT_FOUND);
+        }
+        // 2. Chuoi phai la mot trang thai co that. Bang dich nam o OrderMapper; chuoi la cho ra
+        //    null va TUYET DOI khong roi ve mot mac dinh nao — mot PATCH go sai se doi that trang
+        //    thai cua mot chung tu sang gia tri admin khong he chon.
+        Integer toStatus = OrderMapper.toStatusCode(wireStatus);
+        if (toStatus == null) {
+            log.warn("changeOrderStatus: unknown status | code={} value={}", code, wireStatus);
+            return OrderMutationResponse.failed(OrderMutationResponse.CODE_INVALID_ORDER_DATA,
+                    MESSAGE_UNKNOWN_STATUS);
+        }
+        // 3. May trang thai — luat song o domain, o day chi dich `false` thanh ma loi.
+        //    Chuyen sang CHINH trang thai hien tai cung roi vao day: no khong nam trong bang.
+        Integer fromStatus = order.getStatus();
+        if (fromStatus == null || !orderDomainService.canTransition(fromStatus, toStatus)) {
+            log.warn("changeOrderStatus: transition rejected | code={} from={} to={}",
+                    code, fromStatus, toStatus);
+            return OrderMutationResponse.failed(OrderMutationResponse.CODE_INVALID_ORDER_DATA,
+                    genInvalidTransitionMessage(fromStatus, toStatus));
+        }
+        // 4. Hai write trong CUNG transaction: cot status cua don, va mot dong nhat ky moi
+        LocalDateTime nowUtc = genNowUtcToSecond();
+        Order saved = orderDomainService.updateStatus(order, toStatus, nowUtc);
+        orderDomainService.recordTransition(saved, fromStatus, toStatus, changedBy, nowUtc);
+
+        List<OrderItem> items = orderDomainService
+                .findItemsGroupedByOrderId(List.of(saved.getId()))
+                .getOrDefault(saved.getId(), Collections.emptyList());
+        log.info("changeOrderStatus: success | orderId={} code={} from={} to={} changedBy={}",
+                saved.getId(), saved.getCode(), fromStatus, toStatus, changedBy);
+        return OrderMutationResponse.success(OrderMapper.toResponse(saved, items));
+    }
+
     // ========== HELPERS ==========
 
     /**
@@ -354,6 +454,24 @@ public class OrderAppServiceImpl implements OrderAppService {
      */
     private String genChangedBy(Long userId) {
         return userId == null ? OrderDomainService.CHANGED_BY_GUEST : String.valueOf(userId);
+    }
+
+    /**
+     * Dựng thông điệp tiếng Việt cho ca chuyển trạng thái không hợp lệ.
+     * <p>
+     * <b>Nêu ĐÍCH DANH cả hai đầu bằng nhãn tiếng Việt</b> ({@code OrderMapper.toStatusLabel}):
+     * chuỗi này đi thẳng vào {@code detail} của {@code ProblemDetail} và frontend hiển thị nguyên
+     * văn (§A.3), nên một câu chung chung kiểu "thao tác không hợp lệ" buộc người dùng phải đoán
+     * mình vừa bấm sai chỗ nào. Ca hay gặp nhất — bấm lại đúng trạng thái đơn đang có — cũng đọc ra
+     * đúng nghĩa: "không thể chuyển từ Đã giao sang Đã giao".
+     *
+     * @param fromStatus trạng thái hiện tại
+     * @param toStatus trạng thái được yêu cầu
+     * @return thông điệp tiếng Việt
+     */
+    private String genInvalidTransitionMessage(Integer fromStatus, Integer toStatus) {
+        return "Không thể chuyển đơn hàng từ trạng thái \"" + OrderMapper.toStatusLabel(fromStatus)
+                + "\" sang \"" + OrderMapper.toStatusLabel(toStatus) + "\".";
     }
 
     /**

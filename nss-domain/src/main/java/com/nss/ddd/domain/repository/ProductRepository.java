@@ -1,6 +1,7 @@
 package com.nss.ddd.domain.repository;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.ProductFilter;
 import com.nss.ddd.domain.model.entity.Product;
 
 import java.time.LocalDateTime;
@@ -70,6 +71,42 @@ public interface ProductRepository {
      * @return các phần tử của trang kèm tổng số sản phẩm còn hiệu lực
      */
     PageResult<Product> findPage(int page, int limit);
+
+    /**
+     * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — đường đọc của
+     * {@code GET /admin/products} (API_CONTRACT §B.12.1).
+     * <p>
+     * <b>Tách khỏi {@link #findPage(int, int)} chứ không thay nó, và lý do không phải là ngại đụng
+     * chạm.</b> {@code GET /products} của trang cửa hàng có thứ tự cố định theo id và không nhận
+     * tham số lọc nào; gộp hai đường vào một chữ ký dùng chung là mở sẵn đường cho một bộ lọc quản
+     * trị rò sang endpoint công khai mà không ai phải quyết định gì.
+     * <p>
+     * <b>{@code filter.keyword} tới đây đã được domain service bỏ dấu.</b> Adapter chỉ dựng mẫu
+     * {@code LIKE}; nó <b>không</b> được chuẩn hoá lại — xem javadoc {@link ProductFilter}.
+     * <p>
+     * <b>Kết quả rỗng là một câu trả lời hợp lệ, không phải lỗi.</b> Một {@code categorySlug} không
+     * khớp danh mục nào cho ra 0 dòng, đúng như frontend làm.
+     *
+     * @param filter điều kiện lọc, sắp xếp và phân trang; {@code page} đánh số từ 1
+     * @return các phần tử của trang kèm <b>tổng số dòng khớp điều kiện lọc</b> — không phải tổng số
+     *         sản phẩm còn hiệu lực của cả bảng
+     */
+    PageResult<Product> findAdminPage(ProductFilter filter);
+
+    /**
+     * Đếm số sản phẩm khớp <b>đúng</b> điều kiện của {@link #findAdminPage(ProductFilter)}.
+     * <p>
+     * <b>Tồn tại để {@code lowStockCount} của §B.12.4 và {@code total} của
+     * {@code GET /admin/products?stockStatus=low_stock} không bao giờ lệch nhau.</b> Hợp đồng chốt
+     * hai chỗ đó dùng <i>đúng một</i> ngưỡng ({@code StockStatus.LOW_STOCK_THRESHOLD}); cách giữ
+     * chúng đúng theo cấu tạo là cho cả hai đi qua một mệnh đề lọc duy nhất — xem
+     * {@code ProductJPAMapper.ADMIN_FILTER}. Lệch nhau thì ô chỉ số nói một đằng, danh sách lọc ra
+     * một nẻo, và không có lỗi nào nổ ra.
+     *
+     * @param filter điều kiện lọc; {@code sort}, {@code page} và {@code limit} bị bỏ qua
+     * @return số dòng khớp điều kiện
+     */
+    long countAdminProducts(ProductFilter filter);
 
     /**
      * Ghi sản phẩm (chèn mới khi {@code id} rỗng, cập nhật khi đã có).

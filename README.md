@@ -39,20 +39,25 @@ Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1`
 Sinh xong thì **kiểm ngay**:
 
 ```bash
-wc -l environment/mysql/init/01-schema.sql            # phải ra 405
+wc -l environment/mysql/init/01-schema.sql            # phải ra 413
 git diff --stat environment/mysql/init/01-schema.sql  # phải RỖNG (không in gì)
 ```
 
 Diff rỗng là **bài kiểm entity chưa trôi khỏi schema**, không phải thủ tục cho có: nó nói rằng schema
 sinh từ entity hiện tại giống hệt bản đang commit. Diff không rỗng nghĩa là entity đã đổi mà bản kết
 xuất chưa theo kịp — đọc diff, xác nhận đúng ý định, rồi commit bản vừa sinh; **tuyệt đối không sửa
-tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 405 khác
+tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 413 khác
 đi mà không do entity đổi thì gần như chắc chắn là quên `rm -f`.
 
-> **Con số này là một literal phải cập nhật cùng lần thêm entity.** 384 → **405** ở
+> **Con số này là một literal phải cập nhật cùng lần thêm entity — hoặc thêm CỘT.** 384 → **405** ở
 > [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) khi bảng
-> `password_reset_token` ra đời (20 bảng, 17 khoá ngoại). Quên sửa nó thì bước kiểm ở trên báo động
-> giả mỗi lần chạy, và một cảnh báo luôn sai là một cảnh báo không ai còn đọc.
+> `password_reset_token` ra đời; 405 → **413** ở
+> [backlog 0019](../../management/backlog/0019-admin-orders-customers-stats.md) khi hai cột
+> `full_name_normalized` (`customer_order` và `user`) cùng hai index của chúng ra đời. Lần này
+> **số bảng và số khoá ngoại không đổi** (vẫn 20 / 17) — đó là điểm phân biệt "thêm cột" với "thêm
+> bảng", và `SchemaSmokeTest` khoá đúng hai con số kia chứ không khoá số dòng. Quên sửa literal này
+> thì bước kiểm ở trên báo động giả mỗi lần chạy, và một cảnh báo luôn sai là một cảnh báo không ai
+> còn đọc.
 
 > **Cảnh báo — `environment/mysql/init/` **đang được mount** vào `docker-entrypoint-initdb.d/`, nên
 > file này được MySQL *thực thi*, không còn nằm im.** Một bản sinh sai — ví dụ file 768 dòng do quên

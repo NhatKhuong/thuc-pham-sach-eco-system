@@ -21,6 +21,7 @@ import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.User;
 import com.nss.ddd.domain.service.AuthDomainService;
+import com.nss.ddd.domain.service.UserDomainService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,8 +61,15 @@ import java.util.List;
 @Service
 public class AuthAppServiceImpl implements AuthAppService {
 
-    /** Vai trò mặc định của tài khoản tự đăng ký — đã có sẵn trong bảng {@code role} từ 0006. */
-    private static final String ROLE_CUSTOMER = "CUSTOMER";
+    /**
+     * Vai trò mặc định của tài khoản tự đăng ký — đã có sẵn trong bảng {@code role} từ 0006.
+     * <p>
+     * <b>Trỏ về {@link UserDomainService#ROLE_CODE_CUSTOMER} thay vì giữ chuỗi riêng</b> (backlog
+     * 0019): từ ticket đó, đúng mã này còn là bộ lọc mặc định của {@code GET /admin/customers} và
+     * là tập mà {@code customerCount} đếm. Ba bản chép thì bản thứ ba là bản sẽ lệch, và triệu
+     * chứng sẽ là "người vừa đăng ký không xuất hiện trong bảng khách hàng" — không lỗi nào nổ ra.
+     */
+    private static final String ROLE_CUSTOMER = UserDomainService.ROLE_CODE_CUSTOMER;
 
     /** Định danh người phát hành, đi vào claim {@code iss}. */
     private static final String TOKEN_ISSUER = "nss-api";

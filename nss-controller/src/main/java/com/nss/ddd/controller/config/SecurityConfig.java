@@ -33,9 +33,17 @@ import org.springframework.security.web.SecurityFilterChain;
  * {@code POST /api/cart/validate} là ⬜ vì cùng một lý do và cùng một tính chất: mang body, chỉ đọc,
  * xem {@link #PATH_CART_VALIDATE}.
  * <p>
- * <b>Tầng 2 — ghi chỉ ADMIN.</b> {@code POST} / {@code PUT} / {@code DELETE} trên sản phẩm là thao
- * tác quản trị. Ba endpoint này ra đời ở ticket 0008 để chứng minh lát cắt dọc chạy được và
- * <i>không</i> nằm trong API_CONTRACT, nên siết chúng lại không phá hợp đồng với consumer nào.
+ * <b>Tầng 2 — cả khu quản trị chỉ ADMIN, bằng MỘT dòng luật trên cả tiền tố
+ * {@code /api/admin/**}</b> (§C.4.3a, backlog 0018). Xem javadoc {@link #PATH_ADMIN_ALL}: đó là
+ * dòng duy nhất trong file này <i>siết</i> quyền thay vì <i>nới</i>, và vì vậy nó là dòng duy nhất
+ * cố ý dùng mẫu rộng không kèm {@code HttpMethod}.
+ * <p>
+ * <b>Ba dòng {@code hasRole} cho {@code POST|PUT|DELETE /api/products} của backlog 0012 đã được gỡ
+ * ở backlog 0018</b>, cùng lúc với việc ba mapping tương ứng chuyển sang
+ * {@code AdminProductController}. Hai việc đó phải đi cùng nhau: gỡ luật mà giữ mapping là mở lại
+ * đúng lỗ hổng 0012 vừa vá, còn gỡ mapping mà giữ luật thì để lại ba dòng gác một thứ không còn
+ * tồn tại — vô hại hôm nay, nhưng nó sẽ âm thầm gác nhầm vào ngày ai đó dựng lại một endpoint
+ * trùng đường dẫn.
  * <p>
  * <b>Vì sao phải khai method tường minh — cái bẫy này đã cắn một lần.</b>
  * {@code requestMatchers(String...)} <i>không phân biệt HTTP method</i>, nên dòng
@@ -45,9 +53,20 @@ import org.springframework.security.web.SecurityFilterChain;
  * {@code DELETE /api/products/9999} trả 404 — cả hai đều đã vào tới business logic.
  * <p>
  * <b>Thứ tự các dòng là một phần của luật, không phải thẩm mỹ.</b> {@code authorizeHttpRequests}
- * áp dòng <i>khớp đầu tiên</i>. Ba dòng ghi phải đứng <b>trên</b> dòng {@code GET} công khai; đảo
- * lại thì một {@code permitAll} rộng nuốt luôn đường ghi — build vẫn xanh, test tính năng vẫn
- * xanh, và lỗ hổng quay lại y nguyên. Luật hẹp trước, luật rộng sau.
+ * áp dòng <i>khớp đầu tiên</i>, nên kỷ luật là <b>luật hẹp trước, luật rộng sau</b>: một
+ * {@code permitAll} rộng đặt nhầm lên trên sẽ nuốt luôn một luật siết bên dưới, và khi đó build vẫn
+ * xanh, test tính năng vẫn xanh, chỉ có hàng rào là không còn. Hai chỗ mà thứ tự đang thật sự
+ * load-bearing hôm nay:
+ * <ul>
+ *   <li>{@link #PATH_ORDER_ME} phải đứng <b>trên</b> {@link #PATH_ORDER_BY_CODE} — mẫu một sao
+ *       khớp cả hai, đảo lại thì lịch sử mua hàng riêng của từng khách thành công khai;</li>
+ *   <li>{@link #PATH_ADMIN_ALL} phải đứng <b>trên</b> {@code anyRequest()} — nếu không thì mọi
+ *       đường quản trị chỉ còn đòi "đã đăng nhập", tức mọi CUSTOMER đọc được dữ liệu của mọi
+ *       người, và mã trả về là 200 chứ không phải một lỗi nào.</li>
+ * </ul>
+ * {@link #PATH_ADMIN_ALL} không giao với nhóm nào khác (không nhóm nào nằm dưới {@code /api/admin}),
+ * nên vị trí của nó so với các nhóm còn lại là tự do — nhưng chỉ vì điều đó đúng <i>hôm nay</i>,
+ * không phải vì thứ tự thôi quan trọng.
  * <p>
  * <b>Quy ước tiền tố vai trò: {@code ROLE_}, chọn một lần và không trộn.</b> Xem javadoc của
  * {@link #jwtAuthenticationConverter()} — đó là chỗ sai <i>im lặng</i> nhất của cả cơ chế.
@@ -72,18 +91,39 @@ public class SecurityConfig {
      */
     public static final String[] PATHS_PRODUCT_READ = {"/api/products", "/api/products/**"};
 
-    /** Tạo sản phẩm — {@code POST} trên chính đường danh sách; chỉ ADMIN (backlog 0012). */
-    public static final String PATH_PRODUCT_CREATE = "/api/products";
-
     /**
-     * Sửa / xoá sản phẩm — {@code PUT} và {@code DELETE} theo {@code id}; chỉ ADMIN (backlog 0012).
+     * <b>Toàn bộ khu quản trị — MỘT dòng luật cho cả tiền tố, chỉ ADMIN</b> (API_CONTRACT §C.4.3a,
+     * backlog 0018).
      * <p>
-     * Dùng {@code /**} chứ không {@code /*} là có chủ ý: một đường ghi lồng ra đời sau này
-     * ({@code PUT /api/products/1/images} chẳng hạn) sẽ <b>mặc định thuộc ADMIN</b> thay vì mặc
-     * định lọt lưới. Nới quyền là một quyết định phải viết ra; siết quyền thì không được phụ thuộc
-     * vào việc ai đó nhớ thêm một dòng.
+     * <b>Đây là hằng khác kiểu với mọi hằng còn lại trong file này, và sự khác biệt đó là chủ ý.</b>
+     * Mọi dòng khác ở đây khai đường dẫn <i>literal</i> kèm {@code HttpMethod} tường minh, vì chúng
+     * <b>nới</b> quyền — và §C.4.3a nói thẳng rằng nới quyền phải là một quyết định viết ra, không
+     * bao giờ là hệ quả phụ của một mẫu rộng hơn mức cần. Dòng này thì ngược lại: nó <b>siết</b>.
+     * Với luật siết, mẫu rộng mới là mẫu an toàn — một endpoint quản trị ra đời sau này mặc định
+     * <i>đã bị khoá</i> thay vì mặc định lọt lưới.
+     * <p>
+     * <b>Vì thế nó phủ sẵn cả những endpoint CHƯA TỒN TẠI.</b> Chín endpoint của §B.12.2 (đơn
+     * hàng), §B.12.3 (khách hàng) và §B.12.4 (tổng quan) chưa được dựng, nhưng
+     * {@code GET /api/admin/orders} <i>hôm nay</i> đã trả 403 cho một token CUSTOMER. Đó chính là
+     * điều §C.4.3a mua về: <i>"Một lần quên {@code @PreAuthorize} là rò dữ liệu toàn bộ khách
+     * hàng"</i> — ở đây không có {@code @PreAuthorize} nào để quên, vì không có cái nào tồn tại.
+     * <p>
+     * <b>Cố ý KHÔNG khai {@code HttpMethod}.</b> Mọi động từ trên mọi đường dẫn dưới
+     * {@code /api/admin} đều cần ADMIN; khai method ở đây là mở một khe cho động từ không được liệt
+     * kê. Đây đúng là cái bẫy {@code requestMatchers(String...)} của backlog 0012 — chỉ khác dấu:
+     * lần đó việc bỏ method làm một dòng {@code permitAll} mở cả ba đường ghi, lần này việc bỏ
+     * method làm một dòng {@code hasRole} khoá đúng mọi thứ cần khoá.
+     * <p>
+     * <b>Thay thế ba dòng {@code hasRole} của backlog 0012 chứ không bổ sung cho chúng.</b> Ba
+     * dòng đó gác {@code POST|PUT|DELETE /api/products}, và ba mapping tương ứng đã chuyển sang
+     * {@code AdminProductController} trong cùng ticket. <b>Gỡ luật mà giữ mapping — hoặc ngược
+     * lại — là mở lại đúng lỗ hổng backlog 0012 vừa vá</b>, nên hai việc đó phải đi cùng nhau và
+     * đã đi cùng nhau. Sau khi chuyển, {@code POST /api/products} không còn handler nào: không
+     * token thì rơi vào {@code anyRequest().authenticated()} và trả 401 (hành vi đã biết của
+     * bugs/0002), có token thì dừng ở tầng định tuyến với 405 vì đường dẫn đó chỉ còn động từ
+     * {@code GET}.
      */
-    public static final String PATH_PRODUCT_WRITE_BY_ID = "/api/products/**";
+    public static final String PATH_ADMIN_ALL = "/api/admin/**";
 
     /**
      * Xác thực mã giảm giá — công khai theo API_CONTRACT §B.7, và <b>chỉ với {@code POST}</b>.
@@ -267,12 +307,14 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Luat HEP truoc: ba duong ghi san pham chi ADMIN. Ba dong nay PHAI dung
-                        //    tren dong GET permitAll ben duoi — dao lai thi permitAll rong nuot ca
-                        //    duong ghi, lo hong cua backlog 0012 quay lai, va build van xanh.
-                        .requestMatchers(HttpMethod.POST, PATH_PRODUCT_CREATE).hasRole(ROLE_ADMIN)
-                        .requestMatchers(HttpMethod.PUT, PATH_PRODUCT_WRITE_BY_ID).hasRole(ROLE_ADMIN)
-                        .requestMatchers(HttpMethod.DELETE, PATH_PRODUCT_WRITE_BY_ID).hasRole(ROLE_ADMIN)
+                        // 1. Luat SIET dau tien: ca khu quan tri chi ADMIN (§C.4.3a, backlog 0018).
+                        //    MOT dong cho ca tien to, khong khai method, khong rai @PreAuthorize.
+                        //    Dong nay THAY the ba dong hasRole cua backlog 0012 — ba mapping ghi
+                        //    tuong ung da chuyen sang AdminProductController trong cung ticket.
+                        //    Vi tri: no khong giao voi bat ky nhom nao ben duoi (khong nhom nao
+                        //    nam duoi /api/admin), nen thu tu giua chung khong anh huong gi; dieu
+                        //    BAT BUOC duy nhat la no dung TREN anyRequest().
+                        .requestMatchers(PATH_ADMIN_ALL).hasRole(ROLE_ADMIN)
                         // 2. Luat RONG sau: doc san pham cong khai, va CHI voi GET (§B.1).
                         .requestMatchers(HttpMethod.GET, PATHS_PRODUCT_READ).permitAll()
                         // 3. Ma giam gia: hai endpoint cong khai (§B.7), moi cai khai DUNG method

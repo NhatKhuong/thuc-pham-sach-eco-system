@@ -1,5 +1,10 @@
 package com.nss.ddd.domain.service.impl;
 
+import com.nss.ddd.domain.model.DailyRevenue;
+import com.nss.ddd.domain.model.OrderFilter;
+import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.StatusCount;
+import com.nss.ddd.domain.model.TextNormalizer;
 import com.nss.ddd.domain.model.entity.Coupon;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OrderItem;
@@ -20,12 +25,17 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -76,6 +86,26 @@ public class OrderDomainServiceImpl implements OrderDomainService {
 
     /** Khuôn phần số thứ tự — đệm 0 tới bốn chữ số, không cắt khi vượt 9999. */
     private static final String ORDER_CODE_SEQUENCE = "%04d";
+
+    /**
+     * <b>Bảng chuyển trạng thái hợp lệ — bản duy nhất của luật này trong toàn hệ</b> (§B.12.2,
+     * khớp {@code ORDER_STATUS_TRANSITIONS} của frontend).
+     * <p>
+     * Khai bằng một {@code Map} bất biến chứ không bằng một chuỗi {@code if} vì hình dạng của nó
+     * <i>đọc ra được</i> chính là bảng trong hợp đồng — đối chiếu hai bên là một phép so trực
+     * quan, không phải một bài truy vết nhánh điều kiện.
+     * <p>
+     * <b>Hai dòng cuối cố ý là {@code Set.of()} rỗng, không phải vắng mặt.</b> {@code delivered} và
+     * {@code cancelled} là trạng thái cuối; một dòng rỗng nói "đã liệt kê xong và không còn nước đi
+     * nào", còn một khoá vắng mặt nói "chưa ai điền". Hai câu đó khác nhau khi có người đọc lại
+     * bảng này để thêm trạng thái thứ sáu.
+     */
+    private static final Map<Integer, Set<Integer>> ALLOWED_TRANSITIONS = Map.of(
+            STATUS_PENDING, Set.of(STATUS_CONFIRMED, STATUS_CANCELLED),
+            STATUS_CONFIRMED, Set.of(STATUS_SHIPPING, STATUS_CANCELLED),
+            STATUS_SHIPPING, Set.of(STATUS_DELIVERED, STATUS_CANCELLED),
+            STATUS_DELIVERED, Set.of(),
+            STATUS_CANCELLED, Set.of());
 
     /** Mẫu số của phép tính phần trăm — mã {@code percent} lưu giá trị dạng {@code 10} nghĩa là 10%. */
     private static final BigDecimal PERCENT_DIVISOR = BigDecimal.valueOf(100L);
@@ -152,6 +182,15 @@ public class OrderDomainServiceImpl implements OrderDomainService {
                 + String.format(ORDER_CODE_SEQUENCE, sequence);
     }
 
+    // ========== LUONG TRANG THAI ==========
+
+    @Override
+    public boolean canTransition(int fromStatus, int toStatus) {
+        // getOrDefault chu khong get: mot `status` la trong DB (du lieu cu, hoac ai do UPDATE tay)
+        // phai cho ra false, khong duoc nem NullPointerException giua duong doi trang thai.
+        return ALLOWED_TRANSITIONS.getOrDefault(fromStatus, Set.of()).contains(toStatus);
+    }
+
     // ========== DOC ==========
 
     @Override
@@ -184,6 +223,17 @@ public class OrderDomainServiceImpl implements OrderDomainService {
             return List.of();
         }
         return orderRepository.findByUserId(userId);
+    }
+
+    @Override
+    public PageResult<Order> findAdminPage(OrderFilter filter) {
+        // Dung mot OrderFilter MOI thay vi sua cai duoc truyen vao — xem javadoc cua interface
+        return orderRepository.findAdminPage(OrderFilter.of(
+                TextNormalizer.genSearchKeyword(filter.getKeyword()),
+                filter.getStatus(),
+                filter.getUserId(),
+                filter.getPage(),
+                filter.getLimit()));
     }
 
     @Override
@@ -224,6 +274,13 @@ public class OrderDomainServiceImpl implements OrderDomainService {
 
     @Override
     public Order create(Order draft) {
+        // Cot phai sinh full_name_normalized duoc dien O DAY, dung mot ham voi product.name_normalized
+        // (coding-conventions §18). Dat o day chu khong o OrderMapper vi bo dau la quy tac nghiep vu,
+        // va vi day la cho DUY NHAT mot don hang duoc ghi xuong lan dau.
+        if (draft.getShipping() != null) {
+            draft.getShipping().setFullNameNormalized(
+                    TextNormalizer.genNormalized(draft.getShipping().getFullName()));
+        }
         Order saved = orderRepository.save(draft);
         log.info("create: order persisted | orderId={} code={}", saved.getId(), saved.getCode());
         return saved;
@@ -246,5 +303,93 @@ public class OrderDomainServiceImpl implements OrderDomainService {
                 .setChangedBy(changedBy)
                 .setCreatedAt(createdAt);
         return orderRepository.saveHistory(history);
+    }
+
+    @Override
+    public Order updateStatus(Order order, int toStatus, LocalDateTime nowUtc) {
+        Order saved = orderRepository.save(order
+                .setStatus(toStatus)
+                .setUpdatedAt(nowUtc));
+        log.info("updateStatus: order status changed | orderId={} code={} toStatus={}",
+                saved.getId(), saved.getCode(), toStatus);
+        return saved;
+    }
+
+    @Override
+    public OrderStatusHistory recordTransition(Order order, Integer fromStatus, int toStatus,
+                                               String changedBy, LocalDateTime createdAt) {
+        OrderStatusHistory history = new OrderStatusHistory()
+                .setOrder(order)
+                .setFromStatus(fromStatus)
+                .setToStatus(toStatus)
+                .setChangedBy(changedBy)
+                .setCreatedAt(createdAt);
+        return orderRepository.saveHistory(history);
+    }
+
+    // ========== TONG HOP ==========
+
+    @Override
+    public List<LocalDate> genDateWindow(int days) {
+        // "Hom nay" theo gio CUA HANG, khong theo gio may va khong theo UTC. Luc 01:00 gio Viet Nam
+        // thi UTC van con la hom qua, nen mot LocalDate.now(ZoneOffset.UTC) o day se dung khung ngay
+        // lech mot ngay so voi cot "Ngay dat" ma nguoi dung dang nhin.
+        LocalDate lastDay = LocalDate.now(STORE_ZONE);
+        LocalDate firstDay = lastDay.minusDays(days - 1L);
+        List<LocalDate> window = new ArrayList<>(days);
+        for (int index = 0; index < days; index++) {
+            window.add(firstDay.plusDays(index));
+        }
+        return window;
+    }
+
+    @Override
+    public List<DailyRevenue> findRevenueByDay(LocalDate fromDate, LocalDate toDate) {
+        return orderRepository.sumRevenueByDay(
+                genUtcStartOfDay(fromDate),
+                // Bien tren MO: 00:00 cua ngay KE TIEP. Dung `<=` tren 23:59:59 se bo sot moi don
+                // roi vao phan le duoi giay, va dung `<= toDate 23:59:59.999999` thi con so phu
+                // thuoc vao do chinh xac cua cot — mot rang buoc khong ai nhin thay.
+                genUtcStartOfDay(toDate.plusDays(1)),
+                genStoreOffset(),
+                STATUS_CANCELLED);
+    }
+
+    @Override
+    public List<StatusCount> countOrdersByStatus(LocalDate fromDate, LocalDate toDate) {
+        // CUNG cap moc thoi gian voi findRevenueByDay — do la thu giu bat bien
+        // orderCount == sum(ordersByStatus[].count) dung theo cau tao.
+        return orderRepository.countByStatus(
+                genUtcStartOfDay(fromDate),
+                genUtcStartOfDay(toDate.plusDays(1)));
+    }
+
+    /**
+     * Đầu ngày <b>giờ cửa hàng</b>, quy về giờ UTC để so với cột {@code created_at}.
+     * <p>
+     * Đây là chỗ duy nhất trong dự án đổi giữa hai hệ quy chiếu đó. Cột lưu UTC (JDBC URL đặt
+     * {@code preserveInstants=false} nên chuỗi đi qua nguyên vẹn), còn khoảng thời gian người dùng
+     * chọn thì tính theo ngày của cửa hàng.
+     *
+     * @param storeDate ngày theo giờ cửa hàng
+     * @return mốc 00:00 của ngày đó, biểu diễn theo giờ UTC
+     */
+    private LocalDateTime genUtcStartOfDay(LocalDate storeDate) {
+        return storeDate.atStartOfDay(STORE_ZONE)
+                .withZoneSameInstant(ZoneOffset.UTC)
+                .toLocalDateTime();
+    }
+
+    /**
+     * Độ lệch múi giờ cửa hàng dạng {@code +07:00} — thứ duy nhất về múi giờ mà adapter được biết.
+     * <p>
+     * <b>Suy từ {@link #STORE_ZONE} chứ không viết cứng chuỗi {@code "+07:00"}.</b> Việt Nam không
+     * có giờ mùa hè nên hai cách cho cùng kết quả <i>hôm nay</i>, nhưng một chuỗi viết cứng là bản
+     * sao thứ hai của cùng một sự thật, và nó sẽ không đổi theo khi ai đó sửa hằng múi giờ.
+     *
+     * @return độ lệch hiện hành của múi giờ cửa hàng, dạng {@code +07:00}
+     */
+    private String genStoreOffset() {
+        return STORE_ZONE.getRules().getOffset(Instant.now()).getId();
     }
 }

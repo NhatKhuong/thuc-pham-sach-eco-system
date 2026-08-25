@@ -31,6 +31,28 @@ public class ShippingInfo {
     @Comment("Ho ten nguoi nhan hang")
     private String fullName;
 
+    /**
+     * Tương ứng cột {@code full_name_normalized} — bản {@link #fullName} đã <b>bỏ dấu và hạ chữ
+     * thường</b>, phục vụ tham số {@code q} của {@code GET /admin/orders} (§B.12.2).
+     * <p>
+     * <b>Là cột phái sinh, không phải dữ liệu người dùng nhập.</b> Giá trị do
+     * {@code OrderDomainServiceImpl.create} điền bằng {@link com.nss.ddd.domain.model.TextNormalizer}
+     * — cùng một hàm với {@code product.name_normalized} ({@code coding-conventions.md} §18).
+     * <p>
+     * <b>Vì sao phải có cột thay vì so khớp thẳng trên {@link #fullName}:</b> collation
+     * {@code utf8mb4_unicode_ci} gập được dấu thanh nhưng <b>không</b> gập {@code đ} — đo trên
+     * chính container của dự án, {@code 'Nguyễn Văn An' LIKE '%nguyen%'} ra {@code 1} còn
+     * {@code 'Đậu Hà Lan' LIKE '%dau%'} ra {@code 0} (control âm {@code '%xyz%'} cũng ra
+     * {@code 0}). Mà {@code Đỗ}, {@code Đặng}, {@code Đào}, {@code Đinh} là những họ Việt rất phổ
+     * biến, nên phần trượt không phải một góc hiếm.
+     * <p>
+     * <b>Không bao giờ đi ra dây</b> — {@code OrderMapper.toShippingResponse} liệt kê tay đúng tám
+     * trường của {@code types/order.ts#ShippingInfo} và trường này không nằm trong đó.
+     */
+    @Column(length = 128)
+    @Comment("Ho ten nguoi nhan da bo dau va ha chu thuong, phuc vu tim kiem khong dau")
+    private String fullNameNormalized;
+
     /** Tương ứng cột {@code phone}. */
     @Column(nullable = false, length = 20)
     @Comment("So dien thoai nguoi nhan")

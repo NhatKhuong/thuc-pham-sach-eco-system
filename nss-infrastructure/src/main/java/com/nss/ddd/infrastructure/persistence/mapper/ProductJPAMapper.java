@@ -35,6 +35,50 @@ import java.util.Optional;
 public interface ProductJPAMapper extends JpaRepository<Product, Long> {
 
     /**
+     * Mệnh đề lọc của {@code GET /admin/products} — <b>khai một lần, dùng cho CẢ BA truy vấn</b>:
+     * trang, đếm-của-trang, và {@code lowStockCount} của §B.12.4.
+     * <p>
+     * <b>Backlog 0019 rút nó ra thành hằng; trước đó nó là hai chuỗi chép nhau.</b> Lý do phải rút:
+     * §B.12.4 chốt {@code lowStockCount} phải <i>bằng</i> {@code total} của
+     * {@code ?stockStatus=low_stock}, tức có thêm một chỗ thứ ba phải nói y hệt. Ba bản viết tay
+     * thì bản thứ ba là bản sẽ bị quên, và triệu chứng là ô chỉ số nói một đằng còn danh sách lọc
+     * ra một nẻo — <b>không lỗi nào nổ ra</b>. Cùng lý lẽ đã áp cho cặp {@code value} /
+     * {@code countQuery}: lệch nhau thì {@code items} và {@code total} nói về hai tập khác nhau, và
+     * triệu chứng là một cái nút "trang sau" dẫn tới trang trống.
+     * <p>
+     * <b>Bốn tham số đều nullable và {@code null} nghĩa là KHÔNG lọc theo tiêu chí đó.</b> Cả bốn
+     * là kiểu vô hướng ({@code String} / {@code Integer}) chứ không phải collection — cố ý: một
+     * {@code IN :ids} với danh sách rỗng dịch ra {@code in ()} và MySQL từ chối cú pháp đó, đúng
+     * cái bẫy đã ghi ở {@link #findActiveByIdIn(java.util.Collection)}.
+     * <p>
+     * <b>Điều kiện danh mục là {@code c.slug = :slug OR cp.slug = :slug}</b>, tức "chính nó hoặc
+     * con trực tiếp của nó" — tương đương chính xác với {@code resolveCategoryIds} của frontend
+     * ({@code adminProducts.api.ts:35-42}) vì {@code uk_slug} bảo đảm slug danh mục là duy nhất.
+     * Slug không khớp danh mục nào thì không dòng nào thoả, tức <b>tập rỗng</b>. Cháu (cấp 2) nằm
+     * ngoài phạm vi ở cả hai phía.
+     * <p>
+     * <b>Hai alias {@code c} / {@code cp} phải do câu truy vấn gọi nó khai bằng LEFT JOIN tường
+     * minh, không dùng đường dẫn ngầm {@code p.category.parent.slug}.</b> Đây là chỗ sai im lặng
+     * nguy hiểm nhất: Hibernate dịch một đường dẫn ngầm qua quan hệ to-one trong {@code WHERE}
+     * thành <b>INNER JOIN</b>, và INNER JOIN lọc toàn bộ tập dòng <i>trước khi</i> mệnh đề
+     * {@code OR} được tính. Hệ quả là mọi sản phẩm thuộc danh mục gốc ({@code parent_id IS NULL})
+     * biến mất khỏi kết quả — kể cả khi không lọc theo danh mục. Không exception, không cảnh báo,
+     * chỉ là thiếu dòng.
+     * <p>
+     * <b>{@code ESCAPE '!'} chứ không phải dấu gạch chéo ngược.</b> Nếu không escape, một
+     * {@code q} chứa {@code %} hoặc {@code _} trở thành ký tự đại diện và bộ lọc âm thầm trả về
+     * nhiều dòng hơn số dòng thật sự khớp. Chọn {@code !} vì gạch chéo ngược còn là ký tự escape
+     * của chính chuỗi MySQL, nên nó phải nhân đôi qua hai tầng và rất dễ đếm nhầm.
+     */
+    String ADMIN_FILTER = " WHERE p.isActive = true"
+            + " AND (:pattern IS NULL"
+            + "      OR p.nameNormalized LIKE :pattern ESCAPE '!'"
+            + "      OR p.slug LIKE :pattern ESCAPE '!')"
+            + " AND (:categorySlug IS NULL OR c.slug = :categorySlug OR cp.slug = :categorySlug)"
+            + " AND (:minStock IS NULL OR p.stock >= :minStock)"
+            + " AND (:maxStock IS NULL OR p.stock <= :maxStock)";
+
+    /**
      * Một trang sản phẩm còn hiệu lực.
      * <p>
      * {@code ORDER BY p.id} nằm trong câu truy vấn chứ không nằm ở {@code Pageable}: thứ tự phải
@@ -54,6 +98,78 @@ public interface ProductJPAMapper extends JpaRepository<Product, Long> {
             + " ORDER BY p.id ASC",
             countQuery = "SELECT COUNT(p) FROM Product p WHERE p.isActive = true")
     Page<Product> findActivePage(Pageable pageable);
+
+    /**
+     * Một trang sản phẩm còn hiệu lực <b>có lọc</b> — đường đọc của {@code GET /admin/products}
+     * (API_CONTRACT §B.12.1).
+     * <p>
+     * <b>KHÔNG có {@code ORDER BY} trong chuỗi truy vấn, và đó là khác biệt cốt lõi so với
+     * {@link #findActivePage(Pageable)}.</b> Thứ tự ở đây do client chọn (5 giá trị của
+     * {@code sort}), nên nó phải đi vào qua {@code Sort} của {@code Pageable} — Spring Data nối
+     * mệnh đề {@code order by} vào cuối. Nhúng cứng một {@code ORDER BY} vào chuỗi rồi lại truyền
+     * {@code Sort} sẽ cho ra <i>hai</i> mệnh đề chồng nhau, và mệnh đề nhúng cứng thắng: mọi giá trị
+     * {@code sort} trả về cùng một thứ tự, HTTP 200, không lỗi nào. Tính ổn định của phân trang
+     * được giữ bằng cách {@code ProductRepositoryImpl} luôn kèm một khoá phụ theo {@code id}.
+     * <p>
+     * <b>Điều kiện lọc nằm ở {@link #ADMIN_FILTER}</b> — một chuỗi dùng chung cho truy vấn trang,
+     * truy vấn đếm, và {@link #countAdminProducts}. Đọc javadoc của nó trước khi sửa bất cứ mệnh đề
+     * nào ở đây.
+     * <p>
+     * {@code countQuery} khai tường minh — Spring Data không suy được câu đếm từ truy vấn có
+     * {@code JOIN FETCH}; nó dùng lại đúng {@link #ADMIN_FILTER} nhưng bỏ phần {@code FETCH}, vì
+     * đếm thì không cần nạp quan hệ nào.
+     *
+     * @param pattern mẫu {@code LIKE} đã bọc {@code %} và đã escape; {@code null} là không tìm
+     * @param categorySlug slug danh mục cha hoặc con; {@code null} là không lọc
+     * @param minStock tồn kho tối thiểu, đã bao gồm; {@code null} là không chặn dưới
+     * @param maxStock tồn kho tối đa, đã bao gồm; {@code null} là không chặn trên
+     * @param pageable trang cần lấy, <b>đã đánh số từ 0</b> và <b>đã mang {@code Sort}</b>
+     * @return trang sản phẩm kèm tổng số dòng khớp điều kiện lọc
+     */
+    @Query(value = "SELECT p FROM Product p"
+            + " LEFT JOIN FETCH p.category c"
+            + " LEFT JOIN FETCH p.brand"
+            + " LEFT JOIN c.parent cp"
+            + ADMIN_FILTER,
+            countQuery = "SELECT COUNT(p) FROM Product p"
+                    + " LEFT JOIN p.category c"
+                    + " LEFT JOIN c.parent cp"
+                    + ADMIN_FILTER)
+    Page<Product> findAdminPage(@Param("pattern") String pattern,
+                                @Param("categorySlug") String categorySlug,
+                                @Param("minStock") Integer minStock,
+                                @Param("maxStock") Integer maxStock,
+                                Pageable pageable);
+
+    /**
+     * Đếm sản phẩm khớp <b>đúng</b> {@link #ADMIN_FILTER} — nguồn của {@code lowStockCount}
+     * (§B.12.4).
+     * <p>
+     * <b>Tồn tại để {@code lowStockCount} và {@code total} của
+     * {@code GET /admin/products?stockStatus=low_stock} không bao giờ lệch nhau.</b> Hợp đồng chốt
+     * hai chỗ đó dùng đúng một ngưỡng; cho cả hai đi qua cùng một mệnh đề lọc là cách giữ điều đó
+     * đúng theo <i>cấu tạo</i> thay vì theo may mắn. Lệch nhau thì ô chỉ số nói một đằng, danh sách
+     * lọc ra một nẻo, và không có lỗi nào nổ ra.
+     * <p>
+     * Hai {@code LEFT JOIN} vẫn phải có dù phép đếm không cần dữ liệu của chúng: mệnh đề
+     * {@code :categorySlug} tham chiếu alias {@code c} và {@code cp}. Bỏ chúng đi thì chuỗi dùng
+     * chung không còn dùng chung được nữa.
+     *
+     * @param pattern mẫu {@code LIKE}; {@code null} là không tìm — {@code lowStockCount} luôn truyền
+     *                {@code null}
+     * @param categorySlug slug danh mục; {@code null} là không lọc
+     * @param minStock tồn kho tối thiểu, đã bao gồm; {@code null} là không chặn dưới
+     * @param maxStock tồn kho tối đa, đã bao gồm; {@code null} là không chặn trên
+     * @return số dòng khớp điều kiện lọc
+     */
+    @Query("SELECT COUNT(p) FROM Product p"
+            + " LEFT JOIN p.category c"
+            + " LEFT JOIN c.parent cp"
+            + ADMIN_FILTER)
+    long countAdminProducts(@Param("pattern") String pattern,
+                            @Param("categorySlug") String categorySlug,
+                            @Param("minStock") Integer minStock,
+                            @Param("maxStock") Integer maxStock);
 
     /**
      * @param slug slug cần tra

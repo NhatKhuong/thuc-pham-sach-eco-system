@@ -10,6 +10,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastru
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ProductJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\RefreshTokenJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserRoleCode.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserRoleJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\BrandRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\CategoryRepositoryImpl.java

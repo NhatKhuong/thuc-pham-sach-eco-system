@@ -558,11 +558,15 @@ INSERT INTO role_permission (id, role_id, permission_id, created_at) VALUES
 -- !!! demo@nongsansach.vn  -> '123456'  (khop tai khoan demo trong auth.api.ts cua frontend)
 -- !!! admin@nongsansach.vn -> 'admin123'
 -- !!! TUYET DOI KHONG mang file nay len bat ky moi truong that nao.
-INSERT INTO `user` (id, email, password_hash, full_name, phone, avatar, created_at) VALUES
+-- full_name_normalized la cot PHAI SINH cua backlog 0019: full_name da bo dau va ha chu thuong,
+-- theo dung bon buoc cua coding-conventions §18 (ke ca buoc doi chu D-co-gach-ngang thanh chu d
+-- thuong, buoc ma NFD KHONG lam ho duoc). No la thu ma `q` cua GET /admin/customers so khop;
+-- de NULL thi hai tai khoan seed nay khong bao gio tim ra duoc.
+INSERT INTO `user` (id, email, password_hash, full_name, full_name_normalized, phone, avatar, created_at) VALUES
   (1, 'demo@nongsansach.vn', '$2a$10$.dr31WdMiDT/t/i5.2U.8uaILF5ttzbLjzwhUmqSL74cQQMfM48Sy',
-   'Nguyễn Văn An', '0901234567', NULL, '2026-08-22 00:00:00.000000'),
+   'Nguyễn Văn An', 'nguyen van an', '0901234567', NULL, '2026-08-22 00:00:00.000000'),
   (2, 'admin@nongsansach.vn', '$2a$10$2v0zKpUNHhcns/FatbcjZu2WjTHSffOIsIBo4yKzKUsy6iX7lxyYy',
-   'Quản trị hệ thống', '0909999999', NULL, '2026-08-22 00:00:00.000000');
+   'Quản trị hệ thống', 'quan tri he thong', '0909999999', NULL, '2026-08-22 00:00:00.000000');
 
 -- user_role - demo la CUSTOMER, admin la ADMIN.
 INSERT INTO user_role (id, user_id, role_id, created_at) VALUES

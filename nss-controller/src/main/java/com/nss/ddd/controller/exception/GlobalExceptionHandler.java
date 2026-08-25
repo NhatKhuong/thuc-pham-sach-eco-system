@@ -258,6 +258,22 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Tham số {@code days} của {@code GET /admin/stats/overview} nằm ngoài dải hợp lệ.
+     * <p>
+     * <b>400, và không kèm khoá {@code errors}</b> — §B.12.4 khai đúng 400, và sự vắng mặt của
+     * {@code errors} là thứ phân biệt nó với 422 của validate theo trường (cùng quy ước đã chốt ở
+     * {@link #handleInvalidCurrentPassword}).
+     *
+     * @param e khoảng thời gian ngoài dải
+     * @return 400 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ProblemDetail handleInvalidDateRange(InvalidDateRangeException e) {
+        log.warn("handleInvalidDateRange: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /**
      * Lỗi của {@code jakarta.validation} trên {@code @Valid @RequestBody}.
      * <p>
      * <b>422, không phải 400.</b> Mặc định của Spring cho lỗi bind là 400; contract §A.3 và ticket

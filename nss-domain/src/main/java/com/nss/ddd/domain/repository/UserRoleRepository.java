@@ -3,7 +3,9 @@ package com.nss.ddd.domain.repository;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.UserRole;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -28,6 +30,21 @@ public interface UserRoleRepository {
      * @return danh sách mã vai trò UPPER_SNAKE; rỗng khi người dùng chưa được gán vai trò nào
      */
     List<String> findRoleCodesByUserId(Long userId);
+
+    /**
+     * Mã vai trò của <b>nhiều</b> người dùng trong một lượt — chống N+1 cho
+     * {@code GET /admin/customers} (§B.12.3).
+     * <p>
+     * <b>Tồn tại vì {@link #findRoleCodesByUserId(Long)} là một-user-một-lần:</b> một trang 12 tài
+     * khoản sẽ thành 12 lượt đi vòng tới MySQL trên một endpoint admin mở mỗi lần vào bảng khách
+     * hàng. Cùng khuôn với {@code OrderRepository.findItemsByOrderIds}, <b>kèm chốt chặn danh sách
+     * rỗng ở adapter</b>: {@code IN ()} là cú pháp MySQL từ chối.
+     *
+     * @param userIds khóa chính của các người dùng; {@code null} hoặc rỗng cho ra map rỗng
+     * @return mã vai trò theo id người dùng; người dùng chưa được gán vai trò nào thì <b>vắng mặt
+     *         khỏi map</b> chứ không mang danh sách rỗng
+     */
+    Map<Long, List<String>> findRoleCodesByUserIds(Collection<Long> userIds);
 
     /**
      * @param code mã vai trò UPPER_SNAKE, ví dụ {@code CUSTOMER}

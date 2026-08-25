@@ -8,11 +8,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Spring Data interface của {@code order_status_history} — hạ tầng thuần, không mang quy tắc
  * nghiệp vụ.
  * <p>
- * <b>Chỉ có các method thừa kế từ {@code JpaRepository}, và ở phase này chỉ {@code save} được
- * dùng.</b> Backlog 0014 chỉ ghi dòng nhật ký <i>đầu tiên</i> lúc tạo đơn; việc đọc lại nhật ký và
- * việc chuyển trạng thái thuộc {@code PATCH /admin/orders/{code}/status} của backlog 0013. Thêm sẵn
- * đường đọc ở đây là thêm code chưa có ai gọi, và nó sẽ được viết lần thứ hai theo nhu cầu thật của
- * ticket kia.
+ * <b>Chỉ có các method thừa kế từ {@code JpaRepository}, và tới nay vẫn chỉ {@code save} được
+ * dùng.</b> Backlog 0014 ghi dòng nhật ký <i>đầu tiên</i> lúc tạo đơn; backlog 0019 dựng
+ * {@code PATCH /admin/orders/{code}/status} và ghi thêm một dòng cho <i>mỗi lần chuyển</i> — cả hai
+ * đều là đường ghi.
+ * <p>
+ * <b>Đường ĐỌC nhật ký vẫn chưa tồn tại, và đó không phải chỗ còn thiếu:</b> không endpoint nào của
+ * §B.12.2 trả về lịch sử trạng thái — {@code Order} phía frontend chỉ có một trường {@code status}
+ * <i>hiện tại</i>. Thêm sẵn một {@code findByOrderId} ở đây là thêm code chưa có ai gọi, và nó sẽ
+ * được viết lần thứ hai theo nhu cầu thật của ticket dựng màn xem lịch sử.
  * <p>
  * <b>Bảng này chỉ được ghi thêm, không bao giờ sửa hay xoá.</b> Nó tồn tại để trả lời "đơn đi qua
  * đâu, lúc nào, do ai" — một dòng bị sửa lại là một câu trả lời không còn kiểm chứng được, và mọi

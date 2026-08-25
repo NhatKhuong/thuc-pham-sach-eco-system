@@ -47,7 +47,11 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(name = "idx_user_id", columnList = "user_id"),
                 @Index(name = "idx_status", columnList = "status"),
-                @Index(name = "idx_created_at", columnList = "created_at")
+                @Index(name = "idx_created_at", columnList = "created_at"),
+                // Bo loc `q` cua GET /admin/orders so khop tren cot DA BO DAU cua nguoi nhan
+                // (§B.12.2). Cot nam trong ShippingInfo @Embeddable nhung index thi phai khai
+                // o @Table cua entity chu — @Embeddable khong khai index duoc.
+                @Index(name = "idx_full_name_normalized", columnList = "full_name_normalized")
         }
 )
 @Comment("Don hang; ten bang lech ten entity vi ORDER la tu khoa MySQL")

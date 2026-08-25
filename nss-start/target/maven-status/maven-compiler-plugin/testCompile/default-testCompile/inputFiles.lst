@@ -1,3 +1,5 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\AdminCustomerMapperTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\AdminOverviewZeroFillTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\AuthDomainServiceTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\AuthProfileAppServiceTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\CartDomainServiceTest.java
@@ -8,13 +10,20 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\HelloEndpointTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\OrderDomainServiceTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\OrderMapperTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\OrderStatusMachineTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\OrderStatusWireTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\PaginatedResponseTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\PasswordResetAppServiceTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\PasswordResetTokenDomainServiceTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\ProductAdminPageAdapterTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\ProductDomainServiceTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\ProductFilterMapperTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\ProductMapperTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\ProductSlugTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\RefreshTokenRepositoryImplTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\SchemaSmokeTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\SecurityRulesTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\StockStatusTest.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\TextNormalizerTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\UpdateProfileRequestValidationTest.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\src\test\java\com\nss\UserMapperTest.java

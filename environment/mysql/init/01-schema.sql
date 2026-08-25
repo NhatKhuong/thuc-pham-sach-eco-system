@@ -69,6 +69,7 @@
         coupon_code varchar(32) comment 'Ma giam gia da ap, ban chup; null neu khong ap ma',
         district varchar(128) not null comment 'Ten quan/huyen giao hang',
         full_name varchar(128) not null comment 'Ho ten nguoi nhan hang',
+        full_name_normalized varchar(128) comment 'Ho ten nguoi nhan da bo dau va ha chu thuong, phuc vu tim kiem khong dau',
         province varchar(128) not null comment 'Ten tinh/thanh giao hang',
         ward varchar(128) not null comment 'Ten phuong/xa giao hang',
         email varchar(160) not null comment 'Email nhan xac nhan don hang',
@@ -212,6 +213,7 @@
         phone varchar(20) not null comment 'So dien thoai lien he',
         password_hash varchar(100) not null comment 'Bam mat khau; tuyet doi khong tra ra response',
         full_name varchar(128) not null comment 'Ho ten day du',
+        full_name_normalized varchar(128) comment 'Ho ten da bo dau va ha chu thuong, phuc vu tim kiem khong dau',
         email varchar(160) not null comment 'Email dang nhap, duy nhat toan he',
         avatar varchar(255) comment 'Duong dan anh dai dien tuong doi; null neu chua co',
         primary key (id)
@@ -246,6 +248,9 @@
 
     create index idx_created_at 
        on customer_order (created_at);
+
+    create index idx_full_name_normalized 
+       on customer_order (full_name_normalized);
 
     alter table customer_order 
        add constraint uk_code unique (code);
@@ -306,6 +311,9 @@
 
     alter table role_permission 
        add constraint uk_role_id_permission_id unique (role_id, permission_id);
+
+    create index idx_full_name_normalized 
+       on user (full_name_normalized);
 
     alter table user 
        add constraint uk_email unique (email);

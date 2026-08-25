@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -30,7 +31,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(name = "uk_email", columnNames = "email"))
+@Table(
+        uniqueConstraints = @UniqueConstraint(name = "uk_email", columnNames = "email"),
+        // Bo loc `q` cua GET /admin/customers so khop tren cot da bo dau (§B.12.3)
+        indexes = @Index(name = "idx_full_name_normalized", columnList = "full_name_normalized")
+)
 @Comment("Tai khoan nguoi dung")
 public class User {
 
@@ -44,6 +49,30 @@ public class User {
     @Column(nullable = false, length = 128)
     @Comment("Ho ten day du")
     private String fullName;
+
+    /**
+     * Tương ứng cột {@code full_name_normalized} — bản {@link #fullName} đã <b>bỏ dấu và hạ chữ
+     * thường</b>, phục vụ tham số {@code q} của {@code GET /admin/customers} (§B.12.3).
+     * <p>
+     * <b>Là cột phái sinh, không phải dữ liệu người dùng nhập.</b> Giá trị do
+     * {@code AuthDomainServiceImpl} điền ở cả hai đường ghi ({@code register} và
+     * {@code updateProfile}) bằng {@link com.nss.ddd.domain.model.TextNormalizer} — cùng một hàm
+     * với {@code product.name_normalized} và {@code customer_order.full_name_normalized}
+     * ({@code coding-conventions.md} §18).
+     * <p>
+     * <b>Vì sao phải có cột thay vì so khớp thẳng trên {@link #fullName}:</b> collation
+     * {@code utf8mb4_unicode_ci} gập được dấu thanh nhưng <b>không</b> gập {@code đ} — đo trên
+     * chính container của dự án, {@code 'Đậu Hà Lan' LIKE '%dau%'} ra {@code 0} trong khi
+     * {@code 'Nguyễn Văn An' LIKE '%nguyen%'} ra {@code 1}. {@code Đỗ}, {@code Đặng}, {@code Đào},
+     * {@code Đinh} là những họ Việt rất phổ biến.
+     * <p>
+     * <b>Không bao giờ đi ra dây</b> — {@code UserMapper} liệt kê tay đúng năm trường của
+     * {@code UserResponse} và sáu trường của {@code AdminUserResponse}; trường này không nằm trong
+     * cả hai.
+     */
+    @Column(length = 128)
+    @Comment("Ho ten da bo dau va ha chu thuong, phuc vu tim kiem khong dau")
+    private String fullNameNormalized;
 
     /** Tương ứng cột {@code email} — duy nhất; §B.4 trả 409 khi trùng. */
     @Column(nullable = false, length = 160)
