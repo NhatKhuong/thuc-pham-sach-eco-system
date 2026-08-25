@@ -2,6 +2,10 @@ package com.nss;
 
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OrderStatusHistoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
@@ -62,7 +66,10 @@ class HelloEndpointTest {
      * test sinh ra để tránh.
      * <p>
      * <b>Thêm một {@code *JPAMapper} mới ở bất kỳ ticket nào thì phải thêm một dòng vào đây, trong
-     * cùng lần sửa.</b> Ba mapper cuối đến từ backlog 0010.
+     * cùng lần sửa.</b> {@code CouponJPAMapper} đến từ backlog 0014 phase 1; ba mapper cuối
+     * ({@code order}, {@code order_item}, {@code order_status_history}) đến từ phase 3 của cùng
+     * ticket đó. Phase 2 <i>không</i> phải sửa file này vì nó dùng lại đường đọc sản phẩm sẵn có —
+     * đúng dấu hiệu cho thấy quy tắc này chỉ động vào khi thật sự có bảng mới.
      * <p>
      * Bản giả không được gọi trong test này; luồng {@code hello} không chạm tới chúng.
      */
@@ -86,6 +93,18 @@ class HelloEndpointTest {
 
     @MockBean
     private UserRoleJPAMapper userRoleJPAMapper;
+
+    @MockBean
+    private CouponJPAMapper couponJPAMapper;
+
+    @MockBean
+    private OrderJPAMapper orderJPAMapper;
+
+    @MockBean
+    private OrderItemJPAMapper orderItemJPAMapper;
+
+    @MockBean
+    private OrderStatusHistoryJPAMapper orderStatusHistoryJPAMapper;
 
     private final MockMvc mockMvc;
 

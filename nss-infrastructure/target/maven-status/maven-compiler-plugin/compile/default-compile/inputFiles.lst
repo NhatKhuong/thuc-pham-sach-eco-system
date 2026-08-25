@@ -1,6 +1,10 @@
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\config\MySQLUtf8mb4Dialect.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\CouponJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\OrderItemJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\OrderJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\OrderStatusHistoryJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ProductImageJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ProductJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\RefreshTokenJPAMapper.java
@@ -8,7 +12,9 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastru
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserRoleJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\BrandRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\CategoryRepositoryImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\CouponRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\OrderRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\ProductImageRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\ProductRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\RefreshTokenRepositoryImpl.java

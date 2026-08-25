@@ -4,6 +4,8 @@ import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.entity.Product;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,6 +38,25 @@ public interface ProductRepository {
      * @return sản phẩm, hoặc rỗng khi id không tồn tại / sản phẩm đã bị xoá mềm
      */
     Optional<Product> findById(Long id);
+
+    /**
+     * Tìm nhiều sản phẩm <b>còn hiệu lực</b> trong một lượt — đường đọc của giỏ hàng.
+     * <p>
+     * Tồn tại vì {@code POST /api/cart/validate} luôn hỏi cả giỏ cùng lúc: gọi {@link #findById}
+     * cho từng dòng biến một giỏ 20 món thành 20 lượt đi vòng tới MySQL, trên một endpoint mà
+     * frontend gọi lại mỗi lần khách mở giỏ hàng.
+     * <p>
+     * <b>Kết quả có thể ít phần tử hơn {@code ids}, và đó là thông tin chứ không phải lỗi:</b> một
+     * id vắng mặt nghĩa là không có sản phẩm nào như vậy <i>hoặc</i> sản phẩm đã bị xoá mềm. Hai ca
+     * đó cố ý không phân biệt được từ đây — quy ước xoá mềm của port này nói sản phẩm đã xoá hành
+     * xử như thể không tồn tại, và phía giỏ hàng cũng đối xử với chúng như nhau.
+     * <p>
+     * Thứ tự trả về <b>không</b> được đảm bảo; phía gọi tự đánh chỉ mục theo id.
+     *
+     * @param ids các khóa chính cần tra; {@code null} hoặc rỗng cho ra danh sách rỗng
+     * @return các sản phẩm còn hiệu lực khớp {@code ids}; danh sách rỗng khi không khớp dòng nào
+     */
+    List<Product> findByIds(Collection<Long> ids);
 
     /**
      * Một trang sản phẩm còn hiệu lực, sắp xếp ổn định theo id tăng dần.
@@ -79,4 +100,26 @@ public interface ProductRepository {
      *         sản phẩm đã bị xoá mềm từ trước
      */
     boolean softDelete(Long id, LocalDateTime deletedAt);
+
+    /**
+     * Trừ tồn kho bằng <b>conditional UPDATE</b>: {@code stock = stock - :quantity} với điều kiện
+     * {@code stock >= :quantity} (backlog 0014 §Contract 8).
+     * <p>
+     * <b>Không đọc-rồi-ghi, và không {@code @Version}.</b> Điều kiện nằm trong chính câu UPDATE nên
+     * hai người cùng mua món cuối cùng thì đúng một người thắng — không có cửa sổ nào giữa lúc đọc
+     * và lúc ghi để lọt qua. Khoá lạc quan giải cùng bài toán bằng cách phát hiện xung đột
+     * <i>sau khi</i> đã đọc sai, và coding-conventions §6 chốt là dự án này không dùng nó.
+     * <p>
+     * Vế {@code isActive = true} nằm cùng điều kiện: một sản phẩm đã xoá mềm hành xử như thể không
+     * tồn tại theo đúng quy ước của port này, nên nó không bán được nữa dù kho còn hàng.
+     * <p>
+     * <b>Không đụng tới {@code sold}.</b> Cột thống kê đó không nằm trong phạm vi backlog 0014; gộp
+     * nó vào đây là một thay đổi lặng lẽ về ý nghĩa của một con số đang hiển thị trên trang sản phẩm.
+     *
+     * @param id khoá chính của sản phẩm
+     * @param quantity số lượng cần trừ, phải dương
+     * @return true khi có đúng một dòng bị trừ; false khi không đủ tồn kho, id không tồn tại, hoặc
+     *         sản phẩm đã bị xoá mềm
+     */
+    boolean decreaseStock(Long id, int quantity);
 }

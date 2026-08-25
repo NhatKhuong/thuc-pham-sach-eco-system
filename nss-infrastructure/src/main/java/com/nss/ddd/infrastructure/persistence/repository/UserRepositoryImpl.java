@@ -27,6 +27,12 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findById(Long id) {
+        // findById cua JpaRepository da co san — khong can khai them method nao o UserJPAMapper
+        return userJPAMapper.findById(id);
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return userJPAMapper.existsByEmail(email);
     }

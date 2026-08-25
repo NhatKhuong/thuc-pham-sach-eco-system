@@ -38,5 +38,23 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
+    <!-- CHI annotation cua Jackson — khong phai databind, khong phai starter-json (backlog 0014
+         phase 2).
+         Vi sao module nay can no: cac lop *Response o day CHINH LA be mat day (ADR 0001 —
+         controller tra DTO tran, khong boc ResultMessage), nen luat "truong nay VANG MAT khi khong
+         ap dung" thuoc ve chinh dinh nghia cua DTO chu khong phai mot chi tiet cua tang HTTP.
+         CartIssueResponse can @JsonInclude(NON_NULL) tren ba truong tuy chon: mot
+         `availableStock: 0` gan tren issue price_changed la mot con so SAI, va con so sai thi
+         frontend van hien thi duoc — no chi hien thi sai.
+         KHONG dat NON_NULL toan cuc bang spring.jackson.default-property-inclusion: API_CONTRACT
+         §A.5 bat "gia tri khong co" phai la `null` TUONG MINH, nen mot cau hinh toan cuc se lam
+         `salePrice: null` cua ProductResponse bien mat va doi hinh dang cua type Product.
+         Artifact nay chi mang annotation, khong keo theo bo tuan tu hoa nao; ban dich thuc su van
+         den tu nss-controller qua spring-boot-starter-web. Version do BOM spring-boot-dependencies
+         3.3.5 quan — khong khai <version>. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
   </dependencies>
 </project>
