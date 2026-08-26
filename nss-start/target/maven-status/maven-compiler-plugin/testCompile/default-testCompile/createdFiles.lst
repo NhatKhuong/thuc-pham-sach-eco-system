@@ -1,3 +1,4 @@
+com\nss\MailCircuitBreakerTest$CountingMailSender.class
 com\nss\SecurityRulesTest.class
 com\nss\PasswordResetTokenDomainServiceTest.class
 com\nss\ProductAdminPageAdapterTest.class
@@ -24,6 +25,7 @@ com\nss\AdminCustomerMapperTest.class
 com\nss\ApiRateLimitTierTest.class
 com\nss\OrderDomainServiceTest.class
 com\nss\OrderStatusMachineTest.class
+com\nss\MailCircuitBreakerTest.class
 com\nss\PaginatedResponseTest.class
 com\nss\StockStatusTest.class
 com\nss\ApiRateLimitWireTest.class

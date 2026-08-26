@@ -147,6 +147,38 @@ nss:
     # Fail luc khoi dong neu khong phai mot URL http(s) tuyet doi.
     password-reset-url: ${PASSWORD_RESET_URL:http://localhost:5173/dat-lai-mat-khau}
 
+    # CIRCUIT BREAKER QUANH DUONG GUI SMTP (backlog 0021 Phase 2, ADR 0005).
+    #
+    # Bao ve khoi mot may chu SMTP CHET CHAM: moi lan bam "Quen mat khau" lai tieu them 5 giay cua
+    # mot luong (ba timeout SMTP o tren) va lai fail y het lan truoc. Breaker mo => bo qua han lan
+    # gui, KHONG sinh ma HTTP nao — POST /api/auth/forgot-password khai LUON 204 (API_CONTRACT
+    # §B.4) va viec gui da o ngoai request thread tu truoc.
+    #
+    # KHONG CO CACH NAO BIET BREAKER DANG MO NGOAI LOG: endpoint tra 204 o CA HAI nhanh. Dong
+    # `[MAIL_CB] state transition` va dong `sendPasswordResetMail: skipped` la tin hieu duy nhat.
+    # Actuator/micrometer — cho phoi bay trang thai breaker ra ngoai — la NON-GOAL cua ticket nay:
+    # no mo mot public surface moi phai khoa RBAC + khai SecurityConfig + Swagger.
+    #
+    # slidingWindowType (COUNT_BASED) va automaticTransitionFromOpenToHalfOpen (true) KHONG co o
+    # day va do la CO Y: ca hai bi khai cung trong MailAppServiceImpl. Doi kieu cua so thi doi luon
+    # y nghia cua hai con so ben duoi (so loi goi <=> so giay) — mot lan chinh nham khong co trieu
+    # chung nao nhin thay. Cung ly do voi timeoutDuration cua ApiRateLimitInterceptor.
+    #
+    # Gia tri thieu hoac khong hop le => FAIL LUC KHOI DONG kem ten khoa day du
+    # (MailAppServiceImpl#genCircuitBreaker), dung tien le JwtConfig.
+    circuit-breaker:
+      # So loi goi gan nhat dung de tinh ti le loi.
+      sliding-window-size: ${MAIL_CB_SLIDING_WINDOW_SIZE:20}
+      # Chua du so loi goi nay thi breaker KHONG BAO GIO mo, du 100% that bai. Chan viec mot su co
+      # thoang qua o loi goi dau tien lam chet ca duong gui. Phai <= sliding-window-size.
+      minimum-number-of-calls: ${MAIL_CB_MINIMUM_CALLS:10}
+      # Phan tram, trong khoang (0, 100].
+      failure-rate-threshold: ${MAIL_CB_FAILURE_RATE:50}
+      # Thoi gian o OPEN truoc khi cho vai loi goi tham do di qua.
+      wait-duration-in-open-state: ${MAIL_CB_WAIT_DURATION:PT60S}
+      # So loi goi tham do o HALF_OPEN.
+      permitted-calls-in-half-open-state: ${MAIL_CB_HALF_OPEN_CALLS:3}
+
 # Swagger / OpenAPI 3 (backlog 0009). Bat mac dinh, tat duoc bang bien moi truong — khong tao profile moi.
 # Hai co tach rieng vi chung tat hai thu khac nhau: api-docs tat endpoint JSON /v3/api-docs,
 # swagger-ui tat trang /swagger-ui/index.html.

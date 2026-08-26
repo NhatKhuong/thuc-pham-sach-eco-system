@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.nss.SchemaSmokeTest
--------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 16.63 s -- in com.nss.SchemaSmokeTest
