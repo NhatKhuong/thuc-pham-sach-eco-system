@@ -15,19 +15,31 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Cổng chống dò tần suất của {@code POST /api/auth/forgot-password} (backlog 0017 §Contract điều 8).
  *
- * <h2>Vì sao KHÔNG dùng Resilience4j dù nó có tên trong bảng stack §2</h2>
- * <b>Đây là một lựa chọn có chủ ý và PM nên biết để phủ quyết nếu muốn.</b> Bảng stack của
- * {@code architecture/01-overview.md} §2 có nhắc Resilience4j 2.1.0 cho đúng loại việc này, nhưng
- * đo trên source thì nó ở đúng tư thế của Redis: <b>0 hit</b> {@code resilience} trong cả 5
- * {@code pom.xml} (control dương {@code mysql} ra 2 file). Nối dây nó lên nghĩa là thêm một
- * dependency <b>nằm ngoài BOM {@code spring-boot-dependencies} 3.3.5</b>, tức phải tự khai
- * {@code <version>} và tự theo dõi tương thích — <i>đúng trục bảo trì mà ADR 0003 đã từ chối một
- * lần</i> khi loại {@code jjwt}, và đúng thứ backlog 0017 dặn phải flag trước khi thêm.
+ * <h2>Vì sao lớp này VẪN tự viết, dù Resilience4j nay đã có</h2>
+ * <b>Đây là một lựa chọn có chủ ý và PM nên biết để phủ quyết nếu muốn.</b> Resilience4j 2.1.0 nay
+ * <b>đã được nối dây</b> (backlog 0021, ADR 0005): {@code resilience4j-ratelimiter} ở
+ * {@code nss-controller} cho trần thông lượng ở biên vào, {@code resilience4j-circuitbreaker} ở
+ * {@code nss-application} quanh đường gửi SMTP. <b>Lý do cũ đã hết hiệu lực</b> — nó nói rằng một
+ * dependency nằm ngoài BOM {@code spring-boot-dependencies} 3.3.5 là quá đắt cho một {@code Map}
+ * đếm số; cái giá đó nay <i>đã trả rồi</i> (đúng một {@code <version>}, qua
+ * {@code resilience4j-bom}), nên chuyển lớp này sang Resilience4j không tốn thêm dependency nào.
  * <p>
- * Thứ cần ở đây là một bộ đếm cửa sổ cố định trong bộ nhớ — khoảng ba chục dòng, không có trạng
- * thái nào đáng để một thư viện quản lý. Khi nào dự án cần circuit breaker, bulkhead, retry policy
- * thật thì Resilience4j đáng cái giá của nó; tiêu một dependency mới cho một {@code Map} đếm số thì
- * không.
+ * <b>Lý do thật, và nó không đổi: HAI KHOÁ.</b> Lớp này khoá theo <b>IP</b> <i>và</i> theo
+ * <b>email đích</b> — xem mục ngay dưới. {@code RateLimiter} của Resilience4j là <b>một bể permit
+ * gắn với một tên instance</b>, không phải một map theo khoá, nên nó <i>không làm được</i> việc
+ * này. Muốn làm thì phải tự tạo limiter cho từng khoá qua {@code RateLimiterRegistry}, và lập tức
+ * gặp lại đúng bài toán vòng đời khoá mà {@code MAX_TRACKED_KEYS} của chính lớp này đã giải một
+ * lần: mỗi IP giả hoặc mỗi email bịa là một khoá mới, không có trần thì chính bộ chống lạm dụng
+ * trở thành đường lạm dụng. Tức là đổi sang một API lạ hơn rồi vẫn phải viết lại đúng phần khó.
+ * <p>
+ * <b>Hai lớp giải hai bài toán khác nhau, và cả hai đều ở lại:</b>
+ * <ul>
+ *   <li>Lớp global ({@code ApiRateLimitInterceptor}) chặn <b>quá tải</b> — tổng lưu lượng vượt sức
+ *       tiến trình. <i>Không</i> có khoá; trần theo nhóm endpoint
+ *       ({@code auth} / {@code write} / {@code read}).</li>
+ *   <li>Lớp này chặn <b>lạm dụng</b> — dò tài khoản, phát tán thư rác. Khoá <b>hai chiều</b>.</li>
+ * </ul>
+ * Lớp global đứng <i>trước</i> lớp này trên cùng một request; nó <b>không</b> thay lớp này.
  *
  * <h2>Hai khoá, và cả hai đều cần</h2>
  * <ul>
@@ -44,8 +56,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Bộ đếm sống <b>trong bộ nhớ của một tiến trình</b>. Chạy nhiều instance thì mỗi instance đếm
  * riêng, nên ngưỡng thực tế nhân lên theo số instance; và mọi lần khởi động lại là một lần xoá
  * sạch. Cả hai đều chấp nhận được ở tư thế hôm nay (một tiến trình, một máy) và cả hai đều là lý do
- * <i>thật</i> để chuyển sang bộ đếm dùng chung sau này — chỗ đó thì Redis, thứ đã có tên trong §2,
- * mới là câu trả lời đúng chứ không phải Resilience4j.
+ * <i>thật</i> để chuyển sang bộ đếm dùng chung sau này — chỗ đó thì Redis, thứ đã có tên trong §2
+ * nhưng vẫn chưa được nối dây, mới là câu trả lời đúng chứ không phải Resilience4j: bể permit của
+ * {@code RateLimiter} cũng sống trong một tiến trình, nên nó mang <i>đúng</i> giới hạn này. Lớp
+ * global ở {@code ApiRateLimitInterceptor} chia chung giới hạn đó.
  */
 @Slf4j
 @Component
