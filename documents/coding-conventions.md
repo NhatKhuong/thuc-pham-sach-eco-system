@@ -378,6 +378,7 @@ Cùng loại lỗi, khác phép toán: quy ước **bỏ dấu** cho tìm kiếm
 - [ ] Không thêm nhánh return / catch sau cổng Lua mà thiếu compensation
 - [ ] Không đưa `INSERT IGNORE idempotency_key` ra ngoài transaction của consumer
 - [ ] Không chép lại phép bỏ dấu thành bản thứ hai — dùng lại đúng một hàm (§18)
+- [ ] Không đặt ranh giới breaker ngoài khối tự nuốt exception; không để `RateLimiter` chạy `timeoutDuration` mặc định (§20)
 
 ---
 
@@ -429,4 +430,52 @@ Ghi nhận ở [backlog 0018](../../../management/backlog/0018-admin-products-na
 
 ---
 
-*Last updated: 2026-08-25 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*§19 đang được **[backlog 0020](../../../management/backlog/0020-coding-conventions-18-19.md) giữ chỗ**, chưa viết. Dòng này ở đây để khoảng trống giữa §18 và §20 đọc ra là "chưa tới", không phải "đã bị xoá" — 0020 sẽ thay chính dòng này. **Đừng renumber §20 xuống 19.***
+
+---
+
+## 20. Resilience — RateLimiter & CircuitBreaker
+
+Áp dụng cho mọi thứ dựng bằng Resilience4j ([ADR 0005](../../../management/decisions/0005-lop-bao-ve-resilience4j.md), backlog 0021). Sáu điều dưới đây đều bảo vệ khỏi **cùng một kiểu hỏng**: lớp bảo vệ không bao giờ kích hoạt, trong khi build xanh, test xanh, và không có triệu chứng nào nhìn thấy.
+
+**1. Một tên instance, khai thành hằng — không rải chuỗi trần.** Tên instance là thứ nối cấu hình, dòng log, và test lại với nhau; gõ tay ở ba chỗ là ba chỗ lệch được, và triệu chứng của lệch là *"breaker không làm gì cả"* chứ không phải một lỗi.
+
+```java
+/** Tên instance breaker — xuất hiện trong mọi dòng log transition, đừng đổi mà không sửa runbook. */
+private static final String CIRCUIT_BREAKER_NAME = "mail";
+```
+
+**2. Ngưỡng nằm sau env var theo nếp `${ENV_VAR:dev-default}` — không tạo profile mới.** Ngưỡng rate limit và ngưỡng breaker là **con số vận hành**: đặt thấp quá thì tự chặn người dùng thật, đặt cao quá thì lớp bảo vệ chỉ là trang trí. Phải chỉnh được mà không build lại, và phải chỉnh trong cùng nếp cấu hình đang có chứ không đẻ thêm một trục profile mới để quên.
+
+```yaml
+rate-limit:
+  read:
+    limit-for-period: ${RATE_LIMIT_READ_LIMIT:100}
+    limit-refresh-period: ${RATE_LIMIT_READ_PERIOD:PT1S}
+```
+
+**3. `RateLimiter` phải khai `timeoutDuration = 0`, và phải ĐO.** Mặc định của Resilience4j là **5 giây**, tức **xếp hàng** chứ không **từ chối**: hết permit thì caller bị park chờ và *không* nhận 429. Dưới tải đó là biến một lớp throttle thành một **bộ khuếch đại độ trễ** — không ai bị từ chối, mọi người cùng chậm. Bằng chứng bắt buộc là **p50 của một request bị từ chối**: phải ≈ 0ms (đo được **3.8ms**, backlog 0021 Phase 1), không phải ~5000ms. Không có con số đó thì không có gì phân biệt "từ chối" với "xếp hàng" — cả hai đều trông như một cấu hình đúng.
+
+**4. Breaker mở KHÔNG được làm gãy luồng nghiệp vụ.** Mở thì `log.warn` rồi đi tiếp, **không sinh mã HTTP mới** — cùng luật với "thất bại của cache thì log rồi đi tiếp" ở §11. Endpoint đã khai một mã trả về thì giữ đúng mã đó ở **cả hai** nhánh. Hệ quả phải nhận: **log là tín hiệu duy nhất** thấy được breaker đang mở, nên dòng transition và dòng "skipped" là **bắt buộc**, không phải trang trí — và cả hai phải ở mức `warn`, đừng để chúng rơi vào nhánh `catch` tổng quát rồi bị ghi thành lỗi kèm stack trace, vì lúc đó không đếm được nữa.
+
+**5. Ranh giới breaker nằm TRONG khối `catch` khi caller tự nuốt exception.** Bọc *ngoài* một method tự nuốt (`catch (Exception e) { log.error(...) }`) thì breaker thấy **0 lỗi vĩnh viễn** và **không bao giờ mở**, trong khi mọi test vẫn xanh. Và bọc **đúng** lời gọi ra ngoài, không bọc phần dựng dữ liệu: một payload sai định dạng là lỗi của **chính mình**: bọc nó vào thì nó cũng đẩy breaker mở, và một hạ tầng khoẻ mạnh bị ngắt vì lỗi của ta.
+
+```java
+try {
+    MimeMessage message = javaMailSender.createMimeMessage();   // NGOAI breaker: loi cua chinh minh
+    // ... dung message ...
+    circuitBreaker.executeRunnable(() -> javaMailSender.send(message));  // TRONG: loi cua ben ngoai
+} catch (CallNotPermittedException e) {
+    log.warn("skipped, circuit breaker is open | breaker={}", CIRCUIT_BREAKER_NAME);
+} catch (Exception e) {
+    log.error("...", e);   // VAN nuot — method chay tren luong khac nen nem ra khong ai bat
+}
+```
+
+**6. Giá trị cấu hình không hợp lệ ⇒ fail lúc khởi động — kể cả ràng buộc GIỮA hai khoá.** Tiền lệ `JwtConfig`. Kiểm từng khoá là chưa đủ: ví dụ có thật, Resilience4j **âm thầm hạ** `minimumNumberOfCalls` xuống bằng `slidingWindowSize` với cửa sổ `COUNT_BASED` — cấu hình đọc một đằng, breaker chạy một nẻo, không có triệu chứng nào. Nên `minimumNumberOfCalls > slidingWindowSize` phải **chết lúc khởi động** kèm tên khoá đầy đủ, chứ không được chạy tiếp với một giá trị không ai khai.
+
+Đi cùng điều 6: **khoá nào đổi *ý nghĩa* của khoá khác thì khai cứng trong code, đừng đưa ra env var.** `slidingWindowType` đổi `slidingWindowSize` và `minimumNumberOfCalls` từ *số lời gọi* thành *số giây* — một lần chỉnh nhầm ở đó không có triệu chứng nào nhìn thấy. Cùng tiền lệ với `ApiRateLimitInterceptor.TIMEOUT_DURATION = Duration.ZERO` (điều 3): thứ mà chỉnh sai làm lớp bảo vệ *im lặng đổi bản chất* thì không thuộc về biến môi trường.
+
+---
+
+*Last updated: 2026-08-26 — cập nhật stamp này trong cùng lần sửa nội dung.*

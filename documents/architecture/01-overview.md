@@ -43,7 +43,7 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 | Redis | 7.x | Lettuce cho data; **Redisson 3.17.1** riêng cho distributed lock                   |
 | Kafka | 3.7 | KRaft mode, không Zookeeper                                                        |
 | Guava | 32.1.2-jre | L1 cache in-process (`CacheBuilder`)                                               |
-| Resilience4j | 2.1.0 | Circuit breaker + rate limiter                                                     |
+| Resilience4j | **2.1.0** | **Đã nối dây** ([ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md), backlog 0021): `resilience4j-ratelimiter` ở `*-controller` — biên **vào**, ba tier `auth`/`write`/`read`, vượt trần trả 429; `resilience4j-circuitbreaker` ở `*-application` — biên **ra**, bọc đường gửi SMTP. Version pin bằng **import `resilience4j-bom`** ở root pom ⇒ đúng **một** `<version>` (`pom.xml:94`) cho cả dòng. **Không** dùng `resilience4j-spring-boot3` (starter đó kéo theo AOP + Actuator) |
 | Actuator + micrometer-registry-prometheus | 1.13.6 |                                                                                    |
 | logstash-logback-encoder | 8.0 | Log JSON → Logstash TCP                                                            |
 | Spring Security |  | Xác thực và phân quyền theo RBAC                                                   |
@@ -58,38 +58,104 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 `<artifactId>` thật**, không đếm chuỗi xuất hiện trong file:
 
 ```bash
+# Control duong chay TRUOC — phai ra khac 0. Chay TRUOC chu khong sau, vi `grep -c` tra 0 thi DONG
+# THOI tra exit 1: du de lam dut mot chuoi `&&` va nuot mat chinh control dung sau no, trong khi con
+# so am van in ra va doc nhu mot pass sach.
+grep -rhoi "<artifactId>[^<]*mysql[^<]*</artifactId>" --include=pom.xml . | wc -l   # 1
+grep -rhoi "<artifactId>[^<]*mail[^<]*</artifactId>"  --include=pom.xml . | wc -l   # 1
 # Dem dependency THAT, khong dinh vao comment
 for t in kafka guava actuator micrometer logstash resilience redis lettuce redisson; do
   echo "$t: $(grep -rhoi "<artifactId>[^<]*$t[^<]*</artifactId>" --include=pom.xml . | wc -l)"
 done
-# Control duong — phai ra khac 0
-grep -rhoi "<artifactId>[^<]*mysql[^<]*</artifactId>" --include=pom.xml . | wc -l   # 1
-grep -rhoi "<artifactId>[^<]*mail[^<]*</artifactId>"  --include=pom.xml . | wc -l   # 1
 ```
 
-Đo ngày 2026-08-25: **cả chín đều ra 0** — Redis, Lettuce, Redisson, Resilience4j, Kafka, Guava,
-Actuator, micrometer, logstash-logback-encoder. `application.yml` cũng **0 hit** `redis`,
-`resilience`, `kafka`.
+Đo ngày **2026-08-26** — `kafka 0`, `guava 0`, `actuator 0`, `micrometer 0`, `logstash 0`,
+**`resilience 3`**, `redis 0`, `lettuce 0`, `redisson 0`; control dương `mysql 1`, `mail 1` ⇒ **tám
+trên chín ra 0**. Còn chưa nối dây: Redis, Lettuce, Redisson, Kafka, Guava, Actuator,
+`micrometer-registry-*`, logstash-logback-encoder. **Resilience4j đã rời danh sách này** — 3 khai báo
+ở đúng 3 file: `pom.xml:93` (BOM, chỉ pin version), `nss-controller/pom.xml:59` (`ratelimiter`),
+`nss-application/pom.xml:83` (`circuitbreaker`).
+
+> **Chữ `registry` trong "micrometer" là load-bearing — đừng rút gọn thành "không có micrometer".**
+> Jar đóng gói **có** mang `micrometer-observation-1.13.6` + `micrometer-commons-1.13.6`; nguồn là
+> `spring-security-core:6.3.4`, **không** phải Resilience4j (hai jar đó cũng có mặt ở những module
+> không hề có Resilience4j). Câu đúng là **`micrometer-registry-*` = 0** và `spring-boot-actuator`
+> = 0 — tức đường xuất metric ra ngoài chưa được nối, chứ không phải cả họ micrometer vắng mặt. Đo
+> ngày 2026-08-26 trên `nss-start/target/nss-start-*.jar` bằng `unzip -l | grep -c`: control dương
+> `BOOT-INF/lib/spring-security` → **7**; `BOOT-INF/lib/micrometer-registry` → **0**;
+> `BOOT-INF/lib/spring-boot-actuator` → **0**.
+
+**Phép đo tương ứng trên `application.yml` phải bỏ comment TRƯỚC khi đếm.** Bản cũ của tài liệu này
+grep chuỗi trần trên cả file và khẳng định `redis` / `resilience` / `kafka` đều **0 hit**. Phép đo đó
+**vừa tự hỏng lần thứ hai**, ngay trong backlog 0021 và đúng cùng cơ chế mô tả ở khung dưới: đo trần
+hôm nay ra `redis` **1** (`application.yml:126` — một *comment* ghi rằng khi cần bể đếm dùng chung thì
+Redis mới là câu trả lời; **không** có dependency lẫn khoá cấu hình Redis nào) và `resilience` **2**
+(comment `:110`, `:122`). Sửa phép đo, không sửa con số — đếm **khoá cấu hình thật**:
+
+```bash
+Y=nss-start/src/main/resources/application.yml
+# Control duong chay TRUOC — phai ra khac 0
+for t in mysql mail; do echo "$t: $(sed 's/#.*$//' $Y | grep -ci "$t" || true)"; done
+# Phep kiem am — dem tren noi dung DA BO COMMENT
+for t in redis resilience kafka; do echo "$t: $(sed 's/#.*$//' $Y | grep -ci "$t" || true)"; done
+```
+
+Đo ngày 2026-08-26: `redis 0 · resilience 0 · kafka 0`, control dương `mysql 3 · mail 15`. **Số 0 ở
+đây nói đúng thứ nó định nói:** không có khoá `spring.data.redis.*`, không có khoá `resilience4j.*`.
+Ngưỡng của lớp bảo vệ sống dưới namespace của chính dự án (`nss.rate-limit.*`,
+`nss.mail.circuit-breaker.*`) và được đọc bằng `@Value` — Resilience4j ở đây dùng **API lập trình**,
+không qua autoconfiguration, nên nối dây nó **không** sinh ra khoá `resilience4j.*` nào.
 
 > **Vì sao phải đếm `<artifactId>` chứ không `grep` chuỗi trần:** phép đo cũ trong tài liệu này đếm
 > chuỗi, và nó **tự hỏng ngay trong ticket đầu tiên viết một comment nhắc tên Redis** —
 > `nss-application/pom.xml` giải thích vì sao *không* dùng Resilience4j, thế là `grep -ril resilience`
 > ra 1 file và con số "0 hit" thành sai trong khi không có dependency nào được thêm. Một phép đo mà
 > việc *ghi lại lý do* làm nó sai thì nó đang phạt đúng thứ đáng khuyến khích.
+>
+> **Lần thứ hai, 2026-08-26:** phép đo trên pom đã được sửa sang `<artifactId>`, nhưng phép đo trên
+> `application.yml` **bị bỏ lại ở dạng grep trần** — và nó hỏng lại y hệt khi backlog 0021 viết comment
+> giải thích cả Redis lẫn Resilience4j. Bài học: **sửa một phép đo hỏng thì phải sửa mọi phép đo cùng
+> cơ chế trong cùng lần**, nếu không là hẹn nó hỏng lần thứ ba.
 
 Phân biệt "có tên nhưng chưa nối dây" với "không có tên" là **load-bearing, đừng xoá cho gọn**: một
 thành phần *có tên* trong bảng thì nối nó lên là **thi hành tài liệu**; một thành phần *không có
 tên* ở bất kỳ dạng nào thì thêm nó là **mở rộng stack** và phải cập nhật bảng này trong cùng ticket.
 Mail vừa đi qua đúng con đường thứ hai ở backlog 0017 — đó là lý do dòng "Gửi mail (SMTP)" ra đời.
 
-Hệ quả thực tế đã gặp: cả Redis lẫn Resilience4j đều **nằm ngoài BOM `spring-boot-dependencies`
-3.3.5**, nên nối dây chúng là thêm một `<version>` phải tự pin và tự theo dõi — đúng trục bảo trì mà
-ADR 0003 đã từ chối một lần khi loại `jjwt`. Vì vậy chống dò tần suất của
-`POST /auth/forgot-password` được làm bằng một bộ đếm cửa sổ cố định **trong bộ nhớ**
-(`ForgotPasswordRateLimiter`) thay vì kéo Resilience4j vào cho một `Map` đếm số. Giới hạn đã biết:
-bộ đếm là process-local, nên chạy nhiều instance thì ngưỡng thực tế nhân lên theo số instance. Khi
-cần một bộ đếm **dùng chung giữa các instance** thì Redis mới là câu trả lời đúng, không phải
-Resilience4j.
+**Cái giá của Resilience4j đã được trả — và trả ở đúng một chỗ.** Cả Redis lẫn Resilience4j đều **nằm
+ngoài BOM `spring-boot-dependencies` 3.3.5**, nên nối dây chúng là thêm một `<version>` phải tự pin và
+tự theo dõi tương thích — đúng trục bảo trì mà ADR 0003 đã từ chối một lần khi loại `jjwt`. Backlog
+0021 chấp nhận cái giá đó **có điều kiện**, và trả nó bằng cách **import `resilience4j-bom`**: hai
+artifact đang dùng (`ratelimiter` ở biên vào, `circuitbreaker` ở biên ra) dùng chung
+`resilience4j-core`, nhưng vẫn chỉ có **đúng một** thẻ `<version>` (`pom.xml:94`) và **đúng một**
+property (`pom.xml:39`) cho cả dòng — không có chỗ thứ hai để lệch khi nâng version, và không có hai
+artifact cùng dòng lệch nhau ở chỗ không ai nhìn. Lý do đầy đủ, các phương án đã loại, ba thứ phải
+canh chừng, và **điều kiện đảo ngược** mà chính backlog 0017 tự viết ra:
+[ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md) — đọc trước khi đụng vào
+lớp này.
+
+**Redis thì vẫn chưa, và lý do cũ vẫn nguyên giá trị.** Cả `ForgotPasswordRateLimiter` lẫn ba tier
+RateLimiter đều đếm **trong bộ nhớ của một tiến trình**: chạy N instance thì trần thật gấp N lần, và
+mỗi lần khởi động lại là một lần xoá sạch. Khi cần một bể đếm **dùng chung giữa các instance** thì
+Redis mới là câu trả lời đúng — không phải chỉnh con số, và **cũng không phải Resilience4j**, vì
+`RateLimiter` của nó cũng chỉ là một bể permit process-local. "Có dựng Redis không, để làm gì" vẫn là
+một câu hỏi đang mở.
+
+**`ForgotPasswordRateLimiter` vẫn tự viết, nhưng lý do đã đổi.** Không còn là "R4j quá đắt cho một
+`Map` đếm số" — R4j nay đã ở trong classpath và không tốn thêm gì. Lý do thật là **hai khoá**: lớp đó
+khoá theo **IP** *và* theo **email đích**, còn `RateLimiter` của Resilience4j là một bể permit gắn với
+*một tên instance*, không phải map theo khoá. Hai lớp giải hai bài toán khác nhau và **cả hai đều ở
+lại** — lớp global chống **quá tải** (không khoá, trần theo nhóm endpoint), lớp cũ chống **lạm dụng**
+(dò tài khoản, phát tán thư rác). Chi tiết ở javadoc `ForgotPasswordRateLimiter`.
+
+**Timeout SMTP là điều kiện tiên quyết của breaker — và nó đã có sẵn từ trước.**
+`application.yml:58-60` đặt cả ba `spring.mail.properties.mail.smtp.{connectiontimeout, timeout,
+writetimeout}` = **5000ms** (backlog 0017 thêm, kèm comment giải thích ở `:56-57`). **Một giá trị nằm trong YAML không tự chứng minh nó
+tới được JavaMail**: sai key, sai chỗ lồng, hay sai kiểu đều làm nó bị bỏ qua *im lặng* và mặc định vô
+hạn quay lại — không có timeout cắn thật thì breaker chẳng đếm được gì, vì mỗi lần gửi treo mãi thay
+vì thất bại. Backlog 0021 Phase 2 đo bằng một SMTP **hố đen** (cổng accept nhưng không nói gì — khác
+cổng đóng, thứ fail nhanh và không kiểm được gì): một lần `send()` thất bại ở **5103ms**, chuỗi nguyên
+nhân `MailSendException` ← `jakarta.mail.MessagingException` ← `java.net.SocketTimeoutException`.
 
 ---
 
@@ -255,24 +321,34 @@ Mọi controller trả `ResultMessage<T>` dựng qua `ResultUtil.data(...)` / `.
 
 ## 8. Config
 
-Hiện trạng dự án tham chiếu: **một** `application.yml`, không profile, mọi host hardcode localhost (MySQL `3316`, Redis `6319`, Kafka `9094`, app `1122`).
+Hiện trạng dự án tham chiếu: **một** `application.yml`, không profile, mọi host hardcode localhost (MySQL `3316`, Redis `6319`, Kafka `9094`, app `1122`). Giá trị Tomcat / Kafka đã tinh chỉnh của **nó** — `accept-count: 2000`, `max-connections: 10000`, consumer `auto-offset-reset: earliest`.
+
+**Dự án này không có khoá nào trong ba khoá đó** — đừng chép chúng sang chỉ vì dòng trên đọc như một chỉ dẫn. Đo ngày **2026-08-26** trên `nss-start/src/main/resources/application.yml`, **bỏ comment trước khi đếm** (cùng phép đo §2: `sed 's/#.*$//' $Y | grep -ci "$t"`): `accept-count` **0** · `max-connections` **0** · `auto-offset-reset` **0**; control dương chạy **TRƯỚC** — `maximum-pool-size` **1**, `port` **2**. `kafka` cũng **0** (§2), nên chưa có consumer nào để mà đặt `auto-offset-reset`; server chạy Tomcat mặc định của Spring Boot, không khoá `server.tomcat.*` nào.
 
 **Chuẩn cho dự án mới — bắt buộc:**
 
 - Tách `application-dev.yml` / `application-prod.yml`; host, credential, CORS origin đọc từ biến môi trường.
 - **Không secret trong source.** (Dự án tham chiếu có secret key cổng thanh toán viết thẳng trong `VnPayGatewayServiceImpl` — không lặp lại.)
 - Cấu hình client hạ tầng đọc từ cùng một nguồn. Redisson phải lấy address từ `spring.data.redis.*`, không tự khai địa chỉ riêng.
-
-Giá trị đã tinh chỉnh, giữ nguyên trừ khi có số đo phản bác: Tomcat `accept-count: 2000` / `max-connections: 10000`, Hikari pool 100, Kafka consumer `auto-offset-reset: earliest`.
+- **Hikari `maximum-pool-size: 100` — giá trị đã tinh chỉnh, giữ nguyên trừ khi có số đo phản bác.** Đây là khoá **duy nhất** trong bốn khoá của dòng cũ thật sự tồn tại ở dự án này (`application.yml:29`), nên nó ở vế chuẩn chứ không ở vế hiện trạng dự án tham chiếu. Dưới virtual threads nó mới đúng là chỗ hàng đợi thật sự hình thành — **§9 nói đúng cùng điều này**. Con số `100` xuất hiện ở **ba** chỗ trong tài liệu (bảng §2, dòng này, §9) và ở `application.yml:29`; đổi nó thì phải đổi cả bốn trong cùng một lần.
 
 ---
 
 ## 9. Observability
 
+Hiện trạng dự án tham chiếu — bốn gạch đầu dòng dưới đây mô tả **nó**, không phải dự án này:
+
 - Actuator expose toàn bộ; Prometheus scrape `/actuator/prometheus` mỗi 5s.
-- Histogram + SLO buckets (100ms / 500ms / 1s / 2s / 5s) cho `http.server.requests`; percentile p50/p95/p99. Thêm `hikaricp.connections.acquire` — với luồng đồng bộ, **DB pool mới là trần thông lượng**, không phải request pool.
+- Histogram + SLO buckets (100ms / 500ms / 1s / 2s / 5s) cho `http.server.requests`; percentile p50/p95/p99, kèm `hikaricp.connections.acquire`.
 - Log JSON → Logstash TCP `5044` qua `AsyncAppender` (`neverBlock=true`, `queueSize=512`) → ELK chết thì app vẫn chạy.
-- **Bắt buộc bổ sung ở dự án mới:** một filter set `MDC traceId`. Pattern logback đã in `%X{traceId}` nhưng chưa có ai set → hiện luôn rỗng.
+- Pattern logback của nó **đã in** `%X{traceId}`, nhưng **không ai set MDC** → trường đó in ra luôn rỗng.
+
+**Dự án này chưa nối dây thứ nào ở trên** — đừng đọc mấy dòng trên như hiện trạng chỉ vì chúng nói bằng chi tiết vận hành. §2 đo trên source ngày **2026-08-26**, đếm khai báo `<artifactId>` thật: `actuator` **0** · `micrometer` **0** · `logstash` **0** (control dương `mysql` 1, `mail` 1). Actuator, `micrometer-registry-prometheus` và `logstash-logback-encoder` **có tên trong bảng §2 nhưng chưa nối dây**; `*-start` cũng **chưa có `logback-spring.xml`** nào. Nối chúng lên là **thi hành tài liệu**, nhưng nó mở một public surface mới phải khoá RBAC và khai trong `SecurityConfig` + Swagger — [ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md) đã cố ý loại việc đó ra khỏi backlog 0021, nên nó là **một ticket riêng**, không phải việc làm kèm.
+
+**Chuẩn cho dự án mới — bắt buộc:**
+
+- **Một filter set `MDC traceId`, đi kèm pattern logback in `%X{traceId}`.** Hai nửa phải có cùng lúc: dự án tham chiếu có nửa sau mà thiếu nửa đầu nên trường đó luôn rỗng; dự án này thì chưa có nửa nào.
+- **Đo `hikaricp.connections.acquire`.** Đây là nhận định kỹ thuật **chung**, không phải một chi tiết riêng của dự án tham chiếu: khi lời gọi DB là lời gọi **chặn**, trần thông lượng nằm ở **pool DB**, không phải ở pool thread nhận request. **Virtual threads làm nhận định này đúng hơn chứ không phải hết hiệu lực** — dự án này bật `spring.threads.virtual.enabled: true` (§2; `application.yml:11`), tức thread nhận request gần như không còn là giới hạn, nên `maximum-pool-size: 100` (`application.yml:29`) mới đúng là chỗ hàng đợi thật sự hình thành. Không đo nó thì p99 dâng lên mà không có số nào chỉ ra vì sao.
 
 ---
 
@@ -303,4 +379,4 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-08-25 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-26 — cập nhật stamp này trong cùng lần sửa nội dung.*

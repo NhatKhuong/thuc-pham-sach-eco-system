@@ -30,6 +30,13 @@
     <!-- BOM spring-boot-dependencies KHONG quan version cua springdoc nen phai tu pin o day.
          2.6.0 la dong tuong thich Spring Boot 3.3.5 (backlog 0009) -->
     <springdoc.version>2.6.0</springdoc.version>
+    <!-- BOM spring-boot-dependencies KHONG quan version cua Resilience4j nen phai tu pin o day, cung
+         tien le voi springdoc (ADR 0005). 2.1.0 la con so architecture/01-overview.md muc 2 khai;
+         bytecode major 61 (Java 17) nen chay duoc tren Java 21, va ca hai artifact dang dung
+         (resilience4j-ratelimiter, resilience4j-circuitbreaker) chi keo theo resilience4j-core +
+         slf4j-api - khong cham vao Spring, nen khong co truc tuong thich nao voi Spring Boot 3.3.5
+         ngoai chinh Java. -->
+    <resilience4j.version>2.1.0</resilience4j.version>
     <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
   </properties>
 
@@ -69,6 +76,24 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         <version>${springdoc.version}</version>
+      </dependency>
+
+      <!-- Resilience4j: CHI hai module duoc khai <dependency> that — ratelimiter o nss-controller
+           (bien vao, Phase 1) va circuitbreaker o nss-application (bien ra SMTP, Phase 2).
+           KHONG dung resilience4j-spring-boot3: starter do keo theo AOP + actuator, ma
+           Actuator/micrometer la non-goal cua backlog 0021 (mo mot public surface moi phai khoa
+           RBAC). Ca hai cho deu dung API lap trinh nen khong can annotation lan autoconfiguration.
+           VI SAO IMPORT BOM chu khong liet ke tung artifact: Phase 2 them artifact THU HAI cua
+           cung mot dong. Moi the <version> viet them la mot cho NUA co the lech khi nang version,
+           va hai artifact Resilience4j lech version nhau thi hong o cho khong ai nhin — chung dung
+           chung resilience4j-core. BOM giu dung MOT the <version> cho ca dong, cung y do voi
+           spring-boot-dependencies o tren. -->
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bom</artifactId>
+        <version>${resilience4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

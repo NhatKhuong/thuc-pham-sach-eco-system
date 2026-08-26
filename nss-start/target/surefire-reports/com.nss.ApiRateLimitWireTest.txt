@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.nss.ApiRateLimitWireTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.360 s -- in com.nss.ApiRateLimitWireTest

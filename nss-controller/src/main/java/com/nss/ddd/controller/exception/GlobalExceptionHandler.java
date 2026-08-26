@@ -153,7 +153,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Vượt ngưỡng tần suất — hiện chỉ {@code POST /auth/forgot-password} (backlog 0017 điều 8).
+     * Vượt ngưỡng tần suất — <b>hai nguồn khác nhau cùng đổ về đây</b>: trần thông lượng global của
+     * {@code /api/**} ({@code ApiRateLimitInterceptor}, backlog 0021) chặn <i>quá tải</i>, còn cổng
+     * chống dò của {@code POST /auth/forgot-password} ({@code ForgotPasswordRateLimiter}, backlog
+     * 0017 điều 8) chặn <i>lạm dụng</i> theo cả IP lẫn email. Handler này cố ý không phân biệt hai
+     * ca — với người dùng cuối chúng là cùng một sự thật; thứ phân biệt được chúng là dòng
+     * {@code log.warn} của chính lớp đã ném ra, ghi <i>trước</i> khi tới đây.
      * <p>
      * <b>429, không phải 403.</b> 403 đọc như một trạng thái vĩnh viễn mà người dùng không sửa
      * được; 429 nói đúng sự thật — quá nhanh, thử lại sau — và là mã duy nhất frontend dịch được
@@ -164,7 +169,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(TooManyRequestsException.class)
     public ProblemDetail handleTooManyRequests(TooManyRequestsException e) {
-        log.warn("handleTooManyRequests: forgot-password rate limit rejected a call");
+        log.warn("handleTooManyRequests: rate limit rejected a call");
         return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
     }
 

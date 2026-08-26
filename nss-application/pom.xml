@@ -70,5 +70,17 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
+    <!-- Resilience4j CircuitBreaker (backlog 0021 Phase 2, ADR 0005): breaker quanh duong gui SMTP.
+         Dat o day chu khong o nss-controller vi MailAppServiceImpl song o module nay, va Maven chi
+         truyen dependency XUOI theo chieu phu thuoc — thu khai o controller KHONG co tren classpath
+         bien dich cua application. KHONG duoc keo xuong nss-domain (dao chieu phu thuoc,
+         architecture muc 1); nss-domain khong duoc them canh phu thuoc nao trong ticket nay.
+         Version do BOM resilience4j o root pom quan — KHONG khai <version> o day.
+         CHI artifact circuitbreaker: no keo theo dung resilience4j-core + slf4j-api, khong cham
+         Spring va khong cham actuator/micrometer (non-goal cua ticket). -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-circuitbreaker</artifactId>
+    </dependency>
   </dependencies>
 </project>

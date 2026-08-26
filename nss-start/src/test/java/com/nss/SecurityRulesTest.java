@@ -91,7 +91,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration",
+        // Tran thong luong /api/** (backlog 0021) nam TREN chuoi filter va no la tran THEO TIEN
+        // TRINH: file nay ban ~48 request, trong do ~19 vao /api/auth/** — voi nguong san xuat
+        // 10/giay thi ket qua cua no phu thuoc vao MAY CHAY NHANH BAO NHIEU, chu khong phu thuoc ma
+        // tran quyen ma no sinh ra de kiem. Nang nguong o day de bien mot ca do do timing thanh mot
+        // ca do that. Lop limit duoc kiem rieng o ApiRateLimitWireTest voi nguong dat rat thap.
+        "nss.rate-limit.auth.limit-for-period=100000",
+        "nss.rate-limit.write.limit-for-period=100000",
+        "nss.rate-limit.read.limit-for-period=100000"
 })
 @AutoConfigureMockMvc
 class SecurityRulesTest {
