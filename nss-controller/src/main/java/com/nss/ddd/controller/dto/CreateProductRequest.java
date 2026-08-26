@@ -47,42 +47,42 @@ public class CreateProductRequest {
      * {@code @Size} thì giữ: nó chặn một chuỗi dài hơn cột {@code varchar(160)} <b>trước</b> khi
      * chuỗi ấy đi tới tầng dữ liệu.
      */
-    @Size(max = 160, message = "slug must not exceed 160 characters")
+    @Size(max = 160, message = "Đường dẫn tĩnh không được vượt quá 160 ký tự.")
     private String slug;
 
-    @NotBlank(message = "name must not be blank")
-    @Size(max = 255, message = "name must not exceed 255 characters")
+    @NotBlank(message = "Vui lòng nhập tên sản phẩm.")
+    @Size(max = 255, message = "Tên sản phẩm không được vượt quá 255 ký tự.")
     private String name;
 
-    @Size(max = 500, message = "shortDescription must not exceed 500 characters")
+    @Size(max = 500, message = "Mô tả ngắn không được vượt quá 500 ký tự.")
     private String shortDescription;
 
     private String description;
 
-    @NotNull(message = "price must not be null")
-    @Positive(message = "price must be greater than 0")
+    @NotNull(message = "Vui lòng nhập giá bán.")
+    @Positive(message = "Giá bán phải lớn hơn 0.")
     private Long price;
 
     /** Rỗng nghĩa là không giảm giá — §A.5 cấm dùng 0 hay chuỗi rỗng thay cho {@code null}. */
-    @Positive(message = "salePrice must be greater than 0")
+    @Positive(message = "Giá khuyến mãi phải lớn hơn 0.")
     private Long salePrice;
 
-    @NotBlank(message = "unit must not be blank")
-    @Size(max = 32, message = "unit must not exceed 32 characters")
+    @NotBlank(message = "Vui lòng nhập đơn vị tính.")
+    @Size(max = 32, message = "Đơn vị tính không được vượt quá 32 ký tự.")
     private String unit;
 
-    @Size(max = 128, message = "origin must not exceed 128 characters")
+    @Size(max = 128, message = "Xuất xứ không được vượt quá 128 ký tự.")
     private String origin;
 
-    @NotNull(message = "stock must not be null")
-    @PositiveOrZero(message = "stock must not be negative")
+    @NotNull(message = "Vui lòng nhập số lượng tồn kho.")
+    @PositiveOrZero(message = "Số lượng tồn kho không được là số âm.")
     private Integer stock;
 
     private Boolean isFeatured;
 
     private Boolean isBestSeller;
 
-    @NotNull(message = "categoryId must not be null")
+    @NotNull(message = "Vui lòng chọn danh mục sản phẩm.")
     private Long categoryId;
 
     /** Rỗng khi sản phẩm không gắn thương hiệu nào. */
@@ -94,5 +94,5 @@ public class CreateProductRequest {
      * <p>
      * Ticket này không nhận multipart và không ghi file — backend chỉ lưu chuỗi.
      */
-    private List<@Size(max = 255, message = "image path must not exceed 255 characters") String> images;
+    private List<@Size(max = 255, message = "Đường dẫn ảnh không được vượt quá 255 ký tự.") String> images;
 }

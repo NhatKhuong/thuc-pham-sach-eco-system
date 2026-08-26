@@ -29,7 +29,7 @@ public class UpdateOrderStatusRequest {
      * Trạng thái muốn chuyển sang — {@code pending} / {@code confirmed} / {@code shipping} /
      * {@code delivered} / {@code cancelled}.
      */
-    @NotBlank(message = "Status is required")
+    @NotBlank(message = "Vui lòng chọn trạng thái đơn hàng.")
     @Schema(description = "Trạng thái muốn chuyển sang, chữ thường.", example = "confirmed",
             allowableValues = {"pending", "confirmed", "shipping", "delivered", "cancelled"})
     private String status;

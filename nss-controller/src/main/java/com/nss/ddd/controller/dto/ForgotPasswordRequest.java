@@ -30,8 +30,8 @@ public class ForgotPasswordRequest {
      * <b>Trần 160 khớp cột {@code user.email}</b>, không phải một con số tuỳ ý: một chuỗi dài hơn
      * không thể khớp tài khoản nào, nên chặn nó ở đây rẻ hơn là mang xuống tận câu truy vấn.
      */
-    @NotBlank(message = "email must not be blank")
-    @Email(message = "email must be a well-formed email address")
-    @Size(max = 160, message = "email must not exceed 160 characters")
+    @NotBlank(message = "Vui lòng nhập email.")
+    @Email(message = "Email không đúng định dạng.")
+    @Size(max = 160, message = "Email không được vượt quá 160 ký tự.")
     private String email;
 }

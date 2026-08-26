@@ -24,17 +24,17 @@ import lombok.Data;
 @Data
 public class RegisterRequest {
 
-    @NotBlank(message = "fullName must not be blank")
-    @Size(max = 128, message = "fullName must not exceed 128 characters")
+    @NotBlank(message = "Vui lòng nhập họ và tên.")
+    @Size(max = 128, message = "Họ và tên không được vượt quá 128 ký tự.")
     private String fullName;
 
-    @NotBlank(message = "email must not be blank")
-    @Email(message = "email must be a well-formed email address")
-    @Size(max = 160, message = "email must not exceed 160 characters")
+    @NotBlank(message = "Vui lòng nhập email.")
+    @Email(message = "Email không đúng định dạng.")
+    @Size(max = 160, message = "Email không được vượt quá 160 ký tự.")
     private String email;
 
-    @NotBlank(message = "phone must not be blank")
-    @Size(max = 20, message = "phone must not exceed 20 characters")
+    @NotBlank(message = "Vui lòng nhập số điện thoại.")
+    @Size(max = 20, message = "Số điện thoại không được vượt quá 20 ký tự.")
     private String phone;
 
     /**
@@ -42,7 +42,7 @@ public class RegisterRequest {
      * byte đầu tiên và <i>im lặng</i> bỏ phần còn lại, nghĩa là hai mật khẩu dài khác nhau vẫn đăng
      * nhập được cho nhau. Chặn ở đây để điều đó không xảy ra.
      */
-    @NotBlank(message = "password must not be blank")
-    @Size(min = 6, max = 72, message = "password must be between 6 and 72 characters")
+    @NotBlank(message = "Vui lòng nhập mật khẩu.")
+    @Size(min = 6, max = 72, message = "Mật khẩu phải từ 6 đến 72 ký tự.")
     private String password;
 }

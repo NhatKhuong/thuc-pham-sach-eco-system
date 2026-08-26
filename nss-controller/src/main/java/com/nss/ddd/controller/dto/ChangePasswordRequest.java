@@ -35,11 +35,11 @@ import lombok.Data;
 @Data
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "currentPassword must not be blank")
-    @Size(max = 72, message = "currentPassword must not exceed 72 characters")
+    @NotBlank(message = "Vui lòng nhập mật khẩu hiện tại.")
+    @Size(max = 72, message = "Mật khẩu hiện tại không được vượt quá 72 ký tự.")
     private String currentPassword;
 
-    @NotBlank(message = "newPassword must not be blank")
-    @Size(min = 6, max = 72, message = "newPassword must be between 6 and 72 characters")
+    @NotBlank(message = "Vui lòng nhập mật khẩu mới.")
+    @Size(min = 6, max = 72, message = "Mật khẩu mới phải từ 6 đến 72 ký tự.")
     private String newPassword;
 }

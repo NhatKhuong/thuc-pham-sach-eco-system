@@ -57,7 +57,7 @@ public interface OrderJPAMapper extends JpaRepository<Order, Long> {
      * <b>Một mẫu {@code LIKE} cho cả ba là ĐỦ, không phải một sự lười.</b> Từ khoá đã đi qua
      * {@code TextNormalizer}: chữ số của số điện thoại không đổi, còn mã đơn thì so khớp qua
      * collation {@code utf8mb4_unicode_ci} vốn không phân biệt hoa thường — {@code nss-2026} khớp
-     * {@code NSS-20260825-0001}. Frontend cũng dùng đúng một từ khoá cho cả ba trường.
+     * {@code NSS-20260826-K7M2QX9P4T}. Frontend cũng dùng đúng một từ khoá cho cả ba trường.
      * <p>
      * <b>{@code ESCAPE '!'} chứ không phải gạch chéo ngược</b> — cùng lý do đã ghi ở
      * {@code ProductJPAMapper}: không escape thì {@code q=100%} thành ký tự đại diện và bộ lọc trả
@@ -85,7 +85,7 @@ public interface OrderJPAMapper extends JpaRepository<Order, Long> {
      * là hai đường dẫn khác nhau. Nới ra ở đây sẽ khiến một mã gõ sai kiểu vẫn mở được đơn, tức
      * mở rộng bề mặt đoán mã trên một endpoint vốn đã công khai (§Contract 6).
      *
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @return đơn hàng kèm chủ đơn đã nạp, hoặc rỗng
      */
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.user WHERE o.code = :code")

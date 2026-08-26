@@ -38,7 +38,9 @@ public class OrderResponse {
     private Long id;
 
     /**
-     * Mã đơn hiển thị cho khách, dạng {@code NSS-20260817-0001} (§Contract 6).
+     * Mã đơn hiển thị cho khách, dạng {@code NSS-20260826-K7M2QX9P4T} (§Contract 6, ADR 0006).
+     * <p>
+     * Đơn tạo trước 2026-08-26 mang dạng tuần tự cũ {@code NSS-YYYYMMDD-NNNN} — không backfill.
      * <p>
      * Đây là khoá tra cứu của {@code GET /orders/{code}} và là thứ duy nhất nhân viên với khách
      * cùng đọc được qua điện thoại; {@code id} không bao giờ rời khỏi cơ sở dữ liệu.

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.nss.SecurityRulesTest
 -------------------------------------------------------------------------------
-Tests run: 78, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.014 s -- in com.nss.SecurityRulesTest
+Tests run: 78, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.819 s -- in com.nss.SecurityRulesTest

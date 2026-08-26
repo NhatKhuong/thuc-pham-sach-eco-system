@@ -22,7 +22,7 @@ import java.util.List;
 @Data
 public class ValidateCartRequest {
 
-    @NotNull(message = "items must not be null")
+    @NotNull(message = "Vui lòng chọn sản phẩm để kiểm tra giỏ hàng.")
     @Valid
     private List<CartItemRequest> items;
 }

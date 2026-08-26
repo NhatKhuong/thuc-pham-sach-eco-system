@@ -65,7 +65,7 @@ public interface OrderRepository {
      * Khoá theo {@code code} chứ không theo {@code id} vì mã đơn là thứ duy nhất nhân viên và khách
      * cùng đọc được qua điện thoại; {@code id} không bao giờ rời khỏi cơ sở dữ liệu.
      *
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @return đơn hàng, hoặc rỗng khi không có mã nào như vậy
      */
     Optional<Order> findByCode(String code);
@@ -152,14 +152,11 @@ public interface OrderRepository {
      */
     List<StatusCount> countByStatus(LocalDateTime fromUtc, LocalDateTime toUtc);
 
-    /**
-     * Tổng số đơn đang có trong bảng — đầu vào duy nhất của số thứ tự trong mã đơn (§Contract 6).
-     * <p>
-     * <b>Đếm trên TOÀN BỘ bảng, không đếm theo ngày.</b> Owner chốt giữ dạng tuần tự toàn cục ở
-     * §Contract 6, nên hai đơn đặt cách nhau một ngày vẫn nhận hai số liền nhau; phần
-     * {@code YYYYMMDD} của mã chỉ nói đơn ra đời hôm nào chứ không mở một dãy số mới.
-     *
-     * @return số dòng hiện có trong {@code customer_order}
-     */
-    long countOrders();
+    // GO BO `long countOrders()` — ADR 0006 / bugs/0004.
+    //
+    // No tung la dau vao duy nhat cua so thu tu trong ma don (`countOrders() + 1`), va chinh no la
+    // ve "doc" cua mot phep doc-roi-ghi: hai don dat dong thoi doc cung mot COUNT(*), dung cung mot
+    // ma, cai thu hai dung uk_code => 500 va don rollback sach. Ma don nay sinh ngau nhien nen
+    // khong con ai goi den no. Xoa han thay vi de lai: mot port con song la mot loi moi de ai do
+    // dung lai dung cai cua so dua vua dong.
 }

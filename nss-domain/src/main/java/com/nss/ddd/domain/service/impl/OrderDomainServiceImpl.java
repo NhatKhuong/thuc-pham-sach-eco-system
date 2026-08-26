@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -75,17 +76,54 @@ public class OrderDomainServiceImpl implements OrderDomainService {
     /** Phí vận chuyển khi chưa đạt ngưỡng, số nguyên VNĐ — khớp {@code lib/constants.ts#SHIPPING_FEE}. */
     public static final long SHIPPING_FEE = 30_000L;
 
-    /** Tiền tố mã đơn (§Contract 6) — phần cố định của {@code NSS-YYYYMMDD-NNNN}. */
+    /** Tiền tố mã đơn (§Contract 6) — phần cố định của {@code NSS-YYYYMMDD-XXXXXXXXXX}. */
     public static final String ORDER_CODE_PREFIX = "NSS-";
 
-    /** Dấu ngăn giữa phần ngày và phần số thứ tự của mã đơn. */
+    /** Dấu ngăn giữa phần ngày và phần ngẫu nhiên của mã đơn. */
     private static final String ORDER_CODE_SEPARATOR = "-";
 
     /** Khuôn phần ngày của mã đơn — {@code YYYYMMDD} theo giờ UTC. */
     private static final DateTimeFormatter ORDER_CODE_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    /** Khuôn phần số thứ tự — đệm 0 tới bốn chữ số, không cắt khi vượt 9999. */
-    private static final String ORDER_CODE_SEQUENCE = "%04d";
+    /**
+     * Bảng chữ cái của phần ngẫu nhiên — <b>Crockford base32</b> (ADR 0006).
+     * <p>
+     * Thiếu đúng bốn chữ so với {@code A-Z0-9}: {@code I}, {@code L}, {@code O} và {@code U}. Ba
+     * chữ đầu bị loại vì <b>mã này tồn tại để nhân viên và khách đọc cho nhau qua điện thoại</b> —
+     * bỏ {@code O} thì {@code 0} không còn cặp để nhầm, bỏ {@code I} và {@code L} thì {@code 1}
+     * cũng vậy. {@code U} bị loại theo đúng bảng gốc của Crockford để một mã sinh ngẫu nhiên không
+     * vô tình đánh vần ra chữ tục.
+     * <p>
+     * <b>Đúng 32 ký tự, và con số đó là cố ý:</b> 32 là luỹ thừa của 2 nên
+     * {@code nextInt(32)} chia đều tuyệt đối trên bảng chữ cái, không có ký tự nào nhỉnh hơn ký tự
+     * khác. Một bảng 31 hay 33 ký tự sẽ lệch phân phối và làm hụt không gian mã thật sự.
+     */
+    private static final String ORDER_CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+    /**
+     * Độ dài phần ngẫu nhiên của mã đơn.
+     * <p>
+     * 10 ký tự trên bảng 32 chữ cho <b>32^10 = 1.125.899.906.842.624</b> khả năng (2^50) — đó là
+     * không gian một kẻ dò phải quét cho <i>mỗi ngày</i>, thay cho {@code 0001..9999} của bản cũ.
+     * <p>
+     * <b>Độ dài tổng của mã là 23 ký tự</b> ({@code "NSS-"} 4 + ngày 8 + {@code "-"} 1 + 10), vẫn
+     * nằm trong {@code varchar(32)} của cột {@code code} — <b>nên ticket này không đụng schema</b>.
+     * Nới con số này quá 19 thì mã tràn cột và đó là một quyết định schema, không phải một chỉnh
+     * tham số.
+     */
+    private static final int ORDER_CODE_RANDOM_LENGTH = 10;
+
+    /**
+     * Nguồn ngẫu nhiên của mã đơn — <b>phải an toàn mật mã</b> (ADR 0006, bugs/0004 điều 1).
+     * <p>
+     * {@code SecureRandom} chứ không {@code Math.random()}, không {@code new Random()}, không
+     * {@code UUID.randomUUID().hashCode()} và không {@code System.nanoTime()}: cả bốn đều đoán
+     * được xuôi hoặc ngược từ vài mẫu, mà <b>đoán được mã chính là lỗ hổng ticket này đang đóng</b>
+     * — {@code GET /orders/{code}} công khai và trả cả 8 trường PII của khối {@code shipping}.
+     * <p>
+     * {@code SecureRandom} an toàn khi gọi từ nhiều luồng nên một thể hiện dùng chung là đủ.
+     */
+    private static final SecureRandom ORDER_CODE_RANDOM = new SecureRandom();
 
     /**
      * <b>Bảng chuyển trạng thái hợp lệ — bản duy nhất của luật này trong toàn hệ</b> (§B.12.2,
@@ -175,11 +213,19 @@ public class OrderDomainServiceImpl implements OrderDomainService {
 
     @Override
     public String genOrderCode(LocalDateTime nowUtc) {
-        long sequence = orderRepository.countOrders() + 1L;
-        return ORDER_CODE_PREFIX
-                + ORDER_CODE_DATE.format(nowUtc)
-                + ORDER_CODE_SEPARATOR
-                + String.format(ORDER_CODE_SEQUENCE, sequence);
+        // KHONG doc bang o day — khong COUNT(*), khong MAX(id), khong SELECT nao. Ban cu lay
+        // `countOrders() + 1` va do la mot phep doc-roi-ghi: hai don dat dong thoi doc cung mot
+        // COUNT(*), dung cung mot ma, cai thu hai dung uk_code => 500 va don rollback sach. Do
+        // duoc bang phep kiem dong thoi cua bugs/0004: 12 request song song => 1 x 201 + 11 x 500.
+        StringBuilder code = new StringBuilder(
+                ORDER_CODE_PREFIX.length() + 8 + ORDER_CODE_SEPARATOR.length() + ORDER_CODE_RANDOM_LENGTH);
+        code.append(ORDER_CODE_PREFIX)
+                .append(ORDER_CODE_DATE.format(nowUtc))
+                .append(ORDER_CODE_SEPARATOR);
+        for (int i = 0; i < ORDER_CODE_RANDOM_LENGTH; i++) {
+            code.append(ORDER_CODE_ALPHABET.charAt(ORDER_CODE_RANDOM.nextInt(ORDER_CODE_ALPHABET.length())));
+        }
+        return code.toString();
     }
 
     // ========== LUONG TRANG THAI ==========

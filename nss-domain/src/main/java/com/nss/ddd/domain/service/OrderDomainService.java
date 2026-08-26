@@ -146,14 +146,28 @@ public interface OrderDomainService {
     long calcTotal(long subtotal, long discount, long shippingFee);
 
     /**
-     * Sinh mã đơn dạng {@code NSS-YYYYMMDD-NNNN} (§Contract 6).
+     * Sinh mã đơn dạng {@code NSS-YYYYMMDD-XXXXXXXXXX} (§Contract 6, <b>ADR 0006</b>).
      * <p>
-     * {@code NNNN} là <b>số thứ tự trên toàn bộ bảng</b>, không phải số thứ tự trong ngày; phần
-     * ngày chỉ nói đơn ra đời hôm nào. Số được đệm 0 tới bốn chữ số và <i>không</i> bị cắt khi vượt
-     * 9999 — thà mã dài ra còn hơn hai đơn mang cùng một mã.
+     * Mười ký tự cuối là <b>ngẫu nhiên an toàn mật mã</b>, không phải số thứ tự. Bản trước dùng
+     * {@code COUNT(*) + 1} và mang hai khiếm khuyết trên cùng một dòng: nó <i>đọc rồi ghi</i> (hai
+     * đơn đồng thời sinh trùng mã ⇒ đụng {@code uk_code} ⇒ 500), và nó <i>đếm được</i> — mà
+     * {@code GET /orders/{code}} là endpoint công khai trả về cả 8 trường PII của khối
+     * {@code shipping}, nên một mã đoán được là một lối rút sổ khách hàng. Xem {@code bugs/0004}.
+     * <p>
+     * <b>Hàm này không đọc database.</b> Không {@code COUNT(*)}, không {@code MAX(id)}, không
+     * {@code SELECT} nào — tính duy nhất đến từ không gian mã <b>32^10 ≈ 1,13 × 10^15</b>, không
+     * đến từ một phép đếm. Thêm một phép đọc vào đây là dựng lại đúng cửa sổ đua vừa đóng.
+     * <p>
+     * Tiền tố {@code NSS-} và phần ngày <b>giữ nguyên</b>: mã vẫn đọc được qua điện thoại và vẫn
+     * sắp xếp được theo ngày. Chữ ký {@code GET /orders/{code}} không đổi và vẫn công khai — ADR
+     * 0006 đã loại hướng thêm tham số xác minh, frontend không phải sửa gì.
+     * <p>
+     * <b>Đơn cũ giữ mã cũ.</b> Không backfill (Owner chốt 2026-08-26), nên dạng
+     * {@code NSS-YYYYMMDD-NNNN} vẫn tồn tại trong bảng và vẫn phải tra được — đừng thêm bất kỳ
+     * phép kiểm khuôn dạng nào lên đường đọc.
      *
      * @param nowUtc thời điểm tạo đơn, <b>giờ UTC</b> — cùng mốc ghi vào {@code created_at}
-     * @return mã đơn duy nhất tại thời điểm gọi
+     * @return mã đơn mới, duy nhất trên thực tế nhờ độ dài ngẫu nhiên
      */
     String genOrderCode(LocalDateTime nowUtc);
 

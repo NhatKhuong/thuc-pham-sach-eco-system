@@ -19,7 +19,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,6 +35,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -234,39 +237,93 @@ class OrderDomainServiceTest {
     // ========== MA DON ==========
 
     /**
-     * Khuôn mã đơn là {@code NSS-YYYYMMDD-NNNN}, số thứ tự <b>đếm trên toàn bộ bảng</b> và
-     * <b>đệm 0 tới bốn chữ số</b> (§Contract 6).
+     * Khuôn mã đơn là {@code NSS-YYYYMMDD-XXXXXXXXXX} (§Contract 6, <b>ADR 0006</b>): giữ tiền tố
+     * và phần ngày, <b>thay phần số thứ tự đếm được bằng 10 ký tự ngẫu nhiên</b>.
+     * <p>
+     * Ba ca cũ ở chỗ này khẳng định {@code NSS-20260817-0001} / {@code -0042} / {@code -10000} và
+     * <b>đã bị xoá chứ không sửa</b>: chúng khoá đúng cái hành vi mà bugs/0004 phải phá bỏ, nên
+     * giữ lại là giữ lại lỗ hổng dưới dạng một phép kiểm xanh.
      */
     @Test
-    @DisplayName("genOrderCode dung khuon NSS-YYYYMMDD-NNNN va dem 0 toi bon chu so")
-    void orderCodeFollowsContractShape() {
-        when(orderRepository.countOrders()).thenReturn(0L);
-
+    @DisplayName("genOrderCode giu tien to + ngay, phan duoi la 10 ky tu ngau nhien")
+    void orderCodeKeepsPrefixAndDateWithRandomTail() {
         String code = orderDomainService.genOrderCode(LocalDateTime.of(2026, 8, 17, 10, 30));
 
-        assertEquals("NSS-20260817-0001", code);
-    }
-
-    @Test
-    @DisplayName("So thu tu la tong so don + 1, khong phai so don trong ngay")
-    void orderSequenceCountsWholeTable() {
-        when(orderRepository.countOrders()).thenReturn(41L);
-
-        assertEquals("NSS-20260817-0042",
-                orderDomainService.genOrderCode(LocalDateTime.of(2026, 8, 17, 10, 30)));
+        assertTrue(code.matches("^NSS-20260817-[0-9A-HJKMNP-TV-Z]{10}$"),
+                "ma don phai dang NSS-YYYYMMDD- + 10 ky tu Crockford base32, nhan duoc: " + code);
     }
 
     /**
-     * Số thứ tự vượt 9999 thì mã <b>dài ra</b> chứ không bị cắt — thà mã dài còn hơn hai đơn mang
-     * cùng một mã, vì cột {@code code} có ràng buộc duy nhất {@code uk_code}.
+     * <b>Phép kiểm quan trọng nhất của bugs/0004.</b> Sinh mã <b>không được đọc bảng</b> — không
+     * {@code COUNT(*)}, không {@code MAX(id)}, không {@code SELECT} nào.
+     * <p>
+     * Bản cũ gọi {@code orderRepository.countOrders()} và đó là vế "đọc" của một phép đọc-rồi-ghi:
+     * hai đơn đồng thời đọc cùng một con số, dựng ra cùng một mã, cái thứ hai đụng {@code uk_code}
+     * ⇒ <b>500</b> và đơn rollback sạch. Đo bằng request thật: 12 request song song trên bản cũ ra
+     * <b>1 × 201 + 11 × 500</b>.
+     * <p>
+     * Ca này bắt sự vắng mặt đó ở mức đơn vị, nên một lần "tối ưu" tương lai thêm lại một phép đọc
+     * vào {@code genOrderCode} sẽ làm đỏ ngay tại đây thay vì chờ tới lúc có tải thật.
      */
     @Test
-    @DisplayName("So thu tu vuot 9999 lam ma dai ra, KHONG bi cat")
-    void orderSequenceIsNotTruncatedBeyondFourDigits() {
-        when(orderRepository.countOrders()).thenReturn(9_999L);
+    @DisplayName("genOrderCode KHONG doc database — khong COUNT(*), khong SELECT nao")
+    void orderCodeNeverReadsTheDatabase() {
+        orderDomainService.genOrderCode(LocalDateTime.of(2026, 8, 17, 10, 30));
 
-        assertEquals("NSS-20260817-10000",
-                orderDomainService.genOrderCode(LocalDateTime.of(2026, 8, 17, 10, 30)));
+        verifyNoInteractions(orderRepository);
+    }
+
+    /**
+     * Mã kế tiếp <b>không suy ra được</b> từ mã trước: 2.000 lần sinh tại cùng một mốc thời gian
+     * phải ra 2.000 chuỗi khác nhau.
+     * <p>
+     * Bản cũ trượt ca này một cách tầm thường — cùng một {@code countOrders()} thì cùng một mã.
+     * Không gian mã là <b>32^10 ≈ 1,13 × 10^15</b>, nên 2.000 mẫu trùng nhau một lần là biến cố
+     * cỡ 10^-9; đỏ ở đây nghĩa là nguồn ngẫu nhiên hỏng chứ không phải xui.
+     */
+    @Test
+    @DisplayName("Hai ma lien tiep khong suy ra duoc tu nhau — 2000 lan sinh ra 2000 ma")
+    void consecutiveOrderCodesAreNotDerivable() {
+        LocalDateTime sameInstant = LocalDateTime.of(2026, 8, 17, 10, 30);
+
+        Set<String> codes = new HashSet<>();
+        for (int i = 0; i < 2_000; i++) {
+            codes.add(orderDomainService.genOrderCode(sameInstant));
+        }
+
+        assertEquals(2_000, codes.size(), "co ma bi trung — nguon ngau nhien khong con phan biet");
+    }
+
+    /**
+     * Bảng chữ cái <b>không chứa {@code I}, {@code L}, {@code O}, {@code U}</b>.
+     * <p>
+     * Mã đơn tồn tại để nhân viên và khách <b>đọc cho nhau qua điện thoại</b> — {@code 0} lẫn với
+     * {@code O} và {@code 1} lẫn với {@code I}/{@code l} là lỗi nhập liệu, không phải chuyện thẩm
+     * mỹ. Quét trên 500 mã để ca này thật sự có cơ hội nhìn thấy một ký tự cấm.
+     */
+    @Test
+    @DisplayName("Ma don khong chua ky tu de doc nham: I, L, O, U")
+    void orderCodeAvoidsConfusableCharacters() {
+        LocalDateTime sameInstant = LocalDateTime.of(2026, 8, 17, 10, 30);
+
+        for (int i = 0; i < 500; i++) {
+            String tail = orderDomainService.genOrderCode(sameInstant).substring(13);
+            assertFalse(tail.matches(".*[ILOU].*"), "ma chua ky tu de doc nham: " + tail);
+        }
+    }
+
+    /**
+     * Mã mới dài <b>23 ký tự</b> và cột {@code code} là {@code varchar(32)} — <b>ticket này không
+     * đụng schema</b>, và ca này là chỗ phát hiện nếu ai đó nới độ dài phần ngẫu nhiên quá 19 ký
+     * tự rồi làm tràn cột ở INSERT thay vì ở đây.
+     */
+    @Test
+    @DisplayName("Ma don dai 23 ky tu — con nam trong varchar(32) cua cot code")
+    void orderCodeFitsTheColumn() {
+        String code = orderDomainService.genOrderCode(LocalDateTime.of(2026, 8, 17, 10, 30));
+
+        assertEquals(23, code.length(), "do dai ma don doi thi phai xem lai cot code");
+        assertTrue(code.length() <= 32, "ma don tran varchar(32) cua cot code: " + code);
     }
 
     // ========== GHI: CONDITIONAL UPDATE ==========

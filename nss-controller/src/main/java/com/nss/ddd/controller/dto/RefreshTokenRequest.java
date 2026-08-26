@@ -17,7 +17,7 @@ import lombok.Data;
 @Data
 public class RefreshTokenRequest {
 
-    @NotBlank(message = "refreshToken must not be blank")
-    @Size(max = 512, message = "refreshToken must not exceed 512 characters")
+    @NotBlank(message = "Thiếu refresh token, vui lòng đăng nhập lại.")
+    @Size(max = 512, message = "Refresh token không hợp lệ, vui lòng đăng nhập lại.")
     private String refreshToken;
 }
