@@ -104,6 +104,40 @@ nss:
     forgot-password-max-attempts: ${FORGOT_PASSWORD_MAX_ATTEMPTS:5}
     forgot-password-window: ${FORGOT_PASSWORD_WINDOW:PT15M}
 
+  # Tran thong luong cua bien vao /api/** (backlog 0021, ADR 0005). Theo dung nep ${ENV_VAR:dev-default}
+  # — khong tao profile moi.
+  #
+  # TRAN THEO NHOM ENDPOINT, KHONG theo nguoi goi: RateLimiter cua Resilience4j la mot be permit gan
+  # voi mot ten instance, khong phai map theo IP. No chan QUA TAI. Lop chan LAM DUNG (do tai khoan,
+  # phat tan thu rac) van la ForgotPasswordRateLimiter, khoa theo CA IP lan email — hai lop giai hai
+  # bai toan khac nhau va ca hai deu o lai.
+  #
+  # NGUONG LA MOT CON SO VAN HANH: dat thap qua thi tu chan nguoi dung that, dat cao qua thi lop bao
+  # ve chi la trang tri. Nam sau bien moi truong de chinh duoc ma khong phai build lai.
+  # Nguong <= 0 hoac chu ky <= 0 => FAIL LUC KHOI DONG (ApiRateLimitInterceptor), dung tien le
+  # JwtConfig: mot nguong 0 chan moi request ke ca request dau tien nhung van tra dung hinh dang loi
+  # nen khong ai nhin ra.
+  #
+  # timeoutDuration KHONG co o day va do la CO Y: no bi khai cung bang Duration.ZERO trong code. Mac
+  # dinh 5 giay cua Resilience4j la XEP HANG chu khong TU CHOI — khong ai nhan 429, moi nguoi cung
+  # cham — va hong kieu do khong lam test nao do. Xem javadoc ApiRateLimitInterceptor.
+  #
+  # Tran la THEO TIEN TRINH: chay N instance thi tran that gap N lan. Khi do cau tra loi la mot be
+  # dung chung (Redis), khong phai chinh con so o day.
+  rate-limit:
+    # /api/auth/**, moi verb. Tier chat nhat: day la cho dang nhap va doi mat khau.
+    auth:
+      limit-for-period: ${RATE_LIMIT_AUTH_LIMIT:10}
+      limit-refresh-period: ${RATE_LIMIT_AUTH_PERIOD:PT1S}
+    # POST / PUT / PATCH / DELETE duoi /api/**, ngoai auth.
+    write:
+      limit-for-period: ${RATE_LIMIT_WRITE_LIMIT:30}
+      limit-refresh-period: ${RATE_LIMIT_WRITE_PERIOD:PT1S}
+    # Phan con lai duoi /api/**.
+    read:
+      limit-for-period: ${RATE_LIMIT_READ_LIMIT:100}
+      limit-refresh-period: ${RATE_LIMIT_READ_PERIOD:PT1S}
+
   mail:
     # Dia chi nguoi gui. Fail luc khoi dong neu rong hoac khong chua '@' (MailAppServiceImpl).
     from: ${MAIL_FROM:no-reply@nongsansach.local}

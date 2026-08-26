@@ -17,6 +17,7 @@ com\nss\ddd\controller\exception\UnexpectedExceptionHandler.class
 com\nss\ddd\controller\dto\UpdateOrderStatusRequest.class
 com\nss\ddd\controller\http\AdminOrderController.class
 com\nss\ddd\controller\dto\CartItemRequest.class
+com\nss\ddd\controller\config\ApiRateLimitInterceptor.class
 com\nss\ddd\controller\exception\InvalidResetTokenException.class
 com\nss\ddd\controller\config\SecurityConfig.class
 com\nss\ddd\controller\exception\EmptyOrderException.class
@@ -28,12 +29,14 @@ com\nss\ddd\controller\mapper\OrderControllerMapper.class
 com\nss\ddd\controller\http\AdminProductController.class
 com\nss\ddd\controller\mapper\CustomerControllerMapper.class
 com\nss\ddd\controller\dto\RefreshTokenRequest.class
+com\nss\ddd\controller\config\WebMvcConfig.class
 com\nss\ddd\controller\dto\UpdateProductRequest.class
 com\nss\ddd\controller\http\AdminCustomerController.class
 com\nss\ddd\controller\mapper\CartControllerMapper.class
 com\nss\ddd\controller\exception\InvalidDateRangeException.class
 com\nss\ddd\controller\http\AdminStatsController.class
 com\nss\ddd\controller\config\JwtConfig.class
+com\nss\ddd\controller\config\ApiRateLimitTier.class
 com\nss\ddd\controller\exception\TooManyRequestsException.class
 com\nss\ddd\controller\exception\UserNotFoundException.class
 com\nss\ddd\controller\mapper\AuthControllerMapper.class

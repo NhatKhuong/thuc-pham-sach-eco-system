@@ -21,9 +21,12 @@ com\nss\ProductMapperTest.class
 com\nss\ProductFilterMapperTest.class
 com\nss\CartMapperTest.class
 com\nss\AdminCustomerMapperTest.class
+com\nss\ApiRateLimitTierTest.class
 com\nss\OrderDomainServiceTest.class
 com\nss\OrderStatusMachineTest.class
 com\nss\PaginatedResponseTest.class
 com\nss\StockStatusTest.class
+com\nss\ApiRateLimitWireTest.class
 com\nss\HelloEndpointTest.class
 com\nss\ForgotPasswordRateLimiterTest.class
+com\nss\ApiRateLimitInterceptorTest.class
