@@ -61,18 +61,18 @@ public class UpdateProfileRequest {
     private static final String PATTERN_NOT_BLANK = ".*\\S.*";
 
     @Pattern(regexp = PATTERN_NOT_BLANK, flags = Pattern.Flag.DOTALL,
-            message = "fullName must not be blank when provided")
-    @Size(max = 128, message = "fullName must not exceed 128 characters")
+            message = "Họ và tên không được để trống.")
+    @Size(max = 128, message = "Họ và tên không được vượt quá 128 ký tự.")
     private String fullName;
 
     @Pattern(regexp = PATTERN_NOT_BLANK, flags = Pattern.Flag.DOTALL,
-            message = "email must not be blank when provided")
-    @Email(message = "email must be a well-formed email address")
-    @Size(max = 160, message = "email must not exceed 160 characters")
+            message = "Email không được để trống.")
+    @Email(message = "Email không đúng định dạng.")
+    @Size(max = 160, message = "Email không được vượt quá 160 ký tự.")
     private String email;
 
     @Pattern(regexp = PATTERN_NOT_BLANK, flags = Pattern.Flag.DOTALL,
-            message = "phone must not be blank when provided")
-    @Size(max = 20, message = "phone must not exceed 20 characters")
+            message = "Số điện thoại không được để trống.")
+    @Size(max = 20, message = "Số điện thoại không được vượt quá 20 ký tự.")
     private String phone;
 }

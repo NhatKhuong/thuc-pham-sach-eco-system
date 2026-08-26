@@ -18,11 +18,11 @@ import lombok.Data;
 @Data
 public class LoginRequest {
 
-    @NotBlank(message = "email must not be blank")
-    @Size(max = 160, message = "email must not exceed 160 characters")
+    @NotBlank(message = "Vui lòng nhập email.")
+    @Size(max = 160, message = "Email không được vượt quá 160 ký tự.")
     private String email;
 
-    @NotBlank(message = "password must not be blank")
-    @Size(max = 72, message = "password must not exceed 72 characters")
+    @NotBlank(message = "Vui lòng nhập mật khẩu.")
+    @Size(max = 72, message = "Mật khẩu không được vượt quá 72 ký tự.")
     private String password;
 }

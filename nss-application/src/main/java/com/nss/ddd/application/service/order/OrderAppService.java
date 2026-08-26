@@ -56,7 +56,7 @@ public interface OrderAppService {
      * khách vãng lai xem lại đơn của mình, vì {@code /orders/me} lọc nghiêm ngặt theo {@code userId}.
      * Rủi ro đoán mã đã được ghi nhận và <b>cố ý hoãn</b> ở §Contract 6 — không xử lý trong ticket này.
      *
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @return đơn hàng, hoặc {@code null} khi không có mã nào như vậy
      */
     OrderResponse findOrderByCode(String code);
@@ -90,7 +90,7 @@ public interface OrderAppService {
      * tại để trả lời "đơn đi qua đâu, lúc nào, do ai" — trở thành một câu trả lời không còn kiểm
      * chứng được.
      *
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @param wireStatus trạng thái muốn chuyển sang, <b>chuỗi trên dây</b> ({@code confirmed}…)
      * @param changedBy định danh admin thực hiện, lấy từ claim {@code sub}
      * @return đơn sau khi chuyển khi thành công; ngược lại là mã lỗi nghiệp vụ kèm thông điệp

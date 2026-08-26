@@ -200,18 +200,23 @@ public class OrderController {
     }
 
     /**
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @return đơn hàng tương ứng
      * @throws OrderNotFoundException khi không có đơn nào mang mã này
      */
     @Operation(summary = "Tra cứu đơn hàng theo mã",
             description = """
-                    Trả về một đơn theo **mã đơn** (`NSS-20260817-0001`), không phải theo `id`.
+                    Trả về một đơn theo **mã đơn** (`NSS-20260826-K7M2QX9P4T`), không phải theo \
+                    `id`.
 
                     **Công khai có chủ ý.** Đây là lối duy nhất để khách vãng lai xem lại đơn của \
-                    mình, vì `GET /api/orders/me` lọc nghiêm ngặt theo chủ đơn. Hệ quả đã được ghi \
-                    nhận: mã đơn hiện ở dạng tuần tự nên đoán được, và việc làm mã khó đoán là một \
-                    quyết định **cố ý hoãn** tới trước khi lên môi trường thật.
+                    mình, vì `GET /api/orders/me` lọc nghiêm ngặt theo chủ đơn. Lối này an toàn \
+                    được là nhờ **mã đơn khó đoán**: 10 ký tự cuối sinh ngẫu nhiên an toàn mật mã, \
+                    không gian `32^10 ≈ 1,13 × 10^15` (ADR 0006).
+
+                    **Đơn tạo trước 2026-08-26 mang mã tuần tự cũ** dạng `NSS-YYYYMMDD-NNNN` và \
+                    vẫn tra được bình thường — không backfill, và endpoint này **không** kiểm khuôn \
+                    dạng mã.
 
                     So khớp mã **phân biệt hoa thường** — mã do backend sinh ra và đi thẳng lên \
                     URL, không phải chuỗi người dùng gõ tự do.""")
@@ -222,8 +227,8 @@ public class OrderController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/orders/{code}")
     public OrderResponse getOrderByCode(
-            @Parameter(description = "Mã đơn hàng, ví dụ `NSS-20260817-0001`.",
-                    example = "NSS-20260817-0001")
+            @Parameter(description = "Mã đơn hàng, ví dụ `NSS-20260826-K7M2QX9P4T`.",
+                    example = "NSS-20260826-K7M2QX9P4T")
             @PathVariable(name = "code") String code) {
         log.info("OrderController:->getOrderByCode | code={}", code);
         OrderResponse order = orderAppService.findOrderByCode(code);

@@ -41,16 +41,16 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CartItemRequest {
 
-    @NotNull(message = "productId must not be null")
-    @Positive(message = "productId must be positive")
+    @NotNull(message = "Thiếu mã sản phẩm của dòng hàng này.")
+    @Positive(message = "Mã sản phẩm của dòng hàng này không hợp lệ.")
     private Long productId;
 
-    @NotBlank(message = "name must not be blank")
-    @Size(max = 255, message = "name must not exceed 255 characters")
+    @NotBlank(message = "Vui lòng nhập tên sản phẩm.")
+    @Size(max = 255, message = "Tên sản phẩm không được vượt quá 255 ký tự.")
     private String name;
 
-    @NotNull(message = "quantity must not be null")
-    @Positive(message = "quantity must be positive")
+    @NotNull(message = "Vui lòng nhập số lượng.")
+    @Positive(message = "Số lượng phải lớn hơn 0.")
     private Integer quantity;
 
     /**
@@ -60,7 +60,7 @@ public class CartItemRequest {
      * không phải điều bất hợp lệ, và câu trả lời đúng cho nó là một issue {@code price_changed},
      * không phải một lỗi 422.
      */
-    @NotNull(message = "price must not be null")
-    @PositiveOrZero(message = "price must not be negative")
+    @NotNull(message = "Thiếu đơn giá của sản phẩm.")
+    @PositiveOrZero(message = "Đơn giá không được là số âm.")
     private Long price;
 }

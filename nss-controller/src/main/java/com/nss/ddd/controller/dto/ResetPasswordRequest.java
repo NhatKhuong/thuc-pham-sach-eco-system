@@ -31,8 +31,8 @@ public class ResetPasswordRequest {
      * Trần 512 chỉ để một body khổng lồ không đi xuống tới tầng băm; nó không mang thông tin gì về
      * độ dài thật (43 ký tự).
      */
-    @NotBlank(message = "token must not be blank")
-    @Size(max = 512, message = "token must not exceed 512 characters")
+    @NotBlank(message = "Thiếu mã đặt lại mật khẩu, vui lòng mở lại liên kết trong email.")
+    @Size(max = 512, message = "Mã đặt lại mật khẩu không hợp lệ, vui lòng mở lại liên kết trong email.")
     private String token;
 
     /**
@@ -43,7 +43,7 @@ public class ResetPasswordRequest {
      * là giới hạn của thuật toán chứ không phải con số tuỳ ý: bcrypt chỉ băm 72 byte đầu và
      * <i>im lặng</i> bỏ phần còn lại; lý do đầy đủ nằm ở {@code RegisterRequest}.
      */
-    @NotBlank(message = "newPassword must not be blank")
-    @Size(min = 6, max = 72, message = "newPassword must be between 6 and 72 characters")
+    @NotBlank(message = "Vui lòng nhập mật khẩu mới.")
+    @Size(min = 6, max = 72, message = "Mật khẩu mới phải từ 6 đến 72 ký tự.")
     private String newPassword;
 }

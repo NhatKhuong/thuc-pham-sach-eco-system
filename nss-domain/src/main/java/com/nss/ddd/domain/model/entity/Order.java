@@ -34,7 +34,10 @@ import java.time.LocalDateTime;
  * <p>
  * <b>Không dùng pattern bảng-theo-tháng</b> của {@code architecture} §3: pattern đó bắt mã đơn
  * phải chứa {@code System.currentTimeMillis()} để suy ngược ra tháng, còn §B.6 đã pin mã đơn
- * dạng {@code NSS-20260817-0001}. Xem ADR 0002.
+ * dạng {@code NSS-YYYYMMDD-XXXXXXXXXX}. Xem ADR 0002.
+ * <p>
+ * <b>Phần đuôi là ngẫu nhiên an toàn mật mã chứ không phải mốc thời gian</b> (ADR 0006) — nên nó
+ * cũng không suy ngược ra tháng được, và kết luận trên càng đúng hơn chứ không yếu đi.
  */
 @Data
 @Accessors(chain = true)
@@ -64,10 +67,19 @@ public class Order {
     private Long id;
 
     /**
-     * Tương ứng cột {@code code} — mã đơn hiển thị cho khách, dạng {@code NSS-20260817-0001} (§B.6).
+     * Tương ứng cột {@code code} — mã đơn hiển thị cho khách, dạng
+     * {@code NSS-20260826-K7M2QX9P4T} (§B.6, <b>ADR 0006</b>).
      * <p>
      * {@code GET /orders/{code}} là endpoint <b>công khai</b> và là lối duy nhất để khách vãng lai
-     * xem lại đơn, nên ở môi trường thật mã này nên khó đoán — dạng tuần tự chỉ hợp với mock.
+     * xem lại đơn, nên mã <b>phải khó đoán</b>: 10 ký tự cuối sinh bằng {@code SecureRandom},
+     * không gian 32^10 ≈ 1,13 × 10^15. Dạng tuần tự {@code NNNN} trước đây cho phép dò
+     * {@code 0001..9999} mỗi ngày để rút cả 8 trường PII của khối {@code shipping} — xem
+     * {@code bugs/0004}.
+     * <p>
+     * <b>Đơn cũ giữ mã tuần tự cũ</b> (không backfill, Owner chốt 2026-08-26), nên cột này chứa
+     * <i>cả hai</i> dạng và không có phép kiểm khuôn dạng nào ở đường đọc.
+     * <p>
+     * {@code length = 32} <b>không đổi</b> theo ticket này: mã mới dài 23 ký tự.
      */
     @Column(nullable = false, length = 32)
     @Comment("Ma don hien thi cho khach, duy nhat, vi du NSS-20260817-0001")

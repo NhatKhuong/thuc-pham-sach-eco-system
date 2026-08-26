@@ -44,15 +44,15 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateOrderRequest {
 
-    @NotNull(message = "items must not be null")
+    @NotNull(message = "Vui lòng chọn sản phẩm cho đơn hàng.")
     @Valid
     private List<CartItemRequest> items;
 
-    @NotNull(message = "shipping must not be null")
+    @NotNull(message = "Vui lòng nhập thông tin giao hàng.")
     @Valid
     private ShippingInfoRequest shipping;
 
-    @NotBlank(message = "paymentMethod must not be blank")
+    @NotBlank(message = "Vui lòng chọn phương thức thanh toán.")
     private String paymentMethod;
 
     /**
@@ -62,6 +62,6 @@ public class CreateOrderRequest {
      * có tồn tại và có dùng được hay không là câu hỏi <i>nghiệp vụ</i>, và nó được trả lời bằng
      * chính hai vị từ mà {@code POST /coupons/validate} dùng, trong cùng transaction với đơn.
      */
-    @Size(max = 32, message = "couponCode must not exceed 32 characters")
+    @Size(max = 32, message = "Mã giảm giá không được vượt quá 32 ký tự.")
     private String couponCode;
 }

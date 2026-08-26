@@ -57,6 +57,29 @@ Dạng mặc định của Spring Boot 3, bật bằng `spring.mvc.problemdetail
 
 `errors` là **phần mở rộng ngoài chuẩn**, không bắt buộc: map `tên trường → thông điệp`, dùng cho lỗi validate theo từng ô nhập. Frontend đọc vào `ApiError.fieldErrors`.
 
+> **Giá trị trong `errors` cũng PHẢI viết bằng tiếng Việt**, cùng giọng với `detail` và hướng tới người dùng đang nhìn vào ô nhập — xem ví dụ `"Mã không hợp lệ"` ở trên. Backend viết thẳng câu tiếng Việt trong annotation validate; **không có tầng i18n / `MessageSource` / `Accept-Language`** nào, hệ thống chỉ một ngôn ngữ.
+>
+> Câu **không lặp lại đường dẫn của trường** — khoá của map đã mang đường dẫn rồi, nên `shipping.email` nhận `"Email nhận thông tin đơn hàng không đúng định dạng."` chứ không phải `"shipping.email không đúng định dạng"`.
+
+#### Quy ước khoá của `errors`
+
+Khoá là **tên trường đúng như client gửi lên**, không phải tên tham số phía server (`createProductRequest.name`). Hai dạng lồng:
+
+| Dạng | Quy ước | Ví dụ khoá |
+|---|---|---|
+| Trường lồng trong object con | **dot-path** | `shipping.fullName`, `shipping.email` |
+| Phần tử trong mảng | **bracket index** (đánh số từ 0) | `items[0].quantity`, `items[2].name` |
+
+Ghép được cả hai theo đúng đường đi của JSON gửi lên, nên frontend nối thẳng khoá vào ô nhập tương ứng mà không cần bảng tra.
+
+**Một trường chỉ có một dòng lỗi.** Khi một ô nhập vi phạm nhiều ràng buộc cùng lúc, backend giữ lại lỗi **đầu tiên** — vì ô nhập chỉ hiển thị được một dòng.
+
+**`errors` chỉ xuất hiện ở lỗi validate theo trường.** Lỗi **quy tắc nghiệp vụ** cũng trả `422` nhưng **không có khoá `errors`** — chỉ có `detail`. Sự vắng mặt của `errors` chính là thứ phân biệt hai loại, nên frontend kiểm tra `errors` có tồn tại hay không thay vì đoán theo mã HTTP:
+
+```json
+{ "status": 422, "detail": "Đơn hàng cần tối thiểu 150.000 ₫ để dùng mã này.", "instance": "/api/coupons/validate" }
+```
+
 ### A.4 Dạng phân trang
 
 Backend **map `Page<T>` của Spring Data sang dạng dưới đây** thay vì trả mặc định:

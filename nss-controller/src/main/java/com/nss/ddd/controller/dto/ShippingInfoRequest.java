@@ -36,12 +36,12 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ShippingInfoRequest {
 
-    @NotBlank(message = "shipping.fullName must not be blank")
-    @Size(max = 128, message = "shipping.fullName must not exceed 128 characters")
+    @NotBlank(message = "Vui lòng nhập họ tên người nhận.")
+    @Size(max = 128, message = "Họ tên người nhận không được vượt quá 128 ký tự.")
     private String fullName;
 
-    @NotBlank(message = "shipping.phone must not be blank")
-    @Size(max = 20, message = "shipping.phone must not exceed 20 characters")
+    @NotBlank(message = "Vui lòng nhập số điện thoại người nhận.")
+    @Size(max = 20, message = "Số điện thoại người nhận không được vượt quá 20 ký tự.")
     private String phone;
 
     /**
@@ -51,28 +51,28 @@ public class ShippingInfoRequest {
      * lạc <i>duy nhất</i> — không có tài khoản nào để tra lại. Một địa chỉ sai cú pháp lọt xuống DB
      * là một đơn không bao giờ liên hệ lại được, và triệu chứng chỉ lộ ra ở khâu giao hàng.
      */
-    @NotBlank(message = "shipping.email must not be blank")
-    @Email(message = "shipping.email must be a well-formed email address")
-    @Size(max = 160, message = "shipping.email must not exceed 160 characters")
+    @NotBlank(message = "Vui lòng nhập email nhận thông tin đơn hàng.")
+    @Email(message = "Email nhận thông tin đơn hàng không đúng định dạng.")
+    @Size(max = 160, message = "Email nhận thông tin đơn hàng không được vượt quá 160 ký tự.")
     private String email;
 
-    @NotBlank(message = "shipping.province must not be blank")
-    @Size(max = 128, message = "shipping.province must not exceed 128 characters")
+    @NotBlank(message = "Vui lòng chọn tỉnh/thành phố.")
+    @Size(max = 128, message = "Tỉnh/thành phố không được vượt quá 128 ký tự.")
     private String province;
 
-    @NotBlank(message = "shipping.district must not be blank")
-    @Size(max = 128, message = "shipping.district must not exceed 128 characters")
+    @NotBlank(message = "Vui lòng chọn quận/huyện.")
+    @Size(max = 128, message = "Quận/huyện không được vượt quá 128 ký tự.")
     private String district;
 
-    @NotBlank(message = "shipping.ward must not be blank")
-    @Size(max = 128, message = "shipping.ward must not exceed 128 characters")
+    @NotBlank(message = "Vui lòng chọn phường/xã.")
+    @Size(max = 128, message = "Phường/xã không được vượt quá 128 ký tự.")
     private String ward;
 
-    @NotBlank(message = "shipping.street must not be blank")
-    @Size(max = 255, message = "shipping.street must not exceed 255 characters")
+    @NotBlank(message = "Vui lòng nhập số nhà và tên đường.")
+    @Size(max = 255, message = "Số nhà và tên đường không được vượt quá 255 ký tự.")
     private String street;
 
     /** Ghi chú giao hàng — trường <b>tuỳ chọn</b> duy nhất của khối này. */
-    @Size(max = 500, message = "shipping.note must not exceed 500 characters")
+    @Size(max = 500, message = "Ghi chú giao hàng không được vượt quá 500 ký tự.")
     private String note;
 }

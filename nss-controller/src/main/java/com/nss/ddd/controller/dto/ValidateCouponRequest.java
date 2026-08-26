@@ -26,11 +26,11 @@ import lombok.Data;
 @Data
 public class ValidateCouponRequest {
 
-    @NotBlank(message = "code must not be blank")
-    @Size(max = 32, message = "code must not exceed 32 characters")
+    @NotBlank(message = "Vui lòng nhập mã giảm giá.")
+    @Size(max = 32, message = "Mã giảm giá không được vượt quá 32 ký tự.")
     private String code;
 
-    @NotNull(message = "subtotal must not be null")
-    @PositiveOrZero(message = "subtotal must not be negative")
+    @NotNull(message = "Thiếu giá trị đơn hàng để kiểm tra mã giảm giá.")
+    @PositiveOrZero(message = "Giá trị đơn hàng không được là số âm.")
     private Long subtotal;
 }

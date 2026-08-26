@@ -111,11 +111,6 @@ public class OrderRepositoryImpl implements OrderRepository {
         return orderItemJPAMapper.findByOrderIdIn(orderIds);
     }
 
-    @Override
-    public long countOrders() {
-        return orderJPAMapper.count();
-    }
-
     // ========== KHU QUAN TRI (§B.12.2, §B.12.4) ==========
 
     /**

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.nss.SecurityRulesTest" time="4.014" tests="78" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.nss.SecurityRulesTest" time="3.819" tests="78" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -16,7 +16,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="US"/>
     <property name="sun.boot.library.path" value="C:\Users\nhatk\.jdks\ms-21.0.12\bin"/>
-    <property name="sun.java.command" value="C:\Users\nhatk\AppData\Local\Temp\surefire900771081974775939\surefirebooter-20260826121027417_3.jar C:\Users\nhatk\AppData\Local\Temp\surefire900771081974775939 2026-08-26T12-10-08_510-jvmRun1 surefire-20260826121027417_1tmp surefire_0-20260826121027417_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\nhatk\AppData\Local\Temp\surefire1637274552316396882\surefirebooter-20260826173916792_3.jar C:\Users\nhatk\AppData\Local\Temp\surefire1637274552316396882 2026-08-26T17-39-00_609-jvmRun1 surefire-20260826173916792_1tmp surefire_0-20260826173916792_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\target\test-classes;C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start\target\classes;C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-controller\target\nss-controller-1.0.0-SNAPSHOT.jar;C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\target\nss-application-1.0.0-SNAPSHOT.jar;C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\target\nss-domain-1.0.0-SNAPSHOT.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-data-jpa\3.3.5\spring-boot-starter-data-jpa-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-aop\3.3.5\spring-boot-starter-aop-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\aspectj\aspectjweaver\1.9.22.1\aspectjweaver-1.9.22.1.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-jdbc\3.3.5\spring-boot-starter-jdbc-3.3.5.jar;C:\Users\nhatk\.m2\repository\com\zaxxer\HikariCP\5.1.0\HikariCP-5.1.0.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-jdbc\6.1.14\spring-jdbc-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\hibernate\orm\hibernate-core\6.5.3.Final\hibernate-core-6.5.3.Final.jar;C:\Users\nhatk\.m2\repository\jakarta\persistence\jakarta.persistence-api\3.1.0\jakarta.persistence-api-3.1.0.jar;C:\Users\nhatk\.m2\repository\jakarta\transaction\jakarta.transaction-api\2.0.1\jakarta.transaction-api-2.0.1.jar;C:\Users\nhatk\.m2\repository\org\hibernate\common\hibernate-commons-annotations\6.0.6.Final\hibernate-commons-annotations-6.0.6.Final.jar;C:\Users\nhatk\.m2\repository\io\smallrye\jandex\3.1.2\jandex-3.1.2.jar;C:\Users\nhatk\.m2\repository\org\glassfish\jaxb\jaxb-runtime\4.0.5\jaxb-runtime-4.0.5.jar;C:\Users\nhatk\.m2\repository\org\glassfish\jaxb\jaxb-core\4.0.5\jaxb-core-4.0.5.jar;C:\Users\nhatk\.m2\repository\org\glassfish\jaxb\txw2\4.0.5\txw2-4.0.5.jar;C:\Users\nhatk\.m2\repository\com\sun\istack\istack-commons-runtime\4.1.2\istack-commons-runtime-4.1.2.jar;C:\Users\nhatk\.m2\repository\jakarta\inject\jakarta.inject-api\2.0.1\jakarta.inject-api-2.0.1.jar;C:\Users\nhatk\.m2\repository\org\antlr\antlr4-runtime\4.13.0\antlr4-runtime-4.13.0.jar;C:\Users\nhatk\.m2\repository\org\springframework\data\spring-data-jpa\3.3.5\spring-data-jpa-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\data\spring-data-commons\3.3.5\spring-data-commons-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-orm\6.1.14\spring-orm-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-tx\6.1.14\spring-tx-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-aspects\6.1.14\spring-aspects-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-crypto\6.3.4\spring-security-crypto-6.3.4.jar;C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\target\nss-infrastructure-1.0.0-SNAPSHOT.jar;C:\Users\nhatk\.m2\repository\com\mysql\mysql-connector-j\8.3.0\mysql-connector-j-8.3.0.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.17.2\jackson-annotations-2.17.2.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-mail\3.3.5\spring-boot-starter-mail-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-context-support\6.1.14\spring-context-support-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\eclipse\angus\jakarta.mail\2.0.3\jakarta.mail-2.0.3.jar;C:\Users\nhatk\.m2\repository\org\eclipse\angus\angus-activation\2.0.2\angus-activation-2.0.2.jar;C:\Users\nhatk\.m2\repository\io\github\resilience4j\resilience4j-circuitbreaker\2.1.0\resilience4j-circuitbreaker-2.1.0.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-web\3.3.5\spring-boot-starter-web-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-json\3.3.5\spring-boot-starter-json-3.3.5.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.17.2\jackson-databind-2.17.2.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.17.2\jackson-core-2.17.2.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jdk8\2.17.2\jackson-datatype-jdk8-2.17.2.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jsr310\2.17.2\jackson-datatype-jsr310-2.17.2.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\module\jackson-module-parameter-names\2.17.2\jackson-module-parameter-names-2.17.2.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-tomcat\3.3.5\spring-boot-starter-tomcat-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\apache\tomcat\embed\tomcat-embed-core\10.1.31\tomcat-embed-core-10.1.31.jar;C:\Users\nhatk\.m2\repository\org\apache\tomcat\embed\tomcat-embed-websocket\10.1.31\tomcat-embed-websocket-10.1.31.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-web\6.1.14\spring-web-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-beans\6.1.14\spring-beans-6.1.14.jar;C:\Users\nhatk\.m2\repository\io\micrometer\micrometer-observation\1.13.6\micrometer-observation-1.13.6.jar;C:\Users\nhatk\.m2\repository\io\micrometer\micrometer-commons\1.13.6\micrometer-commons-1.13.6.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-webmvc\6.1.14\spring-webmvc-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-context\6.1.14\spring-context-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-expression\6.1.14\spring-expression-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-validation\3.3.5\spring-boot-starter-validation-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\apache\tomcat\embed\tomcat-embed-el\10.1.31\tomcat-embed-el-10.1.31.jar;C:\Users\nhatk\.m2\repository\org\hibernate\validator\hibernate-validator\8.0.1.Final\hibernate-validator-8.0.1.Final.jar;C:\Users\nhatk\.m2\repository\jakarta\validation\jakarta.validation-api\3.0.2\jakarta.validation-api-3.0.2.jar;C:\Users\nhatk\.m2\repository\org\jboss\logging\jboss-logging\3.5.3.Final\jboss-logging-3.5.3.Final.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\classmate\1.7.0\classmate-1.7.0.jar;C:\Users\nhatk\.m2\repository\org\springdoc\springdoc-openapi-starter-webmvc-ui\2.6.0\springdoc-openapi-starter-webmvc-ui-2.6.0.jar;C:\Users\nhatk\.m2\repository\org\springdoc\springdoc-openapi-starter-webmvc-api\2.6.0\springdoc-openapi-starter-webmvc-api-2.6.0.jar;C:\Users\nhatk\.m2\repository\org\springdoc\springdoc-openapi-starter-common\2.6.0\springdoc-openapi-starter-common-2.6.0.jar;C:\Users\nhatk\.m2\repository\io\swagger\core\v3\swagger-core-jakarta\2.2.22\swagger-core-jakarta-2.2.22.jar;C:\Users\nhatk\.m2\repository\org\apache\commons\commons-lang3\3.14.0\commons-lang3-3.14.0.jar;C:\Users\nhatk\.m2\repository\io\swagger\core\v3\swagger-annotations-jakarta\2.2.22\swagger-annotations-jakarta-2.2.22.jar;C:\Users\nhatk\.m2\repository\io\swagger\core\v3\swagger-models-jakarta\2.2.22\swagger-models-jakarta-2.2.22.jar;C:\Users\nhatk\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-yaml\2.17.2\jackson-dataformat-yaml-2.17.2.jar;C:\Users\nhatk\.m2\repository\org\webjars\swagger-ui\5.17.14\swagger-ui-5.17.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-security\3.3.5\spring-boot-starter-security-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-aop\6.1.14\spring-aop-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-config\6.3.4\spring-security-config-6.3.4.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-web\6.3.4\spring-security-web-6.3.4.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-oauth2-resource-server\3.3.5\spring-boot-starter-oauth2-resource-server-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-core\6.3.4\spring-security-core-6.3.4.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-oauth2-resource-server\6.3.4\spring-security-oauth2-resource-server-6.3.4.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-oauth2-core\6.3.4\spring-security-oauth2-core-6.3.4.jar;C:\Users\nhatk\.m2\repository\org\springframework\security\spring-security-oauth2-jose\6.3.4\spring-security-oauth2-jose-6.3.4.jar;C:\Users\nhatk\.m2\repository\com\nimbusds\nimbus-jose-jwt\9.37.3\nimbus-jose-jwt-9.37.3.jar;C:\Users\nhatk\.m2\repository\com\github\stephenc\jcip\jcip-annotations\1.0-1\jcip-annotations-1.0-1.jar;C:\Users\nhatk\.m2\repository\io\github\resilience4j\resilience4j-ratelimiter\2.1.0\resilience4j-ratelimiter-2.1.0.jar;C:\Users\nhatk\.m2\repository\io\github\resilience4j\resilience4j-core\2.1.0\resilience4j-core-2.1.0.jar;C:\Users\nhatk\.m2\repository\org\slf4j\slf4j-api\2.0.16\slf4j-api-2.0.16.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-test\3.3.5\spring-boot-starter-test-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter\3.3.5\spring-boot-starter-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot\3.3.5\spring-boot-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-autoconfigure\3.3.5\spring-boot-autoconfigure-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-starter-logging\3.3.5\spring-boot-starter-logging-3.3.5.jar;C:\Users\nhatk\.m2\repository\ch\qos\logback\logback-classic\1.5.11\logback-classic-1.5.11.jar;C:\Users\nhatk\.m2\repository\ch\qos\logback\logback-core\1.5.11\logback-core-1.5.11.jar;C:\Users\nhatk\.m2\repository\org\apache\logging\log4j\log4j-to-slf4j\2.23.1\log4j-to-slf4j-2.23.1.jar;C:\Users\nhatk\.m2\repository\org\apache\logging\log4j\log4j-api\2.23.1\log4j-api-2.23.1.jar;C:\Users\nhatk\.m2\repository\org\slf4j\jul-to-slf4j\2.0.16\jul-to-slf4j-2.0.16.jar;C:\Users\nhatk\.m2\repository\jakarta\annotation\jakarta.annotation-api\2.1.1\jakarta.annotation-api-2.1.1.jar;C:\Users\nhatk\.m2\repository\org\yaml\snakeyaml\2.2\snakeyaml-2.2.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-test\3.3.5\spring-boot-test-3.3.5.jar;C:\Users\nhatk\.m2\repository\org\springframework\boot\spring-boot-test-autoconfigure\3.3.5\spring-boot-test-autoconfigure-3.3.5.jar;C:\Users\nhatk\.m2\repository\com\jayway\jsonpath\json-path\2.9.0\json-path-2.9.0.jar;C:\Users\nhatk\.m2\repository\jakarta\xml\bind\jakarta.xml.bind-api\4.0.2\jakarta.xml.bind-api-4.0.2.jar;C:\Users\nhatk\.m2\repository\jakarta\activation\jakarta.activation-api\2.1.3\jakarta.activation-api-2.1.3.jar;C:\Users\nhatk\.m2\repository\net\minidev\json-smart\2.5.1\json-smart-2.5.1.jar;C:\Users\nhatk\.m2\repository\net\minidev\accessors-smart\2.5.1\accessors-smart-2.5.1.jar;C:\Users\nhatk\.m2\repository\org\ow2\asm\asm\9.6\asm-9.6.jar;C:\Users\nhatk\.m2\repository\org\assertj\assertj-core\3.25.3\assertj-core-3.25.3.jar;C:\Users\nhatk\.m2\repository\net\bytebuddy\byte-buddy\1.14.19\byte-buddy-1.14.19.jar;C:\Users\nhatk\.m2\repository\org\awaitility\awaitility\4.2.2\awaitility-4.2.2.jar;C:\Users\nhatk\.m2\repository\org\hamcrest\hamcrest\2.2\hamcrest-2.2.jar;C:\Users\nhatk\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.5\junit-jupiter-5.10.5.jar;C:\Users\nhatk\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.5\junit-jupiter-api-5.10.5.jar;C:\Users\nhatk\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\nhatk\.m2\repository\org\junit\platform\junit-platform-commons\1.10.5\junit-platform-commons-1.10.5.jar;C:\Users\nhatk\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\nhatk\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.5\junit-jupiter-params-5.10.5.jar;C:\Users\nhatk\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.5\junit-jupiter-engine-5.10.5.jar;C:\Users\nhatk\.m2\repository\org\junit\platform\junit-platform-engine\1.10.5\junit-platform-engine-1.10.5.jar;C:\Users\nhatk\.m2\repository\org\mockito\mockito-core\5.11.0\mockito-core-5.11.0.jar;C:\Users\nhatk\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.19\byte-buddy-agent-1.14.19.jar;C:\Users\nhatk\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\nhatk\.m2\repository\org\mockito\mockito-junit-jupiter\5.11.0\mockito-junit-jupiter-5.11.0.jar;C:\Users\nhatk\.m2\repository\org\skyscreamer\jsonassert\1.5.3\jsonassert-1.5.3.jar;C:\Users\nhatk\.m2\repository\com\vaadin\external\google\android-json\0.0.20131108.vaadin1\android-json-0.0.20131108.vaadin1.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-core\6.1.14\spring-core-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-jcl\6.1.14\spring-jcl-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\springframework\spring-test\6.1.14\spring-test-6.1.14.jar;C:\Users\nhatk\.m2\repository\org\xmlunit\xmlunit-core\2.9.1\xmlunit-core-2.9.1.jar;C:\Users\nhatk\.m2\repository\org\projectlombok\lombok\1.18.34\lombok-1.18.34.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -34,7 +34,7 @@
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="FILE_LOG_CHARSET" value="UTF-8"/>
     <property name="java.awt.headless" value="true"/>
-    <property name="surefire.real.class.path" value="C:\Users\nhatk\AppData\Local\Temp\surefire900771081974775939\surefirebooter-20260826121027417_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\nhatk\AppData\Local\Temp\surefire1637274552316396882\surefirebooter-20260826173916792_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="21.0.12+8-LTS"/>
@@ -53,7 +53,7 @@
     <property name="user.dir" value="C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="2856"/>
+    <property name="PID" value="5212"/>
     <property name="sun.os.patch.level" value=""/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
     <property name="native.encoding" value="Cp1252"/>
@@ -66,9 +66,9 @@
     <property name="java.class.version" value="65.0"/>
     <property name="LOGGED_APPLICATION_NAME" value="[nss-api] "/>
   </properties>
-  <testcase name="emptyCartReturnsTwoHundredWithEmptyArray" classname="com.nss.SecurityRulesTest" time="0.121">
-    <system-out><![CDATA[2026-08-26T12:10:43.419+07:00  INFO 2856 --- [nss-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.nss.SecurityRulesTest]: SecurityRulesTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-08-26T12:10:43.425+07:00  INFO 2856 --- [nss-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.nss.StartApplication for test class com.nss.SecurityRulesTest
+  <testcase name="emptyCartReturnsTwoHundredWithEmptyArray" classname="com.nss.SecurityRulesTest" time="0.085">
+    <system-out><![CDATA[2026-08-26T17:39:32.337+07:00  INFO 5212 --- [nss-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.nss.SecurityRulesTest]: SecurityRulesTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-08-26T17:39:32.346+07:00  INFO 5212 --- [nss-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.nss.StartApplication for test class com.nss.SecurityRulesTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -79,370 +79,370 @@
 
  :: Spring Boot ::                (v3.3.5)
 
-2026-08-26T12:10:43.465+07:00  INFO 2856 --- [nss-api] [           main] com.nss.SecurityRulesTest                : Starting SecurityRulesTest using Java 21.0.12 with PID 2856 (started by nhatk in C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start)
-2026-08-26T12:10:43.466+07:00  INFO 2856 --- [nss-api] [           main] com.nss.SecurityRulesTest                : No active profile set, falling back to 1 default profile: "default"
-2026-08-26T12:10:43.923+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.config.ApiRateLimitInterceptor   : ApiRateLimitInterceptor: wired | auth=100000/PT1S write=100000/PT1S read=100000/PT1S timeout=PT0S
-2026-08-26T12:10:44.024+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.mail.impl.MailAppServiceImpl   : MailAppServiceImpl: mail circuit breaker wired | name=mail windowType=COUNT_BASED windowSize=20 minCalls=10 failureRate=50% wait=PT1M halfOpenCalls=3 autoHalfOpen=true
-2026-08-26T12:10:44.344+07:00  INFO 2856 --- [nss-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-26T12:10:44.344+07:00  INFO 2856 --- [nss-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-08-26T12:10:44.345+07:00  INFO 2856 --- [nss-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-08-26T12:10:44.359+07:00  INFO 2856 --- [nss-api] [           main] com.nss.SecurityRulesTest                : Started SecurityRulesTest in 0.93 seconds (process running for 16.764)
-2026-08-26T12:10:44.467+07:00  INFO 2856 --- [nss-api] [           main] c.n.ddd.controller.http.CartController   : CartController:->validateCart | itemCount=0
-2026-08-26T12:10:44.468+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.cart.impl.CartAppServiceImpl   : validateCart: success | itemCount=0 issueCount=0
+2026-08-26T17:39:32.420+07:00  INFO 5212 --- [nss-api] [           main] com.nss.SecurityRulesTest                : Starting SecurityRulesTest using Java 21.0.12 with PID 5212 (started by nhatk in C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-start)
+2026-08-26T17:39:32.420+07:00  INFO 5212 --- [nss-api] [           main] com.nss.SecurityRulesTest                : No active profile set, falling back to 1 default profile: "default"
+2026-08-26T17:39:33.082+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.config.ApiRateLimitInterceptor   : ApiRateLimitInterceptor: wired | auth=100000/PT1S write=100000/PT1S read=100000/PT1S timeout=PT0S
+2026-08-26T17:39:33.188+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.mail.impl.MailAppServiceImpl   : MailAppServiceImpl: mail circuit breaker wired | name=mail windowType=COUNT_BASED windowSize=20 minCalls=10 failureRate=50% wait=PT1M halfOpenCalls=3 autoHalfOpen=true
+2026-08-26T17:39:33.424+07:00  INFO 5212 --- [nss-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-08-26T17:39:33.424+07:00  INFO 5212 --- [nss-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-08-26T17:39:33.424+07:00  INFO 5212 --- [nss-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+2026-08-26T17:39:33.434+07:00  INFO 5212 --- [nss-api] [           main] com.nss.SecurityRulesTest                : Started SecurityRulesTest in 1.078 seconds (process running for 16.351)
+2026-08-26T17:39:33.509+07:00  INFO 5212 --- [nss-api] [           main] c.n.ddd.controller.http.CartController   : CartController:->validateCart | itemCount=0
+2026-08-26T17:39:33.510+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.cart.impl.CartAppServiceImpl   : validateCart: success | itemCount=0 issueCount=0
 ]]></system-out>
   </testcase>
-  <testcase name="apiDocsDeclareSecurityOnNewAdminOperations" classname="com.nss.SecurityRulesTest" time="1.555">
-    <system-out><![CDATA[2026-08-26T12:10:45.844+07:00  INFO 2856 --- [nss-api] [           main] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 1341 ms
+  <testcase name="apiDocsDeclareSecurityOnNewAdminOperations" classname="com.nss.SecurityRulesTest" time="1.307">
+    <system-out><![CDATA[2026-08-26T17:39:34.611+07:00  INFO 5212 --- [nss-api] [           main] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 1068 ms
 ]]></system-out>
   </testcase>
-  <testcase name="createOrderRejectsBrokenToken" classname="com.nss.SecurityRulesTest" time="0.017">
-    <system-out><![CDATA[2026-08-26T12:10:46.052+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders
+  <testcase name="createOrderRejectsBrokenToken" classname="com.nss.SecurityRulesTest" time="0.028">
+    <system-out><![CDATA[2026-08-26T17:39:34.851+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders
 ]]></system-out>
   </testcase>
-  <testcase name="profileEndpointsRequireToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.011">
-    <system-out><![CDATA[2026-08-26T12:10:46.075+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/me
+  <testcase name="profileEndpointsRequireToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.015">
+    <system-out><![CDATA[2026-08-26T17:39:34.883+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/me
 ]]></system-out>
   </testcase>
-  <testcase name="profileEndpointsRequireToken(String)[2]" classname="com.nss.SecurityRulesTest" time="0.007">
-    <system-out><![CDATA[2026-08-26T12:10:46.085+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/password
+  <testcase name="profileEndpointsRequireToken(String)[2]" classname="com.nss.SecurityRulesTest" time="0.013">
+    <system-out><![CDATA[2026-08-26T17:39:34.897+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/password
 ]]></system-out>
   </testcase>
-  <testcase name="couponValidateStaysPublic" classname="com.nss.SecurityRulesTest" time="0.017">
-    <system-out><![CDATA[2026-08-26T12:10:46.101+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[code, subtotal]
+  <testcase name="couponValidateStaysPublic" classname="com.nss.SecurityRulesTest" time="0.027">
+    <system-out><![CDATA[2026-08-26T17:39:34.925+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[code, subtotal]
 ]]></system-out>
   </testcase>
-  <testcase name="apiDocsDeclareCartOperationAsPublic" classname="com.nss.SecurityRulesTest" time="0.032"/>
-  <testcase name="apiDocsDeclarePasswordResetOperationsAsPublic" classname="com.nss.SecurityRulesTest" time="0.035"/>
-  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.026">
-    <system-out><![CDATA[2026-08-26T12:10:46.217+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/cart/validate
+  <testcase name="apiDocsDeclareCartOperationAsPublic" classname="com.nss.SecurityRulesTest" time="0.035"/>
+  <testcase name="apiDocsDeclarePasswordResetOperationsAsPublic" classname="com.nss.SecurityRulesTest" time="0.026"/>
+  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.012">
+    <system-out><![CDATA[2026-08-26T17:39:35.018+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/cart/validate
 ]]></system-out>
   </testcase>
-  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:46.232+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/cart/validate
+  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:35.027+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/cart/validate
 ]]></system-out>
   </testcase>
-  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.009">
-    <system-out><![CDATA[2026-08-26T12:10:46.248+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/cart/validate
+  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:35.036+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/cart/validate
 ]]></system-out>
   </testcase>
-  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.011">
-    <system-out><![CDATA[2026-08-26T12:10:46.263+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/cart
+  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.044+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/cart
 ]]></system-out>
   </testcase>
-  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[5]" classname="com.nss.SecurityRulesTest" time="0.011">
-    <system-out><![CDATA[2026-08-26T12:10:46.277+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/cart
+  <testcase name="cartPathOpensOnlyItsOwnMethod(HttpMethod, String)[5]" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.052+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/cart
 ]]></system-out>
   </testcase>
-  <testcase name="apiDocsStayPublic" classname="com.nss.SecurityRulesTest" time="0.019"/>
-  <testcase name="cartValidateStaysPublic" classname="com.nss.SecurityRulesTest" time="0.011">
-    <system-out><![CDATA[2026-08-26T12:10:46.311+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[items]
+  <testcase name="apiDocsStayPublic" classname="com.nss.SecurityRulesTest" time="0.022"/>
+  <testcase name="cartValidateStaysPublic" classname="com.nss.SecurityRulesTest" time="0.01">
+    <system-out><![CDATA[2026-08-26T17:39:35.087+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[items]
 ]]></system-out>
   </testcase>
-  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[1]" classname="com.nss.SecurityRulesTest" time="0.132">
-    <system-out><![CDATA[2026-08-26T12:10:46.325+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/products
-2026-08-26T12:10:46.439+07:00  WARN 2856 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'POST' is not supported
+  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[1]" classname="com.nss.SecurityRulesTest" time="0.127">
+    <system-out><![CDATA[2026-08-26T17:39:35.099+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/products
+2026-08-26T17:39:35.214+07:00  WARN 5212 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'POST' is not supported
 ]]></system-out>
   </testcase>
-  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[2]" classname="com.nss.SecurityRulesTest" time="0.02">
-    <system-out><![CDATA[2026-08-26T12:10:46.460+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/products/1
-2026-08-26T12:10:46.469+07:00  WARN 2856 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'PUT' is not supported
+  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[2]" classname="com.nss.SecurityRulesTest" time="0.017">
+    <system-out><![CDATA[2026-08-26T17:39:35.232+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/products/1
+2026-08-26T17:39:35.239+07:00  WARN 5212 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'PUT' is not supported
 ]]></system-out>
   </testcase>
-  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[3]" classname="com.nss.SecurityRulesTest" time="0.015">
-    <system-out><![CDATA[2026-08-26T12:10:46.483+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/products/1
-2026-08-26T12:10:46.489+07:00  WARN 2856 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'DELETE' is not supported
+  <testcase name="removedProductWriteEndpointsAreGone(HttpMethod, String, String)[3]" classname="com.nss.SecurityRulesTest" time="0.017">
+    <system-out><![CDATA[2026-08-26T17:39:35.256+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/products/1
+2026-08-26T17:39:35.262+07:00  WARN 5212 --- [nss-api] [           main] o.s.web.servlet.PageNotFound             : Request method 'DELETE' is not supported
 ]]></system-out>
   </testcase>
-  <testcase name="orderByCodeStaysPublic" classname="com.nss.SecurityRulesTest" time="0.014">
-    <system-out><![CDATA[2026-08-26T12:10:46.503+07:00  INFO 2856 --- [nss-api] [           main] c.n.ddd.controller.http.OrderController  : OrderController:->getOrderByCode | code=NSS-20260101-9999
-2026-08-26T12:10:46.506+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findOrderByCode: not found | code=NSS-20260101-9999
-2026-08-26T12:10:46.507+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleOrderNotFound: Không tìm thấy đơn hàng với mã này.
+  <testcase name="orderByCodeStaysPublic" classname="com.nss.SecurityRulesTest" time="0.01">
+    <system-out><![CDATA[2026-08-26T17:39:35.271+07:00  INFO 5212 --- [nss-api] [           main] c.n.ddd.controller.http.OrderController  : OrderController:->getOrderByCode | code=NSS-20260101-9999
+2026-08-26T17:39:35.272+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findOrderByCode: not found | code=NSS-20260101-9999
+2026-08-26T17:39:35.273+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleOrderNotFound: Không tìm thấy đơn hàng với mã này.
 ]]></system-out>
   </testcase>
-  <testcase name="myOrdersReachHandlerWithToken" classname="com.nss.SecurityRulesTest" time="0.015">
-    <system-out><![CDATA[2026-08-26T12:10:46.525+07:00  INFO 2856 --- [nss-api] [           main] c.n.ddd.controller.http.OrderController  : OrderController:->getMyOrders | userId=1
-2026-08-26T12:10:46.526+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findMyOrders: success | userId=1 count=0
+  <testcase name="myOrdersReachHandlerWithToken" classname="com.nss.SecurityRulesTest" time="0.009">
+    <system-out><![CDATA[2026-08-26T17:39:35.285+07:00  INFO 5212 --- [nss-api] [           main] c.n.ddd.controller.http.OrderController  : OrderController:->getMyOrders | userId=1
+2026-08-26T17:39:35.286+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findMyOrders: success | userId=1 count=0
 ]]></system-out>
   </testcase>
-  <testcase name="statsRejectsDaysOutsideRange(int)[1]" classname="com.nss.SecurityRulesTest" time="0.029">
-    <system-out><![CDATA[2026-08-26T12:10:46.546+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
-2026-08-26T12:10:46.552+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
-2026-08-26T12:10:46.563+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=0
-2026-08-26T12:10:46.564+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
+  <testcase name="statsRejectsDaysOutsideRange(int)[1]" classname="com.nss.SecurityRulesTest" time="0.021">
+    <system-out><![CDATA[2026-08-26T17:39:35.296+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
+2026-08-26T17:39:35.299+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
+2026-08-26T17:39:35.309+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=0
+2026-08-26T17:39:35.309+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
 ]]></system-out>
   </testcase>
-  <testcase name="statsRejectsDaysOutsideRange(int)[2]" classname="com.nss.SecurityRulesTest" time="0.017">
-    <system-out><![CDATA[2026-08-26T12:10:46.574+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
-2026-08-26T12:10:46.575+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
-2026-08-26T12:10:46.581+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=-1
-2026-08-26T12:10:46.582+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
+  <testcase name="statsRejectsDaysOutsideRange(int)[2]" classname="com.nss.SecurityRulesTest" time="0.012">
+    <system-out><![CDATA[2026-08-26T17:39:35.319+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
+2026-08-26T17:39:35.321+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
+2026-08-26T17:39:35.326+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=-1
+2026-08-26T17:39:35.326+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
 ]]></system-out>
   </testcase>
-  <testcase name="statsRejectsDaysOutsideRange(int)[3]" classname="com.nss.SecurityRulesTest" time="0.033">
-    <system-out><![CDATA[2026-08-26T12:10:46.603+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
-2026-08-26T12:10:46.606+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
-2026-08-26T12:10:46.617+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=366
-2026-08-26T12:10:46.617+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
+  <testcase name="statsRejectsDaysOutsideRange(int)[3]" classname="com.nss.SecurityRulesTest" time="0.015">
+    <system-out><![CDATA[2026-08-26T17:39:35.334+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
+2026-08-26T17:39:35.335+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
+2026-08-26T17:39:35.339+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=366
+2026-08-26T17:39:35.340+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
 ]]></system-out>
   </testcase>
-  <testcase name="statsRejectsDaysOutsideRange(int)[4]" classname="com.nss.SecurityRulesTest" time="0.016">
-    <system-out><![CDATA[2026-08-26T12:10:46.634+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
-2026-08-26T12:10:46.635+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
-2026-08-26T12:10:46.640+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=9999
-2026-08-26T12:10:46.640+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
+  <testcase name="statsRejectsDaysOutsideRange(int)[4]" classname="com.nss.SecurityRulesTest" time="0.017">
+    <system-out><![CDATA[2026-08-26T17:39:35.360+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
+2026-08-26T17:39:35.361+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
+2026-08-26T17:39:35.365+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=9999
+2026-08-26T17:39:35.365+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleInvalidDateRange: Khoảng thời gian phải nằm trong khoảng từ 1 đến 365 ngày.
 ]]></system-out>
   </testcase>
-  <testcase name="createOrderStaysPublic" classname="com.nss.SecurityRulesTest" time="0.022">
-    <system-out><![CDATA[2026-08-26T12:10:46.676+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[paymentMethod, items, shipping]
+  <testcase name="createOrderStaysPublic" classname="com.nss.SecurityRulesTest" time="0.016">
+    <system-out><![CDATA[2026-08-26T17:39:35.384+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[items, shipping, paymentMethod]
 ]]></system-out>
   </testcase>
-  <testcase name="logoutWithoutTokenReturnsProblemDetail" classname="com.nss.SecurityRulesTest" time="0.004">
-    <system-out><![CDATA[2026-08-26T12:10:46.685+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/logout
+  <testcase name="logoutWithoutTokenReturnsProblemDetail" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:35.393+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/logout
 ]]></system-out>
   </testcase>
-  <testcase name="passwordResetEndpointsStayPublic(String, String)[1]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:46.704+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email]
+  <testcase name="passwordResetEndpointsStayPublic(String, String)[1]" classname="com.nss.SecurityRulesTest" time="0.022">
+    <system-out><![CDATA[2026-08-26T17:39:35.425+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email]
 ]]></system-out>
   </testcase>
-  <testcase name="passwordResetEndpointsStayPublic(String, String)[2]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:46.717+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[token, newPassword]
+  <testcase name="passwordResetEndpointsStayPublic(String, String)[2]" classname="com.nss.SecurityRulesTest" time="0.011">
+    <system-out><![CDATA[2026-08-26T17:39:35.440+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[newPassword, token]
 ]]></system-out>
   </testcase>
-  <testcase name="passwordResetEndpointsStayPublic(String, String)[3]" classname="com.nss.SecurityRulesTest" time="0.007">
-    <system-out><![CDATA[2026-08-26T12:10:46.726+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[token, newPassword]
+  <testcase name="passwordResetEndpointsStayPublic(String, String)[3]" classname="com.nss.SecurityRulesTest" time="0.008">
+    <system-out><![CDATA[2026-08-26T17:39:35.449+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[token, newPassword]
 ]]></system-out>
   </testcase>
-  <testcase name="adminPrefixGuardsPathsWithoutHandler" classname="com.nss.SecurityRulesTest" time="0.024">
-    <system-out><![CDATA[2026-08-26T12:10:46.737+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/khong-ton-tai
-2026-08-26T12:10:46.740+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/khong-ton-tai
-2026-08-26T12:10:46.744+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=DELETE path=/api/admin/orders/NSS-20260101-0001
+  <testcase name="adminPrefixGuardsPathsWithoutHandler" classname="com.nss.SecurityRulesTest" time="0.023">
+    <system-out><![CDATA[2026-08-26T17:39:35.460+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/khong-ton-tai
+2026-08-26T17:39:35.462+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/khong-ton-tai
+2026-08-26T17:39:35.467+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=DELETE path=/api/admin/orders/NSS-20260101-0001
 ]]></system-out>
   </testcase>
-  <testcase name="couponEndpointsStayOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.009">
-    <system-out><![CDATA[2026-08-26T12:10:46.763+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.controller.http.CouponController   : CouponController:->getActiveCoupons
-2026-08-26T12:10:46.763+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.c.impl.CouponAppServiceImpl    : findActiveCoupons: success | count=0
+  <testcase name="couponEndpointsStayOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.008">
+    <system-out><![CDATA[2026-08-26T17:39:35.487+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.controller.http.CouponController   : CouponController:->getActiveCoupons
+2026-08-26T17:39:35.487+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.c.impl.CouponAppServiceImpl    : findActiveCoupons: success | count=0
 ]]></system-out>
   </testcase>
-  <testcase name="updateProfileRejectsBlankStringAtValidationLayer" classname="com.nss.SecurityRulesTest" time="0.019">
-    <system-out><![CDATA[2026-08-26T12:10:46.784+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email, fullName]
+  <testcase name="updateProfileRejectsBlankStringAtValidationLayer" classname="com.nss.SecurityRulesTest" time="0.017">
+    <system-out><![CDATA[2026-08-26T17:39:35.506+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[fullName, email]
 ]]></system-out>
   </testcase>
-  <testcase name="productListStaysPublic" classname="com.nss.SecurityRulesTest" time="0.012">
-    <system-out><![CDATA[2026-08-26T12:10:46.794+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProducts | page=1 limit=12
-2026-08-26T12:10:46.794+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProducts: success | page=1 limit=12 total=0
+  <testcase name="productListStaysPublic" classname="com.nss.SecurityRulesTest" time="0.011">
+    <system-out><![CDATA[2026-08-26T17:39:35.515+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProducts | page=1 limit=12
+2026-08-26T17:39:35.516+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProducts: success | page=1 limit=12 total=0
 ]]></system-out>
   </testcase>
-  <testcase name="passwordResetEndpointsRejectBrokenToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.008">
-    <system-out><![CDATA[2026-08-26T12:10:46.807+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/forgot-password
+  <testcase name="passwordResetEndpointsRejectBrokenToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.528+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/forgot-password
 ]]></system-out>
   </testcase>
-  <testcase name="passwordResetEndpointsRejectBrokenToken(String)[2]" classname="com.nss.SecurityRulesTest" time="0.008">
-    <system-out><![CDATA[2026-08-26T12:10:46.821+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/reset-password
+  <testcase name="passwordResetEndpointsRejectBrokenToken(String)[2]" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:35.536+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/reset-password
 ]]></system-out>
   </testcase>
-  <testcase name="publicReadStaysOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.016">
-    <system-out><![CDATA[2026-08-26T12:10:46.834+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProducts | page=1 limit=12
-2026-08-26T12:10:46.835+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProducts: success | page=1 limit=12 total=0
-2026-08-26T12:10:46.839+07:00  INFO 2856 --- [nss-api] [           main] c.n.ddd.controller.http.HelloController  : HelloController:->getHello
-2026-08-26T12:10:46.839+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.h.impl.HelloAppServiceImpl     : getHello: success | source=infrastructure
+  <testcase name="publicReadStaysOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.013">
+    <system-out><![CDATA[2026-08-26T17:39:35.545+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProducts | page=1 limit=12
+2026-08-26T17:39:35.546+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProducts: success | page=1 limit=12 total=0
+2026-08-26T17:39:35.550+07:00  INFO 5212 --- [nss-api] [           main] c.n.ddd.controller.http.HelloController  : HelloController:->getHello
+2026-08-26T17:39:35.550+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.h.impl.HelloAppServiceImpl     : getHello: success | source=infrastructure
 ]]></system-out>
   </testcase>
-  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.852+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/coupons/validate
+  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:35.562+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/coupons/validate
 ]]></system-out>
   </testcase>
-  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.860+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/coupons/validate
+  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:35.569+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/coupons/validate
 ]]></system-out>
   </testcase>
-  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:46.868+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/coupons/active
+  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.004">
+    <system-out><![CDATA[2026-08-26T17:39:35.576+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/coupons/active
 ]]></system-out>
   </testcase>
-  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:46.876+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/coupons
+  <testcase name="couponPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.004">
+    <system-out><![CDATA[2026-08-26T17:39:35.582+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/coupons
 ]]></system-out>
   </testcase>
-  <testcase name="authPublicEndpointsReachableWithoutToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.014">
-    <system-out><![CDATA[2026-08-26T12:10:46.893+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email, password, fullName, phone]
+  <testcase name="authPublicEndpointsReachableWithoutToken(String)[1]" classname="com.nss.SecurityRulesTest" time="0.012">
+    <system-out><![CDATA[2026-08-26T17:39:35.595+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[password, fullName, phone, email]
 ]]></system-out>
   </testcase>
   <testcase name="authPublicEndpointsReachableWithoutToken(String)[2]" classname="com.nss.SecurityRulesTest" time="0.011">
-    <system-out><![CDATA[2026-08-26T12:10:46.905+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email, password]
+    <system-out><![CDATA[2026-08-26T17:39:35.609+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[password, email]
 ]]></system-out>
   </testcase>
   <testcase name="authPublicEndpointsReachableWithoutToken(String)[3]" classname="com.nss.SecurityRulesTest" time="0.009">
-    <system-out><![CDATA[2026-08-26T12:10:46.917+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[refreshToken]
+    <system-out><![CDATA[2026-08-26T17:39:35.620+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[refreshToken]
 ]]></system-out>
   </testcase>
-  <testcase name="authPublicEndpointsReachableWithoutToken(String)[4]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.925+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email]
+  <testcase name="authPublicEndpointsReachableWithoutToken(String)[4]" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.628+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[email]
 ]]></system-out>
   </testcase>
-  <testcase name="authPublicEndpointsReachableWithoutToken(String)[5]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.931+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[token, newPassword]
+  <testcase name="authPublicEndpointsReachableWithoutToken(String)[5]" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.639+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[newPassword, token]
 ]]></system-out>
   </testcase>
-  <testcase name="cartEndpointStaysOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.941+07:00  INFO 2856 --- [nss-api] [           main] c.n.ddd.controller.http.CartController   : CartController:->validateCart | itemCount=0
-2026-08-26T12:10:46.941+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.cart.impl.CartAppServiceImpl   : validateCart: success | itemCount=0 issueCount=0
+  <testcase name="cartEndpointStaysOpenForCustomerToken" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:35.646+07:00  INFO 5212 --- [nss-api] [           main] c.n.ddd.controller.http.CartController   : CartController:->validateCart | itemCount=0
+2026-08-26T17:39:35.647+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.cart.impl.CartAppServiceImpl   : validateCart: success | itemCount=0 issueCount=0
 ]]></system-out>
   </testcase>
   <testcase name="authNamespaceStaysClosedApartFromItsPublicPaths(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:46.948+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/logout
+    <system-out><![CDATA[2026-08-26T17:39:35.656+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/auth/logout
 ]]></system-out>
   </testcase>
-  <testcase name="authNamespaceStaysClosedApartFromItsPublicPaths(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.007">
-    <system-out><![CDATA[2026-08-26T12:10:46.957+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/me
+  <testcase name="authNamespaceStaysClosedApartFromItsPublicPaths(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.008">
+    <system-out><![CDATA[2026-08-26T17:39:35.664+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/me
 ]]></system-out>
   </testcase>
-  <testcase name="authNamespaceStaysClosedApartFromItsPublicPaths(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:46.967+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/password
+  <testcase name="authNamespaceStaysClosedApartFromItsPublicPaths(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:35.673+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/auth/password
 ]]></system-out>
   </testcase>
-  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[1]" classname="com.nss.SecurityRulesTest" time="0.027">
-    <system-out><![CDATA[2026-08-26T12:10:46.981+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders
-2026-08-26T12:10:46.985+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/orders
-2026-08-26T12:10:46.993+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminOrderController        : AdminOrderController:->getAdminOrders | q=null status=null userId=null page=1 limit=12
-2026-08-26T12:10:46.994+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findAdminOrders: success | q=null status=null userId=null page=1 limit=12 total=0
+  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[1]" classname="com.nss.SecurityRulesTest" time="0.016">
+    <system-out><![CDATA[2026-08-26T17:39:35.683+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders
+2026-08-26T17:39:35.686+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/orders
+2026-08-26T17:39:35.691+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminOrderController        : AdminOrderController:->getAdminOrders | q=null status=null userId=null page=1 limit=12
+2026-08-26T17:39:35.692+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findAdminOrders: success | q=null status=null userId=null page=1 limit=12 total=0
 ]]></system-out>
   </testcase>
-  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[2]" classname="com.nss.SecurityRulesTest" time="0.015">
-    <system-out><![CDATA[2026-08-26T12:10:47.004+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders/NSS-20260101-0001
-2026-08-26T12:10:47.009+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/orders/NSS-20260101-0001
-2026-08-26T12:10:47.014+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminOrderController        : AdminOrderController:->getAdminOrder | code=NSS-20260101-0001
-2026-08-26T12:10:47.014+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findOrderByCode: not found | code=NSS-20260101-0001
-2026-08-26T12:10:47.014+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleOrderNotFound: Không tìm thấy đơn hàng với mã này.
+  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[2]" classname="com.nss.SecurityRulesTest" time="0.014">
+    <system-out><![CDATA[2026-08-26T17:39:35.702+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders/NSS-20260101-0001
+2026-08-26T17:39:35.705+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/orders/NSS-20260101-0001
+2026-08-26T17:39:35.709+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminOrderController        : AdminOrderController:->getAdminOrder | code=NSS-20260101-0001
+2026-08-26T17:39:35.710+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.o.impl.OrderAppServiceImpl     : findOrderByCode: not found | code=NSS-20260101-0001
+2026-08-26T17:39:35.710+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleOrderNotFound: Không tìm thấy đơn hàng với mã này.
 ]]></system-out>
   </testcase>
-  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[3]" classname="com.nss.SecurityRulesTest" time="0.018">
-    <system-out><![CDATA[2026-08-26T12:10:47.023+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
-2026-08-26T12:10:47.026+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
-2026-08-26T12:10:47.034+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[status]
+  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[3]" classname="com.nss.SecurityRulesTest" time="0.016">
+    <system-out><![CDATA[2026-08-26T17:39:35.721+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
+2026-08-26T17:39:35.724+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
+2026-08-26T17:39:35.730+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[status]
 ]]></system-out>
   </testcase>
-  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[4]" classname="com.nss.SecurityRulesTest" time="0.019">
-    <system-out><![CDATA[2026-08-26T12:10:47.042+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/customers
-2026-08-26T12:10:47.047+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/customers
-2026-08-26T12:10:47.054+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminCustomerController     : AdminCustomerController:->getAdminCustomers | q=null role=null page=1 limit=10
-2026-08-26T12:10:47.056+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.c.impl.CustomerAppServiceImpl  : findAdminUsers: success | q=null role=CUSTOMER page=1 limit=10 total=0
+  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[4]" classname="com.nss.SecurityRulesTest" time="0.017">
+    <system-out><![CDATA[2026-08-26T17:39:35.738+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/customers
+2026-08-26T17:39:35.741+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/customers
+2026-08-26T17:39:35.748+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminCustomerController     : AdminCustomerController:->getAdminCustomers | q=null role=null page=1 limit=10
+2026-08-26T17:39:35.749+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.c.impl.CustomerAppServiceImpl  : findAdminUsers: success | q=null role=CUSTOMER page=1 limit=10 total=0
 ]]></system-out>
   </testcase>
-  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[5]" classname="com.nss.SecurityRulesTest" time="0.017">
-    <system-out><![CDATA[2026-08-26T12:10:47.066+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/customers/1
-2026-08-26T12:10:47.072+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/customers/1
-2026-08-26T12:10:47.075+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminCustomerController     : AdminCustomerController:->getAdminCustomer | userId=1
-2026-08-26T12:10:47.075+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.c.impl.CustomerAppServiceImpl  : findAdminUserById: not found | userId=1
-2026-08-26T12:10:47.076+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleUserNotFound: Không tìm thấy tài khoản này.
+  <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[5]" classname="com.nss.SecurityRulesTest" time="0.014">
+    <system-out><![CDATA[2026-08-26T17:39:35.756+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/customers/1
+2026-08-26T17:39:35.761+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/customers/1
+2026-08-26T17:39:35.764+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminCustomerController     : AdminCustomerController:->getAdminCustomer | userId=1
+2026-08-26T17:39:35.764+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.c.impl.CustomerAppServiceImpl  : findAdminUserById: not found | userId=1
+2026-08-26T17:39:35.765+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleUserNotFound: Không tìm thấy tài khoản này.
 ]]></system-out>
   </testcase>
   <testcase name="newAdminEndpointsEnforceAdminOnly(HttpMethod, String, String, int)[6]" classname="com.nss.SecurityRulesTest" time="0.015">
-    <system-out><![CDATA[2026-08-26T12:10:47.085+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/stats/overview
-2026-08-26T12:10:47.088+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/stats/overview
-2026-08-26T12:10:47.092+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
-2026-08-26T12:10:47.093+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
+    <system-out><![CDATA[2026-08-26T17:39:35.772+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/stats/overview
+2026-08-26T17:39:35.778+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/stats/overview
+2026-08-26T17:39:35.781+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminStatsController        : AdminStatsController:->getOverview | days=30
+2026-08-26T17:39:35.782+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.s.impl.StatsAppServiceImpl     : findOverview: success | days=30 from=2026-07-28 to=2026-08-26 revenue=0 orderCount=0 customerCount=0 lowStockCount=0
 ]]></system-out>
   </testcase>
-  <testcase name="adminReachesValidationWithFiveFieldErrorsAndNoSlugError" classname="com.nss.SecurityRulesTest" time="0.032">
-    <system-out><![CDATA[2026-08-26T12:10:47.124+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[name, unit, price, categoryId, stock]
+  <testcase name="adminReachesValidationWithFiveFieldErrorsAndNoSlugError" classname="com.nss.SecurityRulesTest" time="0.023">
+    <system-out><![CDATA[2026-08-26T17:39:35.805+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[categoryId, stock, price, unit, name]
 ]]></system-out>
   </testcase>
-  <testcase name="apiDocsDeclareSecurityOnAdminProductOperations" classname="com.nss.SecurityRulesTest" time="0.047"/>
+  <testcase name="apiDocsDeclareSecurityOnAdminProductOperations" classname="com.nss.SecurityRulesTest" time="0.041"/>
   <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[1]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.188+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/orders
+    <system-out><![CDATA[2026-08-26T17:39:35.858+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/orders
 ]]></system-out>
   </testcase>
   <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[2]" classname="com.nss.SecurityRulesTest" time="0.004">
-    <system-out><![CDATA[2026-08-26T12:10:47.194+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/orders
+    <system-out><![CDATA[2026-08-26T17:39:35.864+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/orders
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:47.201+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/orders
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[3]" classname="com.nss.SecurityRulesTest" time="0.008">
+    <system-out><![CDATA[2026-08-26T17:39:35.872+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/orders
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.207+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/orders/NSS-20260101-0001
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[4]" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:35.882+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/orders/NSS-20260101-0001
 ]]></system-out>
   </testcase>
   <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[5]" classname="com.nss.SecurityRulesTest" time="0.006">
-    <system-out><![CDATA[2026-08-26T12:10:47.213+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/orders/NSS-20260101-0001
+    <system-out><![CDATA[2026-08-26T17:39:35.891+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/orders/NSS-20260101-0001
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[6]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.221+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/orders/NSS-20260101-0001
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[6]" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:35.900+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/orders/NSS-20260101-0001
 ]]></system-out>
   </testcase>
   <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[7]" classname="com.nss.SecurityRulesTest" time="0.004">
-    <system-out><![CDATA[2026-08-26T12:10:47.227+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders/NSS-20260101-0001
+    <system-out><![CDATA[2026-08-26T17:39:35.906+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders/NSS-20260101-0001
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[8]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.233+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders/NSS-20260101-0001/cancel
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[8]" classname="com.nss.SecurityRulesTest" time="0.004">
+    <system-out><![CDATA[2026-08-26T17:39:35.911+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/orders/NSS-20260101-0001/cancel
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[9]" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.239+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[9]" classname="com.nss.SecurityRulesTest" time="0.004">
+    <system-out><![CDATA[2026-08-26T17:39:35.915+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/orders
 ]]></system-out>
   </testcase>
-  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[10]" classname="com.nss.SecurityRulesTest" time="0.004">
-    <system-out><![CDATA[2026-08-26T12:10:47.246+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
+  <testcase name="orderPathsOpenOnlyTheirOwnMethod(HttpMethod, String)[10]" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:35.921+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PATCH path=/api/admin/orders/NSS-20260101-0001/status
 ]]></system-out>
   </testcase>
-  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[1]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:47.255+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/products
-2026-08-26T12:10:47.257+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/products
-2026-08-26T12:10:47.262+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->getAdminProducts | q=null category=null stockStatus=null sort=null page=1 limit=12
-2026-08-26T12:10:47.262+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findAdminProducts: success | q=null category=null stockStatus=null sort=NEWEST page=1 limit=12 total=0
+  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[1]" classname="com.nss.SecurityRulesTest" time="0.018">
+    <system-out><![CDATA[2026-08-26T17:39:35.930+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/products
+2026-08-26T17:39:35.932+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/products
+2026-08-26T17:39:35.939+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->getAdminProducts | q=null category=null stockStatus=null sort=null page=1 limit=12
+2026-08-26T17:39:35.939+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findAdminProducts: success | q=null category=null stockStatus=null sort=NEWEST page=1 limit=12 total=0
 ]]></system-out>
   </testcase>
-  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[2]" classname="com.nss.SecurityRulesTest" time="0.014">
-    <system-out><![CDATA[2026-08-26T12:10:47.267+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/products/1
-2026-08-26T12:10:47.272+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/products/1
-2026-08-26T12:10:47.276+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->getAdminProduct | productId=1
-2026-08-26T12:10:47.276+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProductById: not found | productId=1
-2026-08-26T12:10:47.277+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
+  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[2]" classname="com.nss.SecurityRulesTest" time="0.015">
+    <system-out><![CDATA[2026-08-26T17:39:35.949+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/admin/products/1
+2026-08-26T17:39:35.952+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=GET path=/api/admin/products/1
+2026-08-26T17:39:35.956+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->getAdminProduct | productId=1
+2026-08-26T17:39:35.956+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProductById: not found | productId=1
+2026-08-26T17:39:35.957+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
 ]]></system-out>
   </testcase>
-  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[3]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:47.284+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/admin/products
-2026-08-26T12:10:47.287+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=POST path=/api/admin/products
-2026-08-26T12:10:47.293+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[stock, categoryId, name, price, unit]
+  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[3]" classname="com.nss.SecurityRulesTest" time="0.016">
+    <system-out><![CDATA[2026-08-26T17:39:35.966+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=POST path=/api/admin/products
+2026-08-26T17:39:35.969+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=POST path=/api/admin/products
+2026-08-26T17:39:35.974+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[unit, name, stock, categoryId, price]
 ]]></system-out>
   </testcase>
-  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[4]" classname="com.nss.SecurityRulesTest" time="0.023">
-    <system-out><![CDATA[2026-08-26T12:10:47.300+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/admin/products/1
-2026-08-26T12:10:47.303+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=PUT path=/api/admin/products/1
-2026-08-26T12:10:47.317+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[categoryId, price, stock, unit, name]
+  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[4]" classname="com.nss.SecurityRulesTest" time="0.039">
+    <system-out><![CDATA[2026-08-26T17:39:36.000+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=PUT path=/api/admin/products/1
+2026-08-26T17:39:36.004+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=PUT path=/api/admin/products/1
+2026-08-26T17:39:36.017+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[name, price, stock, unit, categoryId]
 ]]></system-out>
   </testcase>
-  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[5]" classname="com.nss.SecurityRulesTest" time="0.013">
-    <system-out><![CDATA[2026-08-26T12:10:47.324+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/admin/products/1
-2026-08-26T12:10:47.328+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=DELETE path=/api/admin/products/1
-2026-08-26T12:10:47.331+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->deleteProduct | productId=1
-2026-08-26T12:10:47.332+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.d.s.impl.ProductDomainServiceImpl  : softDelete: no active row matched | productId=1
-2026-08-26T12:10:47.332+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : deleteProduct: not found | productId=1
-2026-08-26T12:10:47.333+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
+  <testcase name="adminProductEndpointEnforcesAdminOnly(HttpMethod, String, String, int)[5]" classname="com.nss.SecurityRulesTest" time="0.018">
+    <system-out><![CDATA[2026-08-26T17:39:36.024+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=DELETE path=/api/admin/products/1
+2026-08-26T17:39:36.028+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : handle: access denied | method=DELETE path=/api/admin/products/1
+2026-08-26T17:39:36.033+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.c.http.AdminProductController      : AdminProductController:->deleteProduct | productId=1
+2026-08-26T17:39:36.035+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.d.s.impl.ProductDomainServiceImpl  : softDelete: no active row matched | productId=1
+2026-08-26T17:39:36.035+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : deleteProduct: not found | productId=1
+2026-08-26T17:39:36.036+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
 ]]></system-out>
   </testcase>
-  <testcase name="myOrdersRequireToken" classname="com.nss.SecurityRulesTest" time="0.003">
-    <system-out><![CDATA[2026-08-26T12:10:47.338+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/orders/me
+  <testcase name="myOrdersRequireToken" classname="com.nss.SecurityRulesTest" time="0.005">
+    <system-out><![CDATA[2026-08-26T17:39:36.043+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.SecurityProblemDetailHandler   : commence: unauthenticated request | method=GET path=/api/orders/me
 ]]></system-out>
   </testcase>
-  <testcase name="apiDocsDeclareOrderOperationsWithCorrectSecurity" classname="com.nss.SecurityRulesTest" time="0.038"/>
-  <testcase name="couponActiveStaysPublic" classname="com.nss.SecurityRulesTest" time="0.005">
-    <system-out><![CDATA[2026-08-26T12:10:47.382+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.controller.http.CouponController   : CouponController:->getActiveCoupons
-2026-08-26T12:10:47.382+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.a.s.c.impl.CouponAppServiceImpl    : findActiveCoupons: success | count=0
+  <testcase name="apiDocsDeclareOrderOperationsWithCorrectSecurity" classname="com.nss.SecurityRulesTest" time="0.055"/>
+  <testcase name="couponActiveStaysPublic" classname="com.nss.SecurityRulesTest" time="0.007">
+    <system-out><![CDATA[2026-08-26T17:39:36.109+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.controller.http.CouponController   : CouponController:->getActiveCoupons
+2026-08-26T17:39:36.110+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.a.s.c.impl.CouponAppServiceImpl    : findActiveCoupons: success | count=0
 ]]></system-out>
   </testcase>
-  <testcase name="productDetailStaysPublic" classname="com.nss.SecurityRulesTest" time="0.007">
-    <system-out><![CDATA[2026-08-26T12:10:47.391+07:00  INFO 2856 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProductBySlug | slug=khong-ton-tai
-2026-08-26T12:10:47.392+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProductBySlug: not found | slug=khong-ton-tai
-2026-08-26T12:10:47.392+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
+  <testcase name="productDetailStaysPublic" classname="com.nss.SecurityRulesTest" time="0.006">
+    <system-out><![CDATA[2026-08-26T17:39:36.116+07:00  INFO 5212 --- [nss-api] [           main] c.n.d.controller.http.ProductController  : ProductController:->getProductBySlug | slug=khong-ton-tai
+2026-08-26T17:39:36.117+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.a.s.p.impl.ProductAppServiceImpl   : findProductBySlug: not found | slug=khong-ton-tai
+2026-08-26T17:39:36.117+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleProductNotFound: Không tìm thấy sản phẩm bạn đang tìm.
 ]]></system-out>
   </testcase>
   <testcase name="apiDocsDeclareCouponOperationsAsPublic" classname="com.nss.SecurityRulesTest" time="0.021"/>
-  <testcase name="changePasswordWithTokenReachesValidationLayer" classname="com.nss.SecurityRulesTest" time="0.01">
-    <system-out><![CDATA[2026-08-26T12:10:47.427+07:00  WARN 2856 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[newPassword, currentPassword]
+  <testcase name="changePasswordWithTokenReachesValidationLayer" classname="com.nss.SecurityRulesTest" time="0.008">
+    <system-out><![CDATA[2026-08-26T17:39:36.149+07:00  WARN 5212 --- [nss-api] [           main] c.n.d.c.e.GlobalExceptionHandler         : handleValidation: invalid request | fields=[currentPassword, newPassword]
 ]]></system-out>
   </testcase>
 </testsuite>

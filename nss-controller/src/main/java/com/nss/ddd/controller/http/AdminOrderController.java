@@ -160,13 +160,13 @@ public class AdminOrderController {
     }
 
     /**
-     * @param code mã đơn dạng {@code NSS-20260817-0001}
+     * @param code mã đơn dạng {@code NSS-20260826-K7M2QX9P4T}
      * @return đơn hàng
      * @throws OrderNotFoundException khi không có đơn nào mang mã đó
      */
     @Operation(summary = "Chi tiết một đơn hàng theo mã",
             description = """
-                    Tra đơn bằng **mã đơn** (`NSS-20260817-0001`), không bằng `id` — khớp URL \
+                    Tra đơn bằng **mã đơn** (`NSS-20260826-K7M2QX9P4T`), không bằng `id` — khớp URL \
                     `/quan-tri/don-hang/:code` và khớp `GET /api/orders/{code}` sẵn có.
 
                     Trả về **cùng một hình dạng `Order`** mà ba endpoint đơn hàng kia trả: một đơn \
@@ -188,7 +188,7 @@ public class AdminOrderController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/{code}")
     public OrderResponse getAdminOrder(
-            @Parameter(description = "Mã đơn hiển thị cho khách.", example = "NSS-20260825-0001")
+            @Parameter(description = "Mã đơn hiển thị cho khách.", example = "NSS-20260826-K7M2QX9P4T")
             @PathVariable("code") String code) {
         log.info("AdminOrderController:->getAdminOrder | code={}", code);
         OrderResponse order = orderAppService.findOrderByCode(code);
@@ -257,7 +257,7 @@ public class AdminOrderController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PatchMapping("/{code}/status")
     public OrderResponse updateOrderStatus(
-            @Parameter(description = "Mã đơn hiển thị cho khách.", example = "NSS-20260825-0001")
+            @Parameter(description = "Mã đơn hiển thị cho khách.", example = "NSS-20260826-K7M2QX9P4T")
             @PathVariable("code") String code,
             @Valid @RequestBody UpdateOrderStatusRequest request,
             @AuthenticationPrincipal Jwt jwt) {
