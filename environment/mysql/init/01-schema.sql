@@ -85,6 +85,12 @@
         primary key (code)
     ) comment='Quan/huyen; code la natural key' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
+    create table idempotency_key (
+        event_id bigint not null comment 'Id cua outbox_event tuong ung, khoa idempotent cho consumer',
+        created_at datetime(6) not null comment 'Thoi diem consumer xu ly thanh cong lan dau, luu theo gio UTC',
+        primary key (event_id)
+    ) comment='Khoa idempotency cua consumer Kafka, tranh xu ly trung mot event' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
     create table order_item (
         quantity integer not null comment 'So luong dat',
         id bigint not null auto_increment comment 'Khoa chinh',
@@ -109,6 +115,16 @@
         note varchar(255) comment 'Ghi chu ly do chuyen trang thai',
         primary key (id)
     ) comment='Nhat ky chuyen trang thai cua don hang' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+    create table outbox_event (
+        status integer not null comment 'Trang thai publish: 0=PENDING, 1=PUBLISHED',
+        created_at datetime(6) not null comment 'Thoi diem ghi outbox, luu theo gio UTC',
+        id bigint not null auto_increment comment 'Khoa chinh',
+        aggregate_id varchar(64) not null comment 'Id logic cua aggregate sinh ra event nay, vi du ma don',
+        event_type varchar(64) not null comment 'Loai event, vi du OrderStatusChanged',
+        payload JSON not null comment 'Payload JSON gui len Kafka, dung nguyen ven khong bien doi lai',
+        primary key (id)
+    ) comment='Outbox event cho pattern Outbox + Kafka' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
     create table password_reset_token (
         is_used bit not null comment 'Da dung hay chua; dat mat khau thanh cong dat cot nay thanh true',
@@ -265,10 +281,13 @@
     create index idx_product_id 
        on order_item (product_id);
 
-    create index idx_order_id 
+    create index idx_order_id
        on order_status_history (order_id);
 
-    create index idx_user_id 
+    create index idx_status_created
+       on outbox_event (status, created_at);
+
+    create index idx_user_id
        on password_reset_token (user_id);
 
     alter table password_reset_token 

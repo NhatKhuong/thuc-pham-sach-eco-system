@@ -3,9 +3,11 @@ package com.nss;
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.IdempotencyKeyJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderStatusHistoryJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.OutboxEventJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.PasswordResetTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
@@ -121,6 +123,13 @@ class HelloEndpointTest {
 
     @MockBean
     private PasswordResetTokenJPAMapper passwordResetTokenJPAMapper;
+
+    /** Backlog 0032 — Outbox + Kafka: outbox_event/idempotency_key co adapter tu ticket do tro di. */
+    @MockBean
+    private OutboxEventJPAMapper outboxEventJPAMapper;
+
+    @MockBean
+    private IdempotencyKeyJPAMapper idempotencyKeyJPAMapper;
 
     private final MockMvc mockMvc;
 

@@ -1,6 +1,8 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\cronjob\OutboxPublisherJob.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\CartMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\CategoryMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\CouponMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\OrderMailMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\OrderMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\ProductMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\mapper\ReviewMapper.java
@@ -58,6 +60,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-applicati
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\mail\impl\MailAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\mail\MailAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\impl\OrderAppServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\mq\OrderStatusChangedConsumer.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\OrderAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\impl\ProductAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\ProductAppService.java

@@ -14,6 +14,7 @@ com\nss\ddd\domain\model\entity\Brand.class
 com\nss\ddd\domain\model\entity\OrderStatusHistory.class
 com\nss\ddd\domain\model\PublicProductFilter.class
 com\nss\ddd\domain\service\HelloDomainService.class
+com\nss\ddd\domain\model\entity\IdempotencyKey.class
 com\nss\ddd\domain\model\entity\PasswordResetToken.class
 com\nss\ddd\domain\model\entity\Product.class
 com\nss\ddd\domain\service\impl\HelloDomainServiceImpl.class
@@ -36,11 +37,14 @@ com\nss\ddd\domain\model\entity\OrderItem.class
 com\nss\ddd\domain\model\entity\Review.class
 com\nss\ddd\domain\repository\CouponRepository.class
 com\nss\ddd\domain\model\entity\Category.class
+com\nss\ddd\domain\repository\IdempotencyKeyRepository.class
+com\nss\ddd\domain\model\entity\OutboxEvent.class
 com\nss\ddd\domain\model\DailyRevenue.class
 com\nss\ddd\domain\model\entity\Province.class
 com\nss\ddd\domain\model\entity\Role.class
 com\nss\ddd\domain\model\PageResult.class
 com\nss\ddd\domain\model\StockStatus.class
+com\nss\ddd\domain\repository\OutboxEventRepository.class
 com\nss\ddd\domain\service\impl\ReviewDomainServiceImpl.class
 com\nss\ddd\domain\model\ProductSort.class
 com\nss\ddd\domain\service\CategoryDomainService.class

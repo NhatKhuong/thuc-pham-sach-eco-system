@@ -7,9 +7,11 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Category.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Coupon.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\District.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\IdempotencyKey.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Order.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\OrderItem.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\OrderStatusHistory.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\OutboxEvent.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\PasswordResetToken.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Permission.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\model\entity\Product.java
@@ -38,7 +40,9 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\sr
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CategoryRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\CouponRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\HelloRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\IdempotencyKeyRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\OrderRepository.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\OutboxEventRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\PasswordResetTokenRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductImageRepository.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-domain\src\main\java\com\nss\ddd\domain\repository\ProductRepository.java

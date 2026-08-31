@@ -30,6 +30,16 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- spring-kafka-test (backlog 0032 Phase 4): @EmbeddedKafka cho integration test toan luong
+         outbox -> publish -> consume -> MailAppService, khong can container Kafka that. Version do
+         BOM spring-boot-dependencies 3.3.5 quan — khong khai <version>. Test dung no danh @Tag("db")
+         vi van can MySQL that cho Order/OutboxEvent/IdempotencyKey — cung lane voi cac test @Tag("db")
+         khac, loai khoi build mac dinh. -->
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka-test</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

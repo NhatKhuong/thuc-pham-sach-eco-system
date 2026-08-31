@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SchemaSmokeTest {
 
     /**
-     * 5 (sản phẩm) + 7 (user & quyền) + 5 (mua hàng) + 3 (địa giới).
+     * 5 (sản phẩm) + 7 (user & quyền) + 5 (mua hàng) + 3 (địa giới) + 2 (Outbox + Kafka).
      * <p>
      * <b>19 → 20 ở backlog 0017, và con số này chỉ được đổi khi có một ADR chống lưng.</b> Nó tồn
      * tại để chặn việc thêm bảng <i>lặng lẽ</i>: {@code ddl-auto: update} khiến một entity mới biến
@@ -46,9 +46,13 @@ class SchemaSmokeTest {
      * tường minh <b>đúng một bảng</b> đó — không phải một giấy phép chung. Bảng tiếp theo vẫn phải
      * quay lại hỏi.
      * <p>
+     * <b>20 → 22 ở backlog 0032</b> — {@code outbox_event} và {@code idempotency_key}, cả hai đã
+     * được Owner duyệt tường minh qua phiên plan-mode trước khi ticket được persist (xem "Quyết
+     * định Owner" trong ticket).
+     * <p>
      * Sửa hằng số này rồi báo "test vẫn xanh" là làm mất đúng thứ nó bảo vệ.
      */
-    private static final int EXPECTED_TABLE_COUNT = 20;
+    private static final int EXPECTED_TABLE_COUNT = 22;
 
     /**
      * <b>16 → 17 ở backlog 0017</b> — đúng một khoá ngoại mới:

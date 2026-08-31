@@ -1,6 +1,10 @@
 package com.nss.ddd.application.service.mail.impl;
 
+import com.nss.ddd.application.mapper.OrderMailMapper;
+import com.nss.ddd.application.mapper.OrderMapper;
 import com.nss.ddd.application.service.mail.MailAppService;
+import com.nss.ddd.domain.model.entity.Order;
+import com.nss.ddd.domain.model.entity.OrderItem;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -16,10 +20,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Hiện thực đường gửi mail qua SMTP (ADR 0004).
@@ -106,6 +113,15 @@ public class MailAppServiceImpl implements MailAppService {
     /** Tên tham số mang token trên link đặt lại; phải khớp thứ trang frontend đọc ra. */
     private static final String TOKEN_QUERY_PARAM = "token";
 
+    /**
+     * Tên template Thymeleaf của email trạng thái đơn hàng (backlog 0032), <b>không có đuôi
+     * {@code .html}</b> — {@code ThymeleafAutoConfiguration} tự thêm suffix theo
+     * {@code spring.thymeleaf.suffix} (mặc định {@code .html}). File vật lý nằm ở
+     * {@code nss-start/src/main/resources/templates/mail/order-status-changed.html} — xem javadoc
+     * cấp module ở {@code pom.xml} về vì sao module này không tự mang {@code src/main/resources}.
+     */
+    private static final String TEMPLATE_ORDER_STATUS_CHANGED = "mail/order-status-changed";
+
     /** Tên instance breaker — xuất hiện trong mọi dòng log transition, đừng đổi mà không sửa runbook. */
     private static final String CIRCUIT_BREAKER_NAME = "mail";
 
@@ -148,6 +164,12 @@ public class MailAppServiceImpl implements MailAppService {
      */
     private final CircuitBreaker circuitBreaker;
 
+    /**
+     * Dựng HTML của email trạng thái đơn hàng (backlog 0032) — {@code sendPasswordResetMail} không
+     * cần nó vì thân thư của nó vẫn là văn bản thuần.
+     */
+    private final TemplateEngine templateEngine;
+
     private final String fromAddress;
 
     private final String passwordResetUrl;
@@ -169,6 +191,8 @@ public class MailAppServiceImpl implements MailAppService {
      * @param failureRateThreshold ngưỡng tỉ lệ lỗi (phần trăm) để chuyển sang OPEN
      * @param waitDurationInOpenState thời gian ở OPEN trước khi thử lại, dạng ISO-8601 ({@code PT60S})
      * @param permittedCallsInHalfOpenState số lời gọi thăm dò được phép ở HALF_OPEN
+     * @param templateEngine bean Thymeleaf tự cấu hình khi {@code spring-boot-starter-thymeleaf} có
+     *                       mặt trên classpath — dựng HTML cho {@link #sendOrderStatusEmail}
      * @throws IllegalStateException khi cấu hình bắt buộc rỗng hoặc sai dạng
      */
     public MailAppServiceImpl(JavaMailSender javaMailSender,
@@ -179,7 +203,8 @@ public class MailAppServiceImpl implements MailAppService {
                               @Value("${nss.mail.circuit-breaker.minimum-number-of-calls}") int minimumNumberOfCalls,
                               @Value("${nss.mail.circuit-breaker.failure-rate-threshold}") int failureRateThreshold,
                               @Value("${nss.mail.circuit-breaker.wait-duration-in-open-state}") Duration waitDurationInOpenState,
-                              @Value("${nss.mail.circuit-breaker.permitted-calls-in-half-open-state}") int permittedCallsInHalfOpenState) {
+                              @Value("${nss.mail.circuit-breaker.permitted-calls-in-half-open-state}") int permittedCallsInHalfOpenState,
+                              TemplateEngine templateEngine) {
         // Ba phep kiem duoi day chay LUC KHOI DONG, khong doi den lan gui dau tien — xem javadoc lop.
         if (fromAddress == null || fromAddress.isBlank() || !fromAddress.contains("@")) {
             throw new IllegalStateException(
@@ -200,6 +225,7 @@ public class MailAppServiceImpl implements MailAppService {
         this.tokenTtlMinutes = tokenTtl.toMinutes();
         this.circuitBreaker = genCircuitBreaker(slidingWindowSize, minimumNumberOfCalls,
                 failureRateThreshold, waitDurationInOpenState, permittedCallsInHalfOpenState);
+        this.templateEngine = templateEngine;
     }
 
     @Override
@@ -243,6 +269,69 @@ public class MailAppServiceImpl implements MailAppService {
             // thanh mot cai hop den hoan toan — dung thu §11 cam.
             log.error("sendPasswordResetMail: failed | to={}", toEmail, e);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Cùng khuôn ba bước với {@link #sendPasswordResetMail}: dựng nội dung ngoài breaker (lỗi của
+     * chính mình), gửi trong breaker (lỗi của SMTP), tự nuốt mọi exception vì method chạy trên luồng
+     * khác — chỉ khác ở bước dựng nội dung là {@code TemplateEngine.process(...)} thay vì
+     * {@code String.formatted(...)}.
+     */
+    @Override
+    @Async
+    public void sendOrderStatusEmail(String toEmail, Order order, List<OrderItem> items, Integer toStatus) {
+        try {
+            // 1. Dung HTML NGOAI breaker — mot template loi hoac du lieu don thieu truong la loi cua
+            //    chinh minh, khong phai loi cua SMTP.
+            String html = templateEngine.process(TEMPLATE_ORDER_STATUS_CHANGED, genContext(order, items, toStatus));
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(OrderMailMapper.genSubject(order.getCode(), toStatus));
+            // 2. setText(html, true) — KHAC sendPasswordResetMail dung (body, false): day la email
+            //    co dinh dang (Quyet dinh Owner 2), khong phai van ban thuan.
+            helper.setText(html, true);
+            // 3. RANH GIOI BREAKER — dung mot dong, chi boc loi goi send() thuc su noi chuyen voi SMTP.
+            circuitBreaker.executeRunnable(() -> javaMailSender.send(message));
+            log.info("sendOrderStatusEmail: sent | to={} orderCode={} toStatus={}",
+                    toEmail, order.getCode(), toStatus);
+        } catch (CallNotPermittedException e) {
+            log.warn("sendOrderStatusEmail: skipped, circuit breaker is open | to={} orderCode={} breaker={}",
+                    toEmail, order.getCode(), CIRCUIT_BREAKER_NAME);
+        } catch (Exception e) {
+            log.error("sendOrderStatusEmail: failed | to={} orderCode={}", toEmail, order.getCode(), e);
+        }
+    }
+
+    /**
+     * Dựng biến Thymeleaf cho {@link #TEMPLATE_ORDER_STATUS_CHANGED}.
+     *
+     * @param order đơn hàng đã ghi
+     * @param items dòng hàng của đơn, mỗi dòng tự mang {@code name}/{@code quantity}/{@code price}/
+     *              {@code originalPrice}/{@code unit} — template đọc thẳng field của entity
+     * @param toStatus trạng thái mới tại thời điểm event được sinh ra
+     * @return context đã điền đủ biến template cần
+     */
+    private Context genContext(Order order, List<OrderItem> items, Integer toStatus) {
+        Context context = new Context();
+        context.setVariable("orderCode", order.getCode());
+        context.setVariable("customerName", order.getShipping().getFullName());
+        context.setVariable("items", items);
+        // Tien VND: KHONG format o phia Java — de Thymeleaf #numbers.formatInteger(..., 'POINT')
+        // lo tat ca, tu tien order-level lan tung dong hang. Ca hai lam mot phep khong phu thuoc
+        // Locale.getDefault() (tranh dung lai loi DecimalFormat khong tham so da ghi o
+        // OrderAppServiceImpl.genMinOrderValueMessage), va CHI mot noi format thay vi hai co che
+        // (Java DecimalFormat + Thymeleaf numbers) co the lech nhau.
+        context.setVariable("subtotal", order.getSubtotal());
+        context.setVariable("discount", order.getDiscount());
+        context.setVariable("shippingFee", order.getShippingFee());
+        context.setVariable("total", order.getTotal());
+        context.setVariable("statusLabel", OrderMapper.toStatusLabel(toStatus));
+        context.setVariable("statusColor", OrderMailMapper.genStatusColor(toStatus));
+        return context;
     }
 
     /**

@@ -86,3 +86,36 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
     networks:
       - ssn-event-network
+
+  # Kafka broker cho moi truong dev (backlog 0032, architecture/01-overview.md §2/§6).
+  #
+  # KRaft mode, KHONG Zookeeper — dung image chinh chu cua Apache Kafka co ho tro KRaft single-node
+  # don gian bang bien moi truong, khop dung stack §2 da ghi ("Kafka 3.7, KRaft mode").
+  #
+  # HAI LISTENER, khac nhau ve DICH: `PLAINTEXT` (9092) la listener NOI BO container-toi-container
+  # (app se KHONG dung listener nay khi chay tren may host — do o day chi de broker tu quang cao dung
+  # dia chi trong network); `PLAINTEXT_HOST` (9094) la listener app tren may dev thuc su ket noi toi,
+  # dung con so port ma architecture §8 da nhac cho du an tham chieu — giu nep dat port khong chuan
+  # nhu MySQL 3316, tranh dung voi mot cai dat Kafka native tren may.
+  #
+  # AUTO_CREATE_TOPICS bat cho tien dev, nhung topic `order.status-changed` van duoc khai TUONG MINH
+  # qua NewTopic bean cua KafkaTopicConfig (3 partition) luc app khoi dong — auto-create chi la luoi
+  # an toan neu app chua kip chay truoc consumer/producer nao khac.
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: nss-event-kafka
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - ssn-event-network

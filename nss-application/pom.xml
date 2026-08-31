@@ -82,5 +82,38 @@
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-circuitbreaker</artifactId>
     </dependency>
+    <!-- spring-kafka (backlog 0032): KafkaTemplate cho OutboxPublisherJob (cronjob/) va @KafkaListener
+         cho OrderStatusChangedConsumer (service/order/mq/) — ca hai song o module nay. Version do BOM
+         spring-boot-dependencies 3.3.5 quan — khong khai <version>. Khai lai tuong minh du da co
+         transitively qua nss-infrastructure (KafkaTopicConfig), dung tien le oauth2-resource-server:
+         module nao dung thi module do tu khai. -->
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
+    <!-- jackson-databind (backlog 0032): serialize/deserialize OrderStatusChangedMessage <-> JSON o
+         OrderAppServiceImpl (ghi outbox_event.payload) va OrderStatusChangedConsumer (doc payload
+         Kafka). Khac dong jackson-annotations o tren — day la ban dich thuc su, khong chi annotation.
+         ObjectMapper duoc Spring Boot tu dung bean qua JacksonAutoConfiguration mien la class nay co
+         mat tren classpath, khong can spring-boot-starter-web. Version do BOM spring-boot-dependencies
+         3.3.5 quan — khong khai <version>. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- spring-boot-starter-thymeleaf (backlog 0032, Quyet dinh Owner 2): email trang thai don la
+         HTML co dinh dang (bang san pham + badge mau), khac email quen-mat-khau plain text hien co.
+         Dat o day vi MailAppServiceImpl.sendOrderStatusEmail song o module nay. Day la MO RONG STACK
+         that su — Thymeleaf chua co ten trong bang stack architecture §2 o bat ky dang nao truoc
+         ticket nay — nen architecture/01-overview.md §2 duoc cap nhat trong CUNG ticket nay, dung
+         tien le mail o backlog 0017. Version do BOM spring-boot-dependencies 3.3.5 quan — khong khai
+         <version>. Template resolver hoat dong khong can spring-boot-starter-web (ThymeleafAutoConfiguration
+         khong phai cau hinh rieng cho web); file .html van dat o nss-start/src/main/resources vi
+         "chi nss-start co src/main/resources" (architecture muc 1) — o mot jar da dong goi thi cac
+         module khong con classloader rieng nen classpath:/templates/ van tim thay no luc chay. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
   </dependencies>
 </project>

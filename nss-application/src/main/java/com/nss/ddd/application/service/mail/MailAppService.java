@@ -1,5 +1,10 @@
 package com.nss.ddd.application.service.mail;
 
+import com.nss.ddd.domain.model.entity.Order;
+import com.nss.ddd.domain.model.entity.OrderItem;
+
+import java.util.List;
+
 /**
  * Đường gửi mail của hệ thống (ADR 0004).
  * <p>
@@ -39,4 +44,27 @@ public interface MailAppService {
      * @param rawToken chuỗi token thô đặt vào link; <b>không bao giờ được ghi vào log</b>
      */
     void sendPasswordResetMail(String toEmail, String rawToken);
+
+    /**
+     * Gửi email HTML thông báo trạng thái đơn hàng (backlog 0032, Quyết định Owner 2) — kích hoạt
+     * bởi {@code OrderStatusChangedConsumer}, sau khi Kafka đã publish event {@code OrderStatusChanged}.
+     * <p>
+     * <b>Chạy bất đồng bộ, tự nuốt mọi exception, và bọc breaker quanh {@code send()}</b> — tái dùng
+     * đúng ba tính chất của {@link #sendPasswordResetMail}: đường gửi vẫn là cùng một SMTP, cùng một
+     * lớp bảo vệ {@code CircuitBreaker} tên {@code "mail"}. Khác nhau đúng một điểm: thân thư ở đây
+     * là HTML có định dạng (bảng sản phẩm + badge trạng thái theo màu), dựng qua Thymeleaf — không
+     * phải văn bản thuần.
+     * <p>
+     * <b>{@code toStatus} là tham số riêng, KHÔNG đọc từ {@code order.getStatus()}.</b> Đơn có thể
+     * đã chuyển tiếp trạng thái khác trước khi consumer xử lý xong một event cũ hơn (Kafka không
+     * đảm bảo thứ tự tuyệt đối giữa các partition); dùng snapshot trạng thái tại đúng thời điểm
+     * event này được sinh ra tránh email của một transition cũ hiển thị nhầm trạng thái mới nhất.
+     *
+     * @param toEmail địa chỉ nhận — {@code order.shipping.email}, không phải {@code User.email}
+     *                (đơn khách vãng lai không có tài khoản)
+     * @param order đơn hàng đã ghi — dùng để lấy mã đơn, tên người nhận, các khoản tiền
+     * @param items dòng hàng của đơn, để dựng bảng sản phẩm trong email
+     * @param toStatus trạng thái mới của đơn tại thời điểm event được sinh ra, con số cột {@code status}
+     */
+    void sendOrderStatusEmail(String toEmail, Order order, List<OrderItem> items, Integer toStatus);
 }

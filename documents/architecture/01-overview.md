@@ -41,7 +41,8 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 | Spring Boot | **3.3.5** | Import BOM `spring-boot-dependencies`, **không** dùng `spring-boot-starter-parent` |
 | MySQL | 8.0 | HikariCP, `maximum-pool-size: 100`                                                 |
 | Redis | 7.x | Lettuce cho data; **Redisson 3.17.1** riêng cho distributed lock                   |
-| Kafka | 3.7 | KRaft mode, không Zookeeper                                                        |
+| Kafka | 3.7 | KRaft mode, không Zookeeper. **Đã nối dây** (backlog 0032): `spring-kafka` ở `*-infrastructure` (`KafkaTopicConfig`, topic `order.status-changed`, 3 partition) và `*-application` (`OutboxPublisherJob` producer, `OrderStatusChangedConsumer`, `concurrency = 3`). Broker dev trong `environment/docker-compose-dev.yml`, listener host-mapped `9094`. |
+| Thymeleaf |  | `spring-boot-starter-thymeleaf`, khai ở `*-application` (backlog 0032, Quyết định Owner 2). Dựng HTML cho email trạng thái đơn hàng (`MailAppServiceImpl.sendOrderStatusEmail`); email quên-mật-khẩu (backlog 0017) vẫn là văn bản thuần, không qua Thymeleaf. Template vật lý nằm ở `nss-start/src/main/resources/templates/mail/` — "chỉ `*-start` có `src/main/resources`" ở §1 vẫn đúng, module khác chỉ mang code dùng nó. |
 | Guava | 32.1.2-jre | L1 cache in-process (`CacheBuilder`)                                               |
 | Resilience4j | **2.1.0** | **Đã nối dây** ([ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md), backlog 0021): `resilience4j-ratelimiter` ở `*-controller` — biên **vào**, ba tier `auth`/`write`/`read`, vượt trần trả 429; `resilience4j-circuitbreaker` ở `*-application` — biên **ra**, bọc đường gửi SMTP. Version pin bằng **import `resilience4j-bom`** ở root pom ⇒ đúng **một** `<version>` (`pom.xml:94`) cho cả dòng. **Không** dùng `resilience4j-spring-boot3` (starter đó kéo theo AOP + Actuator) |
 | Actuator + micrometer-registry-prometheus | 1.13.6 |                                                                                    |
@@ -71,10 +72,19 @@ done
 
 Đo ngày **2026-08-26** — `kafka 0`, `guava 0`, `actuator 0`, `micrometer 0`, `logstash 0`,
 **`resilience 3`**, `redis 0`, `lettuce 0`, `redisson 0`; control dương `mysql 1`, `mail 1` ⇒ **tám
-trên chín ra 0**. Còn chưa nối dây: Redis, Lettuce, Redisson, Kafka, Guava, Actuator,
-`micrometer-registry-*`, logstash-logback-encoder. **Resilience4j đã rời danh sách này** — 3 khai báo
-ở đúng 3 file: `pom.xml:93` (BOM, chỉ pin version), `nss-controller/pom.xml:59` (`ratelimiter`),
-`nss-application/pom.xml:83` (`circuitbreaker`).
+trên chín ra 0**. Còn chưa nối dây (tại thời điểm đó): Redis, Lettuce, Redisson, Kafka, Guava,
+Actuator, `micrometer-registry-*`, logstash-logback-encoder. **Resilience4j đã rời danh sách này** —
+3 khai báo ở đúng 3 file: `pom.xml:93` (BOM, chỉ pin version), `nss-controller/pom.xml:59`
+(`ratelimiter`), `nss-application/pom.xml:83` (`circuitbreaker`).
+
+**Kafka cũng đã rời danh sách này, ở backlog 0032.** Đo lại cùng lệnh `<artifactId>` ngày
+**2026-08-31**: `kafka 2` (`nss-infrastructure/pom.xml`, `nss-application/pom.xml` — cả hai khai
+`spring-kafka` tường minh, cùng lý do đã ghi cho `resilience4j`: module nào dùng thì module đó tự
+khai dù dependency đã sẵn có transitively), control dương không đổi. Ba class chứng minh nó thật sự
+chạy chứ không chỉ nằm trong `pom.xml`: `KafkaTopicConfig` (infra, `NewTopic` bean), `OutboxPublisherJob`
+(application `cronjob/`, publisher), `OrderStatusChangedConsumer` (application `service/order/mq/`,
+`@KafkaListener`). Bảng `outbox_event` + `idempotency_key` cũng đo được trong
+`environment/mysql/init/01-schema.sql` và trong `SchemaSmokeTest.EXPECTED_TABLE_COUNT` (20 → 22).
 
 > **Chữ `registry` trong "micrometer" là load-bearing — đừng rút gọn thành "không có micrometer".**
 > Jar đóng gói **có** mang `micrometer-observation-1.13.6` + `micrometer-commons-1.13.6`; nguồn là
@@ -105,6 +115,14 @@ for t in redis resilience kafka; do echo "$t: $(sed 's/#.*$//' $Y | grep -ci "$t
 Ngưỡng của lớp bảo vệ sống dưới namespace của chính dự án (`nss.rate-limit.*`,
 `nss.mail.circuit-breaker.*`) và được đọc bằng `@Value` — Resilience4j ở đây dùng **API lập trình**,
 không qua autoconfiguration, nên nối dây nó **không** sinh ra khoá `resilience4j.*` nào.
+
+**`kafka` đổi từ 0 lên khác 0 ở backlog 0032, và đây là ca NGƯỢC với Resilience4j.** Đo lại ngày
+2026-08-31: `kafka` (bỏ comment, đếm không phân biệt hoa thường) xuất hiện nhiều lần — khối
+`spring.kafka.*` (`bootstrap-servers`, `producer.*`, `consumer.*`) là cấu hình **thật**, không phải
+comment. Khác Resilience4j (dùng API lập trình, không sinh khoá `resilience4j.*`), Spring Kafka đi
+qua **autoconfiguration chuẩn** của Spring Boot nên có khoá `spring.kafka.*` là đúng dự kiến — không
+phải một ngoại lệ cần giải thích, chỉ là hai thư viện chọn hai cách nối dây khác nhau. `redis` và
+`resilience` (khoá `resilience4j.*`) vẫn `0` — không đổi.
 
 > **Vì sao phải đếm `<artifactId>` chứ không `grep` chuỗi trần:** phép đo cũ trong tài liệu này đếm
 > chuỗi, và nó **tự hỏng ngay trong ticket đầu tiên viết một comment nhắc tên Redis** —
@@ -303,6 +321,26 @@ Bốn quy tắc không được phá:
 3. **`TransactionTemplate`, không `@Transactional`**, khi write nằm trong self-call / lambda — self-call không đi qua Spring AOP proxy.
 4. Publisher chỉ `UPDATE status=1` **sau khi** broker ACK. Fail thì để nguyên `status=0`, chu kỳ sau retry.
 
+> **Triển khai THẬT đầu tiên của Luồng B trong dự án này: `OrderStatusChanged` (backlog 0032).**
+> Khác blueprint ở trên đúng hai chỗ, cả hai đều có lý do:
+>
+> - **Không có bảng `<business>_queue` và không có `GET .../status/{token}`.** Blueprint là cho một
+>   luồng *request/response bất đồng bộ* (client cần biết kết quả). Event `OrderStatusChanged` là
+>   một **thông báo một chiều** (khách không "chờ" email) nên không có gì để client poll — bỏ hẳn
+>   nửa "queue + status endpoint", chỉ giữ nửa "outbox → Kafka → consumer".
+> - **Không dùng `TransactionTemplate` ở điểm ghi.** Blueprint cần nó vì viết trong self-call/lambda.
+>   `OrderAppServiceImpl.genOutboxOrderStatusChangedEvent` là một lời gọi method **thường** tới bean
+>   khác (`OutboxEventRepository`), từ bên trong một method đã `@Transactional` sẵn
+>   (`createOrder`/`changeOrderStatus`) — Spring AOP proxy vẫn chặn được, nên nó tự động tham gia
+>   đúng transaction đang mở mà không cần bọc thêm.
+>
+> Bốn quy tắc bất biến còn lại giữ nguyên 100%: `OutboxPublisherJob` (application `cronjob/`) chỉ
+> `UPDATE status=1` sau ACK; `OrderStatusChangedConsumer` (application `service/order/mq/`) chèn
+> `idempotency_key` bằng `INSERT IGNORE` **trong** transaction `@Transactional(rollbackFor =
+> Exception.class)`; Kafka record key = `OutboxEvent.id` (chuỗi hoá) — không phải `token`, vì aggregate
+> ở đây có sẵn khoá tự nhiên (`Order.code`) và không cần sinh thêm một chuỗi ngẫu nhiên chỉ để định
+> danh event.
+
 ---
 
 ## 7. Response envelope
@@ -377,8 +415,8 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 | `spring-boot-maven-plugin` 3.4.0 lệch BOM 3.3.5 | Đồng bộ một version |
 | Hai namespace validation cùng classpath (`javax` + `jakarta`) | Chỉ `jakarta.validation` |
 | Redisson hardcode address, tách rời `spring.data.redis` | Một nguồn cấu hình |
-| `@KafkaListener(concurrency="10")` trên topic 3 partition | `concurrency` ≤ số partition |
-| Không có DLT / retry policy — mất bản ghi sau 10 lần thử | Cấu hình `DefaultErrorHandler` + DLT |
+| `@KafkaListener(concurrency="10")` trên topic 3 partition | `concurrency` ≤ số partition — **đã làm đúng ở backlog 0032**: topic `order.status-changed` 3 partition, `OrderStatusChangedConsumer` khai `concurrency = "3"` |
+| Không có DLT / retry policy — mất bản ghi sau 10 lần thử | Cấu hình `DefaultErrorHandler` + DLT — **CHƯA làm ở backlog 0032**, dùng nguyên retry mặc định của Spring Boot (không DLT). Ghi nhận là nợ kỹ thuật còn mở, không phải một ô đã làm đúng; xem Outcome của backlog 0032 |
 | Cache Redis không đặt TTL | Luôn `set` kèm TTL |
 | Không có `@RestControllerAdvice` — lỗi ngoài dự kiến trả body sai envelope | Bắt buộc có (xem `coding-conventions.md` §11) |
 | Nhiều khối code comment-out 20-45 dòng | Xoá; git giữ lịch sử |
@@ -388,4 +426,8 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-08-26 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-31 — backlog 0032: Kafka + Thymeleaf rời danh sách "có tên nhưng chưa nối dây"
+(§2), đo lại `<artifactId>` và khoá `application.yml`; §6 thêm callout "triển khai THẬT" cho
+`OrderStatusChanged` (khác blueprint ở chỗ không có `<business>_queue`/status endpoint, không cần
+`TransactionTemplate`); §11 cập nhật hai dòng Kafka (`concurrency` đã đúng, DLT vẫn là nợ mở). Trước
+đó: 2026-08-26 — §2 + §7: bỏ hậu tố `*DTO`...*

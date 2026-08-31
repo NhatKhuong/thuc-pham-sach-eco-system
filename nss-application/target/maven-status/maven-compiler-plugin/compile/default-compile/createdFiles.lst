@@ -10,6 +10,7 @@ com\nss\ddd\application\model\command\ChangePasswordCommand.class
 com\nss\ddd\application\model\response\OrderMutationResponse.class
 com\nss\ddd\application\mapper\ReviewMapper.class
 com\nss\ddd\application\model\response\ReviewMutationResponse.class
+com\nss\ddd\application\mapper\OrderMailMapper.class
 com\nss\ddd\application\model\command\UpdateProfileCommand.class
 com\nss\ddd\application\service\product\ProductAppService.class
 com\nss\ddd\application\service\customer\impl\CustomerAppServiceImpl.class
@@ -23,6 +24,7 @@ com\nss\ddd\application\model\response\ProfileMutationResponse.class
 com\nss\ddd\application\service\cart\CartAppService.class
 com\nss\ddd\application\mapper\CategoryMapper.class
 com\nss\ddd\application\service\stats\StatsAppService.class
+com\nss\ddd\application\cronjob\OutboxPublisherJob.class
 com\nss\ddd\application\service\auth\impl\AuthAppServiceImpl.class
 com\nss\ddd\application\model\command\ResetPasswordCommand.class
 com\nss\ddd\application\service\category\impl\CategoryAppServiceImpl.class
@@ -41,6 +43,7 @@ com\nss\ddd\application\model\command\CreateProductCommand.class
 com\nss\ddd\application\model\response\ProductMutationResponse.class
 com\nss\ddd\application\service\review\impl\ReviewAppServiceImpl.class
 com\nss\ddd\application\model\response\AdminOverviewResponse.class
+com\nss\ddd\application\service\order\mq\OrderStatusChangedConsumer.class
 com\nss\ddd\application\service\hello\HelloAppService.class
 com\nss\ddd\application\mapper\CouponMapper.class
 com\nss\ddd\application\model\response\ShippingInfoResponse.class

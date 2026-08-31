@@ -59,6 +59,28 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
+  kafka:
+    # Broker Kafka (backlog 0032, architecture/01-overview.md §6). Theo dung nep ${ENV_VAR:dev-default}.
+    # Mac dinh khop service `kafka` cua environment/docker-compose-dev.yml, listener host-mapped 9094 —
+    # cung con so port ma architecture §8 da nhac toi cho du an tham chieu, giu tinh nhat quan voi
+    # cach dat port khong chuan cua MySQL (3316) de tranh dung cong voi cai dat native tren may.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # acks=all: OutboxPublisherJob cho ACK tu MOI in-sync replica truoc khi UPDATE status=1 (quy
+      # tac bat bien so 4, §6) — dev chi 1 broker nen thuc te la ACK cua chinh no, nhung khai tuong
+      # minh de moi truong nhieu broker sau nay khong phai doi lai.
+      acks: all
+    consumer:
+      # group-id CHUNG cho moi instance cua OrderStatusChangedConsumer — nhieu instance cung group
+      # thi Kafka tu chia partition, khong xu ly trung.
+      group-id: nss-order-status-changed
+      # earliest: instance moi (hoac group-id moi) khong bo sot event cu con PENDING trong topic.
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
   mvc:
     problemdetails:
       # RFC 7807: loi tra ve dang ProblemDetail thay vi body mac dinh {timestamp,status,error,path}

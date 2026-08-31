@@ -3,6 +3,7 @@ package com.nss;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Điểm khởi động duy nhất của service.
@@ -19,8 +20,15 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * `application.yml` nên Spring Boot 3.3 tự cấp cho `@Async` một executor chạy trên virtual thread.
  * Thêm một pool thủ công ở đây sẽ <i>ghi đè</i> lựa chọn đó và lặng lẽ đưa luồng gửi mail về pool
  * nền tảng.
+ * <p>
+ * <b>`@EnableScheduling` phục vụ `OutboxPublisherJob` (backlog 0032).</b> Thiếu annotation này thì
+ * `@Scheduled(fixedDelay = 1000)` không lỗi gì cả lúc khởi động và không có gì cảnh báo — job chỉ
+ * đơn giản <i>không bao giờ chạy</i>, outbox chất đống ở {@code status=PENDING} mãi mãi, và triệu
+ * chứng duy nhất là "email không bao giờ tới" nhiều giờ sau. Phát hiện bằng cách chạy hành vi thật
+ * (đặt đơn, chờ, không thấy email) trong lúc kiểm chứng ticket 0032.
  */
 @EnableAsync
+@EnableScheduling
 @SpringBootApplication
 public class StartApplication {
 

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.thymeleaf.TemplateEngine;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,6 +52,13 @@ class MailCircuitBreakerTest {
     private static final String RAW_TOKEN = "raw-token-for-test";
 
     /**
+     * {@code TemplateEngine} trần, không cấu hình resolver — hợp lệ ở đây vì không ca nào trong file
+     * này gọi {@code sendOrderStatusEmail} (xem {@code OrderStatusChangedEmailMailAppServiceTest} và
+     * {@code OrderMailMapperTest} cho phần đó của backlog 0032).
+     */
+    private static final TemplateEngine STUB_TEMPLATE_ENGINE = new TemplateEngine();
+
+    /**
      * Bộ gửi giả đếm số lần {@code send} được gọi thật.
      * <p>
      * <b>Số lần gọi là bằng chứng, không phải exception.</b> Một breaker "mở" mà vẫn để lời gọi đi
@@ -91,7 +99,7 @@ class MailCircuitBreakerTest {
                                           int halfOpenCalls) {
         return new MailAppServiceImpl(sender, FROM, RESET_URL, TOKEN_TTL,
                 slidingWindowSize, minimumNumberOfCalls, failureRatePercent, WAIT_IN_OPEN,
-                halfOpenCalls);
+                halfOpenCalls, STUB_TEMPLATE_ENGINE);
     }
 
     // ========== BREAKER DEM THAT ==========
@@ -214,7 +222,7 @@ class MailCircuitBreakerTest {
     void invalidWaitDurationFailsAtStartup() {
         IllegalStateException e = assertThrows(IllegalStateException.class,
                 () -> new MailAppServiceImpl(new CountingMailSender(false), FROM, RESET_URL,
-                        TOKEN_TTL, 20, 10, 50, Duration.ZERO, 3));
+                        TOKEN_TTL, 20, 10, 50, Duration.ZERO, 3, STUB_TEMPLATE_ENGINE));
         assertTrue(e.getMessage().contains("nss.mail.circuit-breaker.wait-duration-in-open-state"),
                 e.getMessage());
     }

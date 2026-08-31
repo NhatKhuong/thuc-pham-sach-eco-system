@@ -1,5 +1,7 @@
 package com.nss.ddd.application.service.order.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nss.ddd.application.mapper.OrderMapper;
 import com.nss.ddd.application.model.command.CartItemCommand;
 import com.nss.ddd.application.model.command.CreateOrderCommand;
@@ -13,12 +15,15 @@ import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.entity.Coupon;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OrderItem;
+import com.nss.ddd.domain.model.entity.OutboxEvent;
 import com.nss.ddd.domain.model.entity.Product;
 import com.nss.ddd.domain.model.entity.ProductImage;
 import com.nss.ddd.domain.model.entity.User;
+import com.nss.ddd.domain.repository.OutboxEventRepository;
 import com.nss.ddd.domain.service.CouponDomainService;
 import com.nss.ddd.domain.service.OrderDomainService;
 import com.nss.ddd.domain.service.ProductDomainService;
+import com.nss.ddd.infrastructure.mq.OrderStatusChangedMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +36,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,11 +112,18 @@ public class OrderAppServiceImpl implements OrderAppService {
     private static final String MESSAGE_UNKNOWN_STATUS =
             "Trạng thái đơn hàng không hợp lệ, vui lòng chọn lại.";
 
+    /** Loại event ghi vào {@code outbox_event.event_type} — khớp §Contract của backlog 0032. */
+    private static final String EVENT_TYPE_ORDER_STATUS_CHANGED = "OrderStatusChanged";
+
     private final OrderDomainService orderDomainService;
 
     private final CouponDomainService couponDomainService;
 
     private final ProductDomainService productDomainService;
+
+    private final OutboxEventRepository outboxEventRepository;
+
+    private final ObjectMapper objectMapper;
 
     // ========== GHI ==========
 
@@ -235,6 +248,10 @@ public class OrderAppServiceImpl implements OrderAppService {
         // 5. INSERT dong dau order_status_history (§Contract 9 buoc 5)
         orderDomainService.recordCreation(saved, genChangedBy(command.getUserId()), nowUtc);
 
+        // 6. Outbox event OrderStatusChanged (backlog 0032) — CUNG transaction, KHONG goi Kafka
+        //    truc tiep. fromStatus=null: don vua duoc tao, khong di TU dau ca.
+        genOutboxOrderStatusChangedEvent(saved, null, OrderDomainService.STATUS_PENDING, nowUtc);
+
         log.info("createOrder: success | orderId={} code={} userId={} total={} itemCount={}",
                 saved.getId(), saved.getCode(), command.getUserId(), total, savedItems.size());
         return OrderMutationResponse.success(OrderMapper.toResponse(saved, savedItems));
@@ -344,10 +361,12 @@ public class OrderAppServiceImpl implements OrderAppService {
             return OrderMutationResponse.failed(OrderMutationResponse.CODE_INVALID_ORDER_DATA,
                     genInvalidTransitionMessage(fromStatus, toStatus));
         }
-        // 4. Hai write trong CUNG transaction: cot status cua don, va mot dong nhat ky moi
+        // 4. Ba write trong CUNG transaction: cot status cua don, mot dong nhat ky moi, va outbox
+        //    event OrderStatusChanged (backlog 0032) — KHONG goi Kafka truc tiep trong request.
         LocalDateTime nowUtc = genNowUtcToSecond();
         Order saved = orderDomainService.updateStatus(order, toStatus, nowUtc);
         orderDomainService.recordTransition(saved, fromStatus, toStatus, changedBy, nowUtc);
+        genOutboxOrderStatusChangedEvent(saved, fromStatus, toStatus, nowUtc);
 
         List<OrderItem> items = orderDomainService
                 .findItemsGroupedByOrderId(List.of(saved.getId()))
@@ -358,6 +377,51 @@ public class OrderAppServiceImpl implements OrderAppService {
     }
 
     // ========== HELPERS ==========
+
+    /**
+     * Ghi một dòng {@code outbox_event} cho event {@code OrderStatusChanged} (backlog 0032, §6).
+     * <p>
+     * <b>Chỉ gọi {@code outboxEventRepository.save(...)} — không gọi Kafka.</b> Bean này chạy trong
+     * cùng transaction do {@code createOrder}/{@code changeOrderStatus} đã mở (cả hai đều
+     * {@code @Transactional}), nên một lời gọi method thường tới bean khác vẫn tham gia đúng
+     * transaction đó — không cần {@code TransactionTemplate} như pattern self-call/lambda ở blueprint
+     * §6, vì đây không phải self-call.
+     * <p>
+     * <b>Ném {@code IllegalStateException} thay vì nuốt lỗi serialize.</b> Một
+     * {@code OrderStatusChangedMessage} không serialize được là lỗi lập trình, không phải một thất
+     * bại nghiệp vụ dự kiến được — để nó rollback cả transaction còn hơn ghi một đơn hàng mà không
+     * ai được báo trạng thái.
+     *
+     * @param order đơn đã ghi (đã có id) tại thời điểm chuyển trạng thái này
+     * @param fromStatus trạng thái trước khi chuyển; {@code null} khi đơn vừa được tạo
+     * @param toStatus trạng thái sau khi chuyển
+     * @param changedAt thời điểm chuyển, giờ UTC — cùng mốc với bản ghi nghiệp vụ
+     */
+    private void genOutboxOrderStatusChangedEvent(Order order, Integer fromStatus, Integer toStatus,
+                                                   LocalDateTime changedAt) {
+        OrderStatusChangedMessage message = new OrderStatusChangedMessage()
+                .setOrderId(order.getId())
+                .setCode(order.getCode())
+                .setFromStatus(fromStatus)
+                .setToStatus(toStatus)
+                .setShippingEmail(order.getShipping() == null ? null : order.getShipping().getEmail())
+                .setChangedAt(DateTimeFormatter.ISO_INSTANT.format(changedAt.toInstant(ZoneOffset.UTC)));
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(message);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "Khong the serialize OrderStatusChangedMessage cho don " + order.getCode(), e);
+        }
+        outboxEventRepository.save(new OutboxEvent()
+                .setAggregateId(order.getCode())
+                .setEventType(EVENT_TYPE_ORDER_STATUS_CHANGED)
+                .setPayload(payload)
+                .setStatus(OutboxEvent.STATUS_PENDING)
+                .setCreatedAt(changedAt));
+        log.info("genOutboxOrderStatusChangedEvent: outbox ghi | orderId={} code={} from={} to={}",
+                order.getId(), order.getCode(), fromStatus, toStatus);
+    }
 
     /**
      * Dựng kết quả thất bại và <b>đánh dấu transaction phải rollback</b>.

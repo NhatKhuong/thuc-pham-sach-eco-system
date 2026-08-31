@@ -434,6 +434,7 @@ Cùng loại lỗi, khác phép toán: quy ước **bỏ dấu** cho tìm kiếm
 - [ ] Không đưa `INSERT IGNORE idempotency_key` ra ngoài transaction của consumer
 - [ ] Không chép lại phép bỏ dấu thành bản thứ hai — dùng lại đúng một hàm (§18)
 - [ ] Không đặt ranh giới breaker ngoài khối tự nuốt exception; không để `RateLimiter` chạy `timeoutDuration` mặc định (§20)
+- [ ] Không thêm `@Scheduled` job mới mà thiếu smoke assertion xác nhận `@EnableScheduling` thực sự bật (bean `ScheduledAnnotationBeanPostProcessor` trong context, không chờ timer) — thiếu `@EnableScheduling` không lỗi gì lúc khởi động, job chỉ lặng lẽ không bao giờ chạy; ca thật: `OutboxPublisherJob` ở backlog 0032, mẫu test ở `SchedulingEnabledSmokeTest` (backlog 0033)
 
 ---
 
@@ -533,4 +534,6 @@ try {
 
 ---
 
-*Last updated: 2026-08-26 — §3 + §7: bỏ hậu tố `*DTO` (0 file `*DTO.java`, 0 `toDTO`; thật là `*Response` 19 file / `toResponse` 87 lần), ghi ranh giới **vào `*Request`→`*Command`** / **ra `*Response`** và hai vai của `*Response`; ví dụ mapper + static factory thay bằng class có thật; mọi con trỏ `API_CONTRACT.md` ghi rõ **mirror + ngày đồng bộ** (backlog 0029). Trước đó: §11: kéo Pattern A/B về khớp code — `ProblemDetail` + mã HTTP thật thay envelope `ResultMessage`/`ResultUtil`, validate là **422 + `errors`** chứ không phải 400, kèm lý do và trỏ ADR 0001; §7 sửa đuôi chuỗi chuyển đổi (backlog 0028). Trước đó: §1 validation message chuyển sang **Tiếng Việt** + ghi ranh giới phân nhóm (backlog 0026). Cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-31 — §17: thêm checklist "`@Scheduled` job mới phải có smoke assertion xác
+nhận `@EnableScheduling`", trỏ về ca thật `StartApplication` thiếu annotation này ở backlog 0032 và
+test mẫu `SchedulingEnabledSmokeTest` (backlog 0033). Trước đó: 2026-08-26 — §3 + §7: bỏ hậu tố `*DTO` (0 file `*DTO.java`, 0 `toDTO`; thật là `*Response` 19 file / `toResponse` 87 lần), ghi ranh giới **vào `*Request`→`*Command`** / **ra `*Response`** và hai vai của `*Response`; ví dụ mapper + static factory thay bằng class có thật; mọi con trỏ `API_CONTRACT.md` ghi rõ **mirror + ngày đồng bộ** (backlog 0029). Trước đó: §11: kéo Pattern A/B về khớp code — `ProblemDetail` + mã HTTP thật thay envelope `ResultMessage`/`ResultUtil`, validate là **422 + `errors`** chứ không phải 400, kèm lý do và trỏ ADR 0001; §7 sửa đuôi chuỗi chuyển đổi (backlog 0028). Trước đó: §1 validation message chuyển sang **Tiếng Việt** + ghi ranh giới phân nhóm (backlog 0026). Cập nhật stamp này trong cùng lần sửa nội dung.*

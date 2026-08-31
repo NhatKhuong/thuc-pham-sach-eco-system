@@ -29,5 +29,15 @@
       <artifactId>mysql-connector-j</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- spring-kafka (backlog 0032, architecture/01-overview.md §6): KafkaTopicConfig (NewTopic bean)
+         song o day, dung package config/ da co san. Version do BOM spring-boot-dependencies 3.3.5
+         quan — khong khai <version>. nss-application khai lai tuong minh cho KafkaTemplate va
+         @KafkaListener cua OutboxPublisherJob / OrderStatusChangedConsumer — dung tien le
+         oauth2-resource-server o tren: Maven chi truyen dependency XUOI, module nao dung thi module
+         do tu khai. -->
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
   </dependencies>
 </project>
