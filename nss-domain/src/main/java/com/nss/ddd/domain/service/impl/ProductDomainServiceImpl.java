@@ -1,7 +1,9 @@
 package com.nss.ddd.domain.service.impl;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.StockStatus;
 import com.nss.ddd.domain.model.TextNormalizer;
 import com.nss.ddd.domain.model.entity.Brand;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -72,11 +75,6 @@ public class ProductDomainServiceImpl implements ProductDomainService {
     private final BrandRepository brandRepository;
 
     // ========== READ ==========
-
-    @Override
-    public PageResult<Product> findPage(int page, int limit) {
-        return productRepository.findPage(page, limit);
-    }
 
     /**
      * {@inheritDoc}
@@ -216,6 +214,56 @@ public class ProductDomainServiceImpl implements ProductDomainService {
         return productImageRepository.findByProductIdIn(productIds).stream()
                 .collect(Collectors.groupingBy(image -> image.getProduct().getId()));
     }
+
+    // ========== §B.1 CONG KHAI ==========
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Cùng kỷ luật với {@link #findAdminPage(ProductFilter)}: dựng {@code PublicProductFilter} MỚI
+     * với {@code keyword} đã bỏ dấu, không sửa tại chỗ đối tượng của phía gọi.
+     */
+    @Override
+    public PageResult<Product> findPublicPage(PublicProductFilter filter) {
+        return productRepository.findPublicPage(PublicProductFilter.of(
+                genSearchKeyword(filter.getKeyword()),
+                filter.getCategorySlug(),
+                filter.getMinPrice(),
+                filter.getMaxPrice(),
+                filter.getMinRating(),
+                filter.getInStockOnly(),
+                filter.getOnSaleOnly(),
+                filter.getIsFeatured(),
+                filter.getIsBestSeller(),
+                filter.getSort(),
+                filter.getPage(),
+                filter.getLimit()));
+    }
+
+    @Override
+    public List<Product> findByIds(Collection<Long> ids) {
+        return productRepository.findByIds(ids);
+    }
+
+    @Override
+    public List<Product> findRelated(Product product, int limit) {
+        if (product == null || product.getCategory() == null) {
+            return Collections.emptyList();
+        }
+        return productRepository.findRelated(product.getCategory().getId(), product.getId(), limit);
+    }
+
+    @Override
+    public List<Product> findSuggestions(String keyword, int limit) {
+        return productRepository.findSuggestions(genSearchKeyword(keyword), limit);
+    }
+
+    @Override
+    public PriceRange findPriceRange() {
+        return productRepository.findPriceRange();
+    }
+
+    // ========== IMAGES ==========
 
     @Override
     public List<ProductImage> replaceImages(Product product, List<String> urls) {

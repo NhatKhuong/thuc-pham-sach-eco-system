@@ -3,9 +3,13 @@ package com.nss.ddd.application.service.product;
 import com.nss.ddd.application.model.command.CreateProductCommand;
 import com.nss.ddd.application.model.command.UpdateProductCommand;
 import com.nss.ddd.application.model.response.PaginatedResponse;
+import com.nss.ddd.application.model.response.PriceRangeResponse;
 import com.nss.ddd.application.model.response.ProductMutationResponse;
 import com.nss.ddd.application.model.response.ProductResponse;
 import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.PublicProductFilter;
+
+import java.util.List;
 
 /**
  * Use case CRUD sản phẩm — điều phối giữa domain service và các kiểu của bề mặt dây.
@@ -13,11 +17,11 @@ import com.nss.ddd.domain.model.ProductFilter;
  * Không có quy tắc nghiệp vụ nào ở đây: quy tắc sống trong {@code ProductDomainService}, tầng này
  * chỉ hỏi domain rồi lắp kết quả thành response.
  * <p>
- * <b>Hai đường đọc danh sách, phục vụ hai bề mặt khác nhau.</b> {@link #findProducts(int, int)} là
- * trang cửa hàng công khai (§B.1): chỉ {@code page} và {@code limit}, thứ tự cố định.
- * {@link #findAdminProducts(ProductFilter)} là bảng quản trị (§B.12.1): có lọc, có sắp xếp, và nằm
- * sau hàng rào {@code /api/admin/**}. Chúng cố ý không dùng chung chữ ký — xem javadoc
- * {@code ProductRepository#findAdminPage}.
+ * <b>Hai đường đọc danh sách CÓ PHÂN TRANG, phục vụ hai bề mặt khác nhau.</b> {@link #findProducts}
+ * là trang cửa hàng công khai (§B.1): mười hai tham số lọc/sắp xếp/phân trang.
+ * {@link #findAdminProducts(ProductFilter)} là bảng quản trị (§B.12.1): sáu tham số, nằm sau hàng
+ * rào {@code /api/admin/**}. Chúng cố ý không dùng chung chữ ký — xem javadoc
+ * {@code ProductRepository#findAdminPage} và {@code PublicProductFilter}.
  * <p>
  * Trang cửa hàng đọc bằng {@code slug}, khu quản trị đọc bằng {@code id} (§B.12.1): frontend dựng
  * URL cửa hàng từ slug, còn admin sửa được chính cái slug đó nên đường dẫn màn sửa không được treo
@@ -26,13 +30,13 @@ import com.nss.ddd.domain.model.ProductFilter;
 public interface ProductAppService {
 
     /**
-     * Một trang sản phẩm còn hiệu lực.
+     * Một trang sản phẩm còn hiệu lực, có lọc và có sắp xếp — {@code GET /products} công khai (§B.1).
      *
-     * @param page số trang, <b>đánh số từ 1</b>; giá trị nhỏ hơn 1 được kéo về 1
-     * @param limit số phần tử mỗi trang; giá trị nhỏ hơn 1 được kéo về mặc định
+     * @param filter điều kiện lọc; {@code page} nhỏ hơn 1 được kéo về 1, {@code limit} nhỏ hơn 1
+     *               được kéo về mặc định 12
      * @return trang sản phẩm theo dạng {@code Paginated<Product>} của §A.4
      */
-    PaginatedResponse<ProductResponse> findProducts(int page, int limit);
+    PaginatedResponse<ProductResponse> findProducts(PublicProductFilter filter);
 
     /**
      * Một trang sản phẩm cho bảng quản trị — có lọc, có sắp xếp (§B.12.1).
@@ -85,4 +89,38 @@ public interface ProductAppService {
      * @return true nếu có một sản phẩm còn hiệu lực vừa được xoá mềm; false khi không tìm thấy
      */
     boolean deleteProduct(Long id);
+
+    /**
+     * Nhiều sản phẩm còn hiệu lực theo một tập id — {@code GET /products?ids=} (§B.1).
+     *
+     * @param ids các khóa chính cần tra; {@code null} hoặc rỗng cho ra danh sách rỗng
+     * @return các sản phẩm còn hiệu lực khớp {@code ids}; thứ tự không đảm bảo
+     */
+    List<ProductResponse> findProductsByIds(List<Long> ids);
+
+    /**
+     * Sản phẩm "liên quan" tới một sản phẩm gốc — {@code GET /products/{slug}/related} (§B.1).
+     *
+     * @param slug slug của sản phẩm gốc
+     * @param limit số sản phẩm tối đa cần lấy; giá trị nhỏ hơn 1 được kéo về mặc định 4
+     * @return danh sách sản phẩm liên quan, hoặc {@code null} khi {@code slug} không tồn tại /
+     *         đã bị xoá mềm — tín hiệu để controller trả {@code 404}
+     */
+    List<ProductResponse> findRelatedProducts(String slug, int limit);
+
+    /**
+     * Gợi ý tìm kiếm — {@code GET /products/suggest} (§B.1).
+     *
+     * @param q từ khoá thô client gửi, có thể {@code null}
+     * @param limit số gợi ý tối đa cần lấy; giá trị nhỏ hơn 1 được kéo về mặc định 5
+     * @return sản phẩm còn hiệu lực khớp {@code q}
+     */
+    List<ProductResponse> findSuggestions(String q, int limit);
+
+    /**
+     * Khoảng giá {@code MIN}/{@code MAX} trên mọi sản phẩm còn hiệu lực — {@code GET /products/price-range} (§B.1).
+     *
+     * @return khoảng giá theo {@code effectivePrice}
+     */
+    PriceRangeResponse findPriceRange();
 }

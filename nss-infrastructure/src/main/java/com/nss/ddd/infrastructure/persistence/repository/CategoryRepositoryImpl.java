@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -22,5 +23,20 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     @Override
     public Optional<Category> findById(Long id) {
         return categoryJPAMapper.findById(id);
+    }
+
+    @Override
+    public List<Category> findAll() {
+        return categoryJPAMapper.findAllByOrderByNameAsc();
+    }
+
+    @Override
+    public List<Category> findRootCategories() {
+        return categoryJPAMapper.findByParentIsNullOrderByNameAsc();
+    }
+
+    @Override
+    public Optional<Category> findBySlug(String slug) {
+        return categoryJPAMapper.findBySlug(slug);
     }
 }

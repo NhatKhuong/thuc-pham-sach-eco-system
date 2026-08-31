@@ -4,10 +4,15 @@ import com.nss.ddd.application.model.command.CreateProductCommand;
 import com.nss.ddd.application.model.command.UpdateProductCommand;
 import com.nss.ddd.controller.dto.CreateProductRequest;
 import com.nss.ddd.controller.dto.UpdateProductRequest;
+import com.nss.ddd.controller.exception.InvalidFilterValueException;
 import com.nss.ddd.domain.model.ProductFilter;
 import com.nss.ddd.domain.model.ProductSort;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.StockStatus;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -118,6 +123,108 @@ public final class ProductControllerMapper {
             return null;
         }
         return value.trim();
+    }
+
+    /** Năm giá trị hợp lệ của {@code sort}, dùng để dựng thông điệp 422 — khớp {@link ProductSort}. */
+    private static final String VALID_SORT_VALUES = "newest, price_asc, price_desc, best_selling, rating";
+
+    /**
+     * Gom mười hai tham số truy vấn của {@code GET /api/products} công khai thành điều kiện lọc của
+     * domain (API_CONTRACT §B.1).
+     *
+     * @param q từ khoá tìm kiếm; rỗng là không tìm
+     * @param category slug danh mục; rỗng là không lọc
+     * @param minPrice giá thấp nhất theo {@code effectivePrice}
+     * @param maxPrice giá cao nhất theo {@code effectivePrice}
+     * @param minRating điểm đánh giá thấp nhất
+     * @param inStockOnly chỉ hiện còn hàng
+     * @param onSaleOnly chỉ hiện đang giảm giá
+     * @param isFeatured chỉ hiện nổi bật
+     * @param isBestSeller chỉ hiện bán chạy
+     * @param sort thứ tự sắp xếp dạng chuỗi trên dây
+     * @param page trang, đánh số từ 1
+     * @param limit số phần tử mỗi trang
+     * @return điều kiện lọc của domain, không bao giờ {@code null}
+     * @throws InvalidFilterValueException khi {@code sort} có giá trị không nhận ra (ADR 0007 vế 1)
+     */
+    public static PublicProductFilter toPublicFilter(String q, String category, Long minPrice, Long maxPrice,
+                                                      BigDecimal minRating, Boolean inStockOnly, Boolean onSaleOnly,
+                                                      Boolean isFeatured, Boolean isBestSeller, String sort,
+                                                      int page, int limit) {
+        return PublicProductFilter.of(
+                toNullIfBlank(q),
+                toNullIfBlank(category),
+                minPrice,
+                maxPrice,
+                minRating,
+                inStockOnly,
+                onSaleOnly,
+                isFeatured,
+                isBestSeller,
+                toPublicProductSort(sort),
+                page,
+                limit);
+    }
+
+    /**
+     * Chuỗi trên dây thành {@link ProductSort} — <b>khác {@link #toProductSort(String)}, cố ý</b>.
+     * <p>
+     * {@code sort} là tham số <b>tập đóng</b> của {@code GET /products} công khai (ADR 0007 vế 1):
+     * vắng mặt/rỗng vẫn rơi về {@link ProductSort#DEFAULT} — đó không phải một giá trị rác, chỉ là
+     * "client không chọn gì" — nhưng một giá trị <b>có mặt mà không nhận ra được</b> phải ném
+     * {@link InvalidFilterValueException} để {@code GlobalExceptionHandler} dịch thành {@code 422}
+     * kèm map {@code errors}. Bên quản trị ({@link #toProductSort(String)}) vẫn khoan dung như cũ —
+     * đó là phạm vi backlog 0025, không phải ticket này.
+     *
+     * @param value chuỗi trên dây, ví dụ {@code "price_asc"}; {@code null}/rỗng nghĩa là "không chọn"
+     * @return thứ tự tương ứng; {@link ProductSort#DEFAULT} khi rỗng
+     * @throws InvalidFilterValueException khi {@code value} khác rỗng nhưng không khớp giá trị nào
+     */
+    public static ProductSort toPublicProductSort(String value) {
+        String normalized = toNullIfBlank(value);
+        if (normalized == null) {
+            return ProductSort.DEFAULT;
+        }
+        try {
+            return ProductSort.valueOf(normalized.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new InvalidFilterValueException("sort",
+                    "Giá trị sắp xếp không hợp lệ. Giá trị hợp lệ: " + VALID_SORT_VALUES + ".");
+        }
+    }
+
+    /**
+     * Chuỗi {@code ids} trên dây thành danh sách khóa chính — {@code GET /products?ids=1,2,3}
+     * (API_CONTRACT §B.1).
+     * <p>
+     * <b>{@code ids} là tham số tập MỞ (ADR 0007 vế 2): token không phải số bị bỏ qua trong im lặng,
+     * không ném lỗi.</b> Một link {@code ?ids=1,abc,3} không phải một request sai — nó là một request
+     * mà một trong ba id không tồn tại dưới dạng số, và hệ quả đúng là "sản phẩm đó không có trong
+     * kết quả" (giống hệt một id số không khớp dòng nào), không phải {@code 400}/{@code 422} chặn cả
+     * hai id hợp lệ còn lại.
+     *
+     * @param raw chuỗi thô, ví dụ {@code "1,2,3"}; {@code null}/rỗng cho ra danh sách rỗng
+     * @return các khóa chính hợp lệ đã parse; danh sách rỗng khi không token nào là số
+     */
+    public static List<Long> toIdList(String raw) {
+        String normalized = toNullIfBlank(raw);
+        if (normalized == null) {
+            return List.of();
+        }
+        String[] tokens = normalized.split(",");
+        List<Long> ids = new ArrayList<>(tokens.length);
+        for (String token : tokens) {
+            String trimmed = token.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                ids.add(Long.valueOf(trimmed));
+            } catch (NumberFormatException e) {
+                // Token khong phai so: bo qua trong im lang (ADR 0007 ve 2), khong nem loi
+            }
+        }
+        return ids;
     }
 
     /**

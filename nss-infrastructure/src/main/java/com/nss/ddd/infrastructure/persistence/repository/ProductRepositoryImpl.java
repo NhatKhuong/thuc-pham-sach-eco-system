@@ -1,8 +1,10 @@
 package com.nss.ddd.infrastructure.persistence.repository;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
 import com.nss.ddd.domain.model.ProductSort;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.StockStatus;
 import com.nss.ddd.domain.model.entity.Product;
 import com.nss.ddd.domain.repository.ProductRepository;
@@ -77,22 +79,13 @@ public class ProductRepositoryImpl implements ProductRepository {
         return productJPAMapper.findActiveByIdIn(ids);
     }
 
-    @Override
-    public PageResult<Product> findPage(int page, int limit) {
-        // API_CONTRACT §A.4: `page` tren duong day danh so tu 1, Spring Data danh so tu 0.
-        // Phep tru 1 nam DUY NHAT o dong nay — quen no thi page=1 tra ve trang thu hai
-        // va khong co gi bao loi.
-        Page<Product> result = productJPAMapper.findActivePage(PageRequest.of(page - 1, limit));
-        return PageResult.of(result.getContent(), result.getTotalElements());
-    }
-
     /**
      * {@inheritDoc}
      * <p>
      * Ba phép dịch từ khái niệm của domain sang khái niệm của Spring Data, và cả ba đều chỉ được
      * xảy ra ở file này: {@link ProductSort} thành {@code Sort}, {@link StockStatus} thành cặp
      * {@code (minStock, maxStock)}, từ khoá thành mẫu {@code LIKE}. Cùng phép trừ 1 của
-     * {@code page} như {@link #findPage(int, int)}.
+     * {@code page} như {@link #findPublicPage(PublicProductFilter)}.
      */
     @Override
     public PageResult<Product> findAdminPage(ProductFilter filter) {
@@ -152,6 +145,47 @@ public class ProductRepositoryImpl implements ProductRepository {
     @Override
     public boolean decreaseStock(Long id, int quantity) {
         return productJPAMapper.decreaseStock(id, quantity) == 1;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Bốn phép dịch, ba trong đó dùng lại đúng helper của {@link #findAdminPage}:
+     * {@link #genLikePattern} cho mẫu {@code LIKE} và {@link #toSort} cho {@code Sort} — cùng
+     * {@link ProductSort} nên cùng một bảng ánh xạ cột. Cờ boolean của {@code filter} đi thẳng
+     * xuống, không dịch gì thêm — JPQL của {@link ProductJPAMapper#PUBLIC_FILTER} tự xử lý
+     * {@code null}/{@code false}.
+     */
+    @Override
+    public PageResult<Product> findPublicPage(PublicProductFilter filter) {
+        // API_CONTRACT §A.4: `page` tren duong day danh so tu 1, Spring Data danh so tu 0.
+        Page<Product> result = productJPAMapper.findPublicPage(
+                genLikePattern(filter.getKeyword()),
+                filter.getCategorySlug(),
+                filter.getMinPrice(),
+                filter.getMaxPrice(),
+                filter.getMinRating(),
+                filter.getInStockOnly(),
+                filter.getOnSaleOnly(),
+                filter.getIsFeatured(),
+                filter.getIsBestSeller(),
+                PageRequest.of(filter.getPage() - 1, filter.getLimit(), toSort(filter.getSort())));
+        return PageResult.of(result.getContent(), result.getTotalElements());
+    }
+
+    @Override
+    public List<Product> findRelated(Long categoryId, Long excludeProductId, int limit) {
+        return productJPAMapper.findRelated(categoryId, excludeProductId, PageRequest.of(0, limit));
+    }
+
+    @Override
+    public List<Product> findSuggestions(String keyword, int limit) {
+        return productJPAMapper.findSuggestions(genLikePattern(keyword), PageRequest.of(0, limit));
+    }
+
+    @Override
+    public PriceRange findPriceRange() {
+        return PriceRange.of(productJPAMapper.findMinEffectivePrice(), productJPAMapper.findMaxEffectivePrice());
     }
 
     // ========== DICH KHAI NIEM DOMAIN -> SPRING DATA ==========

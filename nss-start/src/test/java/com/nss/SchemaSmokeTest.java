@@ -54,11 +54,15 @@ class SchemaSmokeTest {
      * <b>16 → 17 ở backlog 0017</b> — đúng một khoá ngoại mới:
      * {@code password_reset_token.user_id} → {@code user.id} ({@code fk_password_reset_token_user}).
      * <p>
+     * <b>17 → 18 ở backlog 0027</b> — cũng đúng một: {@code review.user_id} → {@code user.id}
+     * ({@code fk_review_user}), do <b>ADR 0008</b> chốt đánh giá phải có tài khoản. Đây là lần duy nhất con
+     * số này đổi mà <b>không</b> kèm một bảng mới — {@link #EXPECTED_TABLE_COUNT} vẫn là 20.
+     * <p>
      * Đếm riêng khỏi số bảng vì hai con số hỏng theo hai kiểu khác nhau: một bảng mới <i>quên</i>
      * khoá ngoại vẫn giữ nguyên số bảng đúng, và một dòng token mồ côi thì không có gì phát hiện ra
      * cho tới lúc cần biết nó thuộc về ai.
      */
-    private static final int EXPECTED_FOREIGN_KEY_COUNT = 17;
+    private static final int EXPECTED_FOREIGN_KEY_COUNT = 18;
 
     private final DataSource dataSource;
 
@@ -109,6 +113,49 @@ class SchemaSmokeTest {
                 + " WHERE table_schema = DATABASE() AND table_name = 'customer_order'"
                 + " AND column_name = 'user_id'");
         assertEquals("YES", actual, "user_id phai nullable — don khach vang lai khong co chu don");
+    }
+
+    /**
+     * <b>{@code review.user_id} phải NULLABLE</b> — ADR 0008, backlog 0027.
+     * <p>
+     * 48 đánh giá đã seed từ {@code reviews.json} của frontend <b>không có tài khoản nào</b>: chúng
+     * chỉ mang {@code authorName}. Một cột {@code NOT NULL} sẽ làm file seed gãy, hoặc buộc phải
+     * bịa tài khoản cho 48 bản ghi — cả hai đều tệ hơn một cột nullable mà đường ghi luôn điền.
+     * <p>
+     * Cùng lý lẽ với {@link #customerOrderUserIdIsNullable()}, khác chỗ: ở đó {@code null} là khách
+     * vãng lai (một ca <i>đang</i> hợp lệ), ở đây {@code null} là dữ liệu có trước ADR 0008.
+     */
+    @Test
+    @DisplayName("review.user_id nullable cho 48 danh gia da seed")
+    void reviewUserIdIsNullable() throws SQLException {
+        String actual = getScalar("SELECT is_nullable FROM information_schema.columns"
+                + " WHERE table_schema = DATABASE() AND table_name = 'review'"
+                + " AND column_name = 'user_id'");
+        assertEquals("YES", actual, "user_id phai nullable — 48 review da seed khong co tai khoan");
+    }
+
+    /**
+     * <b>{@code uk_review_product_user} là nơi luật "mỗi tài khoản một đánh giá mỗi sản phẩm" thật
+     * sự sống</b> (ADR 0008).
+     * <p>
+     * Kiểm ở đây chứ không chỉ kiểm annotation vì đó là toàn bộ điểm của file này: thiếu ràng buộc
+     * trong DB thì đường ghi vẫn trả 201 cho lần đánh giá thứ hai, không exception nào nổ ra, và
+     * luật biến mất trong im lặng. Khẳng định cả {@code non_unique = 0} lẫn <b>số cột</b>: một index
+     * chỉ trên {@code product_id} cũng mang đúng tên đó mà nghĩa thì hoàn toàn khác.
+     */
+    @Test
+    @DisplayName("uk_review_product_user la unique index tren dung hai cot")
+    void reviewHasUniqueProductUserIndex() throws SQLException {
+        String nonUnique = getScalar("SELECT MIN(non_unique) FROM information_schema.statistics"
+                + " WHERE table_schema = DATABASE() AND table_name = 'review'"
+                + " AND index_name = 'uk_review_product_user'");
+        assertEquals("0", nonUnique, "uk_review_product_user khong phai unique index");
+
+        String columnCount = getScalar("SELECT COUNT(*) FROM information_schema.statistics"
+                + " WHERE table_schema = DATABASE() AND table_name = 'review'"
+                + " AND index_name = 'uk_review_product_user'"
+                + " AND column_name IN ('product_id', 'user_id')");
+        assertEquals("2", columnCount, "uk_review_product_user phai phu dung (product_id, user_id)");
     }
 
     @Test

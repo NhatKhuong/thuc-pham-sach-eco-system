@@ -1,7 +1,9 @@
 package com.nss.ddd.domain.repository;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.entity.Product;
 
 import java.time.LocalDateTime;
@@ -60,26 +62,15 @@ public interface ProductRepository {
     List<Product> findByIds(Collection<Long> ids);
 
     /**
-     * Một trang sản phẩm còn hiệu lực, sắp xếp ổn định theo id tăng dần.
-     * <p>
-     * {@code page} <b>đánh số từ 1</b> (API_CONTRACT §A.4) và đi thẳng vào port ở dạng đó.
-     * Việc trừ 1 để dựng {@code Pageable} là của adapter — gom vào <i>một</i> chỗ duy nhất
-     * để lỗi off-by-one không có chỗ nào khác để trốn.
-     *
-     * @param page số trang, đánh số từ 1
-     * @param limit số phần tử mỗi trang
-     * @return các phần tử của trang kèm tổng số sản phẩm còn hiệu lực
-     */
-    PageResult<Product> findPage(int page, int limit);
-
-    /**
      * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — đường đọc của
      * {@code GET /admin/products} (API_CONTRACT §B.12.1).
      * <p>
-     * <b>Tách khỏi {@link #findPage(int, int)} chứ không thay nó, và lý do không phải là ngại đụng
-     * chạm.</b> {@code GET /products} của trang cửa hàng có thứ tự cố định theo id và không nhận
-     * tham số lọc nào; gộp hai đường vào một chữ ký dùng chung là mở sẵn đường cho một bộ lọc quản
-     * trị rò sang endpoint công khai mà không ai phải quyết định gì.
+     * <b>Tách khỏi {@link #findPublicPage(PublicProductFilter)} chứ không dùng chung, và lý do không
+     * phải là ngại đụng chạm.</b> {@code GET /products} của trang cửa hàng mang bảy tiêu chí lọc mà
+     * khu quản trị không có ({@code minPrice}, {@code maxPrice}, {@code minRating}, bốn cờ boolean),
+     * còn khu quản trị mang {@code stockStatus} ba-trạng-thái mà trang cửa hàng không có; gộp hai
+     * đường vào một chữ ký dùng chung là mở sẵn đường cho một bộ lọc quản trị rò sang endpoint công
+     * khai (hoặc ngược lại) mà không ai phải quyết định gì.
      * <p>
      * <b>{@code filter.keyword} tới đây đã được domain service bỏ dấu.</b> Adapter chỉ dựng mẫu
      * {@code LIKE}; nó <b>không</b> được chuẩn hoá lại — xem javadoc {@link ProductFilter}.
@@ -159,4 +150,57 @@ public interface ProductRepository {
      *         sản phẩm đã bị xoá mềm
      */
     boolean decreaseStock(Long id, int quantity);
+
+    /**
+     * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — đường đọc của
+     * {@code GET /products} công khai (API_CONTRACT §B.1).
+     * <p>
+     * <b>Tách khỏi {@link #findAdminPage(ProductFilter)}, không dùng chung chữ ký</b> — xem javadoc
+     * cấp class của {@link PublicProductFilter}.
+     * <p>
+     * <b>{@code filter.keyword} tới đây đã được domain service bỏ dấu</b>, cùng quy ước với
+     * {@link #findAdminPage(ProductFilter)}.
+     *
+     * @param filter điều kiện lọc, sắp xếp và phân trang; {@code page} đánh số từ 1
+     * @return các phần tử của trang kèm tổng số dòng khớp điều kiện lọc
+     */
+    PageResult<Product> findPublicPage(PublicProductFilter filter);
+
+    /**
+     * Sản phẩm "liên quan" — cùng danh mục, loại trừ chính nó — nguồn của
+     * {@code GET /products/{slug}/related} (API_CONTRACT §B.1).
+     * <p>
+     * <b>Cùng danh mục CHÍNH XÁC, không kéo theo danh mục con/cha</b> — khác quy ước "một cấp" của
+     * {@code categorySlug} ở {@link #findAdminPage} / {@link #findPublicPage}: sản phẩm liên quan là
+     * gợi ý tại chỗ trên trang chi tiết, không phải một trang duyệt danh mục, nên phạm vi hẹp hơn là
+     * đúng ý định.
+     *
+     * @param categoryId danh mục của sản phẩm gốc
+     * @param excludeProductId id của sản phẩm gốc, không được xuất hiện trong kết quả
+     * @param limit số sản phẩm tối đa cần lấy
+     * @return sản phẩm cùng danh mục còn hiệu lực, tối đa {@code limit} phần tử
+     */
+    List<Product> findRelated(Long categoryId, Long excludeProductId, int limit);
+
+    /**
+     * Gợi ý tìm kiếm — nguồn của {@code GET /products/suggest} (API_CONTRACT §B.1).
+     * <p>
+     * Cùng phạm vi khớp với {@code q} của {@link #findPublicPage}: {@code name} HOẶC
+     * {@code shortDescription}. Cùng quy ước với mọi method nhận từ khoá khác của port này —
+     * {@code keyword} tới đây <b>đã được domain service bỏ dấu</b>; adapter tự dựng mẫu {@code LIKE}
+     * và tự escape, không nhận một mẫu đã dựng sẵn.
+     *
+     * @param keyword từ khoá đã bỏ dấu; {@code null} hoặc rỗng là không tìm
+     * @param limit số gợi ý tối đa cần lấy
+     * @return sản phẩm còn hiệu lực khớp {@code keyword}, tối đa {@code limit} phần tử
+     */
+    List<Product> findSuggestions(String keyword, int limit);
+
+    /**
+     * Khoảng giá {@code MIN}/{@code MAX} của {@code effectivePrice} trên mọi sản phẩm còn hiệu lực —
+     * nguồn của {@code GET /products/price-range} (API_CONTRACT §B.1).
+     *
+     * @return khoảng giá; hai biên {@code null} khi không có sản phẩm nào còn hiệu lực
+     */
+    PriceRange findPriceRange();
 }

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -79,32 +80,10 @@ public interface ProductJPAMapper extends JpaRepository<Product, Long> {
             + " AND (:maxStock IS NULL OR p.stock <= :maxStock)";
 
     /**
-     * Một trang sản phẩm còn hiệu lực.
-     * <p>
-     * {@code ORDER BY p.id} nằm trong câu truy vấn chứ không nằm ở {@code Pageable}: thứ tự phải
-     * <b>ổn định</b> thì phân trang mới có nghĩa — không có ORDER BY, MySQL được phép trả cùng một
-     * dòng ở hai trang khác nhau và bỏ sót dòng khác, mà không có gì báo lỗi.
-     * <p>
-     * {@code countQuery} khai tường minh vì Spring Data không suy được câu đếm từ truy vấn có
-     * {@code JOIN FETCH}.
-     *
-     * @param pageable trang cần lấy, <b>đã đánh số từ 0</b> — adapter là nơi trừ 1
-     * @return trang sản phẩm kèm tổng số dòng
-     */
-    @Query(value = "SELECT p FROM Product p"
-            + " LEFT JOIN FETCH p.category"
-            + " LEFT JOIN FETCH p.brand"
-            + " WHERE p.isActive = true"
-            + " ORDER BY p.id ASC",
-            countQuery = "SELECT COUNT(p) FROM Product p WHERE p.isActive = true")
-    Page<Product> findActivePage(Pageable pageable);
-
-    /**
      * Một trang sản phẩm còn hiệu lực <b>có lọc</b> — đường đọc của {@code GET /admin/products}
      * (API_CONTRACT §B.12.1).
      * <p>
-     * <b>KHÔNG có {@code ORDER BY} trong chuỗi truy vấn, và đó là khác biệt cốt lõi so với
-     * {@link #findActivePage(Pageable)}.</b> Thứ tự ở đây do client chọn (5 giá trị của
+     * <b>KHÔNG có {@code ORDER BY} trong chuỗi truy vấn.</b> Thứ tự ở đây do client chọn (5 giá trị của
      * {@code sort}), nên nó phải đi vào qua {@code Sort} của {@code Pageable} — Spring Data nối
      * mệnh đề {@code order by} vào cuối. Nhúng cứng một {@code ORDER BY} vào chuỗi rồi lại truyền
      * {@code Sort} sẽ cho ra <i>hai</i> mệnh đề chồng nhau, và mệnh đề nhúng cứng thắng: mọi giá trị
@@ -230,6 +209,164 @@ public interface ProductJPAMapper extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.isActive = false, p.updatedAt = :deletedAt"
             + " WHERE p.id = :id AND p.isActive = true")
     int markInactive(@Param("id") Long id, @Param("deletedAt") LocalDateTime deletedAt);
+
+    /**
+     * {@code shortDescription} đã thay {@code đ}/{@code Đ} bằng {@code d}/{@code D}, dùng làm vế trái
+     * cho mọi so khớp {@code q} trên cột này.
+     * <p>
+     * <b>{@code shortDescription} không có cột {@code *_normalized} riêng như {@code name}</b> —
+     * chưa từng cần tới cho tới ticket này. So trực tiếp {@code p.shortDescription LIKE :pattern}
+     * (với {@code pattern} đã bỏ dấu ở domain service) vẫn đúng cho phần lớn ký tự nhờ
+     * {@code utf8mb4_unicode_ci} tự gập hoa/thường và <b>hầu hết</b> dấu thanh/dấu móc (đo được: đủ
+     * để {@code q=nuoc} khớp "nước", {@code q=cam sanh} khớp "cam sành") — <b>trừ đúng một chữ cái:
+     * {@code đ}</b>, y hệt giới hạn đã ghi ở {@code coding-conventions.md} §18. Thiếu {@code REPLACE}
+     * này, {@code q=khong duong} sẽ KHÔNG khớp một {@code shortDescription} chứa "không đường" — một
+     * lỗi lọt lưới khi đo trực tiếp trên dữ liệu seed thật (backlog 0024).
+     * <p>
+     * <b>Chỉ cần một chiều {@code đ}{@literal ->}{@code d}, không cần bốn bước đầy đủ của
+     * {@code TextNormalizer}.</b> Vế {@code :pattern} đã đi qua đủ bốn bước ở domain service rồi;
+     * collation lo phần hoa/thường và phần lớn dấu thanh/dấu móc. {@code REPLACE} ở đây chỉ vá đúng
+     * lỗ hổng còn lại của collation, không phải một bản sao thứ hai của phép bỏ dấu.
+     */
+    String SHORT_DESCRIPTION_D_FOLDED =
+            "REPLACE(REPLACE(p.shortDescription, 'đ', 'd'), 'Đ', 'D')";
+
+    /**
+     * Mệnh đề lọc của {@code GET /products} công khai (API_CONTRACT §B.1) — khai một lần, dùng cho
+     * CẢ HAI truy vấn: trang và đếm-của-trang.
+     * <p>
+     * <b>Khác {@link #ADMIN_FILTER} ở hai chỗ, cả hai đều cố ý</b> (xem javadoc
+     * {@code ProductControllerMapper} và {@code PublicProductFilter}):
+     * <ul>
+     *   <li>Mẫu {@code LIKE} khớp {@code p.nameNormalized} HOẶC {@link #SHORT_DESCRIPTION_D_FOLDED} —
+     *       <b>không</b> khớp {@code p.slug} như bên admin;</li>
+     *   <li>Thêm bốn cặp điều kiện giá/đánh giá/tồn kho/cờ mà bên quản trị không có, và bớt
+     *       {@code stockStatus} ba-trạng-thái (thay bằng {@code inStockOnly} boolean).</li>
+     * </ul>
+     * <b>Điều kiện danh mục dùng lại đúng mệnh đề của {@link #ADMIN_FILTER}</b>
+     * ({@code c.slug = :categorySlug OR cp.slug = :categorySlug}) — cùng quy ước "một cấp con".
+     * <p>
+     * Bốn cờ boolean nhận kiểu {@code Boolean} chứ không {@code boolean}: {@code null} và
+     * {@code false} đều nghĩa là không lọc, viết {@code :flag IS NULL OR :flag = false OR <điều kiện>}
+     * để không phải ép JPQL nhận {@code null} vào một so sánh {@code = true}.
+     */
+    String PUBLIC_FILTER = " WHERE p.isActive = true"
+            + " AND (:pattern IS NULL"
+            + "      OR p.nameNormalized LIKE :pattern ESCAPE '!'"
+            + "      OR " + SHORT_DESCRIPTION_D_FOLDED + " LIKE :pattern ESCAPE '!')"
+            + " AND (:categorySlug IS NULL OR c.slug = :categorySlug OR cp.slug = :categorySlug)"
+            + " AND (:minPrice IS NULL OR p.effectivePrice >= :minPrice)"
+            + " AND (:maxPrice IS NULL OR p.effectivePrice <= :maxPrice)"
+            + " AND (:minRating IS NULL OR p.rating >= :minRating)"
+            + " AND (:inStockOnly IS NULL OR :inStockOnly = false OR p.stock > 0)"
+            + " AND (:onSaleOnly IS NULL OR :onSaleOnly = false OR p.salePrice IS NOT NULL)"
+            + " AND (:isFeatured IS NULL OR :isFeatured = false OR p.isFeatured = true)"
+            + " AND (:isBestSeller IS NULL OR :isBestSeller = false OR p.isBestSeller = true)";
+
+    /**
+     * Một trang sản phẩm còn hiệu lực <b>có lọc</b> — đường đọc của {@code GET /products} công khai
+     * (API_CONTRACT §B.1).
+     * <p>
+     * Cùng kỷ luật với {@link #findAdminPage}: KHÔNG {@code ORDER BY} nhúng cứng trong chuỗi truy
+     * vấn — thứ tự do client chọn đi vào qua {@code Sort} của {@code Pageable}, và
+     * {@code ProductRepositoryImpl} luôn kèm khoá phụ theo {@code id} để phân trang ổn định.
+     * <p>
+     * {@code countQuery} khai tường minh — Spring Data không suy được câu đếm từ truy vấn có
+     * {@code JOIN FETCH}; nó dùng lại đúng {@link #PUBLIC_FILTER} nhưng bỏ phần {@code FETCH}.
+     *
+     * @param pattern mẫu {@code LIKE} đã bọc {@code %} và đã escape; {@code null} là không tìm
+     * @param categorySlug slug danh mục cha hoặc con; {@code null} là không lọc
+     * @param minPrice giá thấp nhất theo {@code effectivePrice}, đã bao gồm; {@code null} là không chặn dưới
+     * @param maxPrice giá cao nhất theo {@code effectivePrice}, đã bao gồm; {@code null} là không chặn trên
+     * @param minRating điểm đánh giá thấp nhất, đã bao gồm; {@code null} là không chặn
+     * @param inStockOnly {@code true} = chỉ còn hàng; {@code null}/{@code false} = không lọc
+     * @param onSaleOnly {@code true} = chỉ đang giảm giá; {@code null}/{@code false} = không lọc
+     * @param isFeatured {@code true} = chỉ nổi bật; {@code null}/{@code false} = không lọc
+     * @param isBestSeller {@code true} = chỉ bán chạy; {@code null}/{@code false} = không lọc
+     * @param pageable trang cần lấy, <b>đã đánh số từ 0</b> và <b>đã mang {@code Sort}</b>
+     * @return trang sản phẩm kèm tổng số dòng khớp điều kiện lọc
+     */
+    @Query(value = "SELECT p FROM Product p"
+            + " LEFT JOIN FETCH p.category c"
+            + " LEFT JOIN FETCH p.brand"
+            + " LEFT JOIN c.parent cp"
+            + PUBLIC_FILTER,
+            countQuery = "SELECT COUNT(p) FROM Product p"
+                    + " LEFT JOIN p.category c"
+                    + " LEFT JOIN c.parent cp"
+                    + PUBLIC_FILTER)
+    Page<Product> findPublicPage(@Param("pattern") String pattern,
+                                 @Param("categorySlug") String categorySlug,
+                                 @Param("minPrice") Long minPrice,
+                                 @Param("maxPrice") Long maxPrice,
+                                 @Param("minRating") BigDecimal minRating,
+                                 @Param("inStockOnly") Boolean inStockOnly,
+                                 @Param("onSaleOnly") Boolean onSaleOnly,
+                                 @Param("isFeatured") Boolean isFeatured,
+                                 @Param("isBestSeller") Boolean isBestSeller,
+                                 Pageable pageable);
+
+    /**
+     * Sản phẩm cùng danh mục — nguồn của {@code GET /products/{slug}/related} (API_CONTRACT §B.1).
+     * <p>
+     * <b>Thứ tự cố định (bán chạy, rồi đánh giá, rồi id), không nhận {@code sort} của client</b> —
+     * đây là gợi ý tại chỗ, không phải một trang duyệt. Khoá phụ theo {@code id} giữ kết quả ổn định
+     * giữa các lần gọi khi nhiều sản phẩm hoà {@code sold}/{@code rating}.
+     * <p>
+     * Method trả {@code List} kèm tham số {@code Pageable} — quy ước của Spring Data để giới hạn số
+     * dòng mà không cần một {@code Page} đầy đủ (không ai đọc {@code totalElements} ở đây).
+     *
+     * @param categoryId danh mục của sản phẩm gốc
+     * @param excludeId id của sản phẩm gốc, loại khỏi kết quả
+     * @param pageable chỉ dùng để giới hạn số dòng ({@code PageRequest.of(0, limit)})
+     * @return sản phẩm cùng danh mục còn hiệu lực, tối đa {@code pageable.getPageSize()} phần tử
+     */
+    @Query("SELECT p FROM Product p"
+            + " LEFT JOIN FETCH p.category"
+            + " LEFT JOIN FETCH p.brand"
+            + " WHERE p.category.id = :categoryId AND p.id <> :excludeId AND p.isActive = true"
+            + " ORDER BY p.sold DESC, p.rating DESC, p.id ASC")
+    List<Product> findRelated(@Param("categoryId") Long categoryId, @Param("excludeId") Long excludeId,
+                              Pageable pageable);
+
+    /**
+     * Gợi ý tìm kiếm — nguồn của {@code GET /products/suggest} (API_CONTRACT §B.1).
+     * <p>
+     * Cùng mẫu {@code LIKE} với {@link #PUBLIC_FILTER}, kể cả phần {@link #SHORT_DESCRIPTION_D_FOLDED}:
+     * khớp {@code nameNormalized} HOẶC {@code shortDescription} (đã thay {@code đ}{@literal ->}{@code d}).
+     * Sắp theo {@code sold DESC} — gợi ý ưu tiên sản phẩm phổ biến trước — kèm khoá phụ theo {@code id}.
+     *
+     * @param pattern mẫu {@code LIKE} đã bọc {@code %} và đã escape; {@code null} là không tìm (trả rỗng)
+     * @param pageable chỉ dùng để giới hạn số dòng ({@code PageRequest.of(0, limit)})
+     * @return sản phẩm còn hiệu lực khớp {@code pattern}, tối đa {@code pageable.getPageSize()} phần tử
+     */
+    @Query("SELECT p FROM Product p"
+            + " LEFT JOIN FETCH p.category"
+            + " LEFT JOIN FETCH p.brand"
+            + " WHERE p.isActive = true"
+            + "      AND :pattern IS NOT NULL"
+            + "      AND (p.nameNormalized LIKE :pattern ESCAPE '!' OR " + SHORT_DESCRIPTION_D_FOLDED
+            + " LIKE :pattern ESCAPE '!')"
+            + " ORDER BY p.sold DESC, p.id ASC")
+    List<Product> findSuggestions(@Param("pattern") String pattern, Pageable pageable);
+
+    /**
+     * Giá thấp nhất trong các sản phẩm còn hiệu lực — nửa {@code min} của
+     * {@code GET /products/price-range} (API_CONTRACT §B.1).
+     *
+     * @return giá thấp nhất theo {@code effectivePrice}, hoặc {@code null} khi không có sản phẩm nào
+     */
+    @Query("SELECT MIN(p.effectivePrice) FROM Product p WHERE p.isActive = true")
+    Long findMinEffectivePrice();
+
+    /**
+     * Giá cao nhất trong các sản phẩm còn hiệu lực — nửa {@code max} của
+     * {@code GET /products/price-range} (API_CONTRACT §B.1).
+     *
+     * @return giá cao nhất theo {@code effectivePrice}, hoặc {@code null} khi không có sản phẩm nào
+     */
+    @Query("SELECT MAX(p.effectivePrice) FROM Product p WHERE p.isActive = true")
+    Long findMaxEffectivePrice();
 
     /**
      * Trừ tồn kho bằng <b>conditional UPDATE</b> (backlog 0014 §Contract 8).

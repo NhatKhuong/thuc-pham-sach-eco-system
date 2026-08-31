@@ -1,8 +1,12 @@
+com\nss\ddd\controller\exception\InvalidReviewDataException.class
 com\nss\ddd\controller\http\CartController.class
 com\nss\ddd\controller\dto\ChangePasswordRequest.class
 com\nss\ddd\controller\dto\ResetPasswordRequest.class
 com\nss\ddd\controller\dto\ShippingInfoRequest.class
+com\nss\ddd\controller\mapper\ReviewControllerMapper.class
+com\nss\ddd\controller\exception\DuplicateReviewException.class
 com\nss\ddd\controller\exception\GlobalExceptionHandler.class
+com\nss\ddd\controller\exception\InvalidFilterValueException.class
 com\nss\ddd\controller\exception\SecurityProblemDetailHandler.class
 com\nss\ddd\controller\exception\OutOfStockException.class
 com\nss\ddd\controller\dto\UpdateProfileRequest.class
@@ -22,6 +26,7 @@ com\nss\ddd\controller\exception\InvalidResetTokenException.class
 com\nss\ddd\controller\config\SecurityConfig.class
 com\nss\ddd\controller\exception\EmptyOrderException.class
 com\nss\ddd\controller\http\ProductController.class
+com\nss\ddd\controller\exception\CategoryNotFoundException.class
 com\nss\ddd\controller\exception\CouponNotApplicableException.class
 com\nss\ddd\controller\mapper\ProductControllerMapper.class
 com\nss\ddd\controller\dto\LoginRequest.class
@@ -34,10 +39,12 @@ com\nss\ddd\controller\dto\UpdateProductRequest.class
 com\nss\ddd\controller\http\AdminCustomerController.class
 com\nss\ddd\controller\mapper\CartControllerMapper.class
 com\nss\ddd\controller\exception\InvalidDateRangeException.class
+com\nss\ddd\controller\dto\CreateReviewRequest.class
 com\nss\ddd\controller\http\AdminStatsController.class
 com\nss\ddd\controller\config\JwtConfig.class
 com\nss\ddd\controller\config\ApiRateLimitTier.class
 com\nss\ddd\controller\exception\TooManyRequestsException.class
+com\nss\ddd\controller\http\CategoryController.class
 com\nss\ddd\controller\exception\UserNotFoundException.class
 com\nss\ddd\controller\mapper\AuthControllerMapper.class
 com\nss\ddd\controller\exception\OrderNotFoundException.class
@@ -48,6 +55,7 @@ com\nss\ddd\controller\dto\ValidateCouponRequest.class
 com\nss\ddd\controller\config\OpenApiConfig.class
 com\nss\ddd\controller\dto\ForgotPasswordRequest.class
 com\nss\ddd\controller\dto\RegisterRequest.class
+com\nss\ddd\controller\http\ReviewController.class
 com\nss\ddd\controller\dto\ValidateCartRequest.class
 com\nss\ddd\controller\http\HelloController.class
 com\nss\ddd\controller\http\AuthController.class

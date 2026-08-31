@@ -10,6 +10,7 @@ import com.nss.ddd.infrastructure.persistence.mapper.PasswordResetTokenJPAMapper
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.ReviewJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.UserJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.UserRoleJPAMapper;
 
@@ -82,6 +83,10 @@ class ApiRateLimitWireTest {
 
     @MockBean
     private RefreshTokenJPAMapper refreshTokenJPAMapper;
+
+    /** Backlog 0027 — bang `review` co adapter tu ADR 0008 tro di. */
+    @MockBean
+    private ReviewJPAMapper reviewJPAMapper;
 
     @MockBean
     private UserRoleJPAMapper userRoleJPAMapper;

@@ -11,6 +11,7 @@ import com.nss.ddd.infrastructure.persistence.mapper.PasswordResetTokenJPAMapper
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.ReviewJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.UserJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.UserRoleJPAMapper;
 
@@ -130,6 +131,10 @@ class SecurityRulesTest {
     @MockBean
     private RefreshTokenJPAMapper refreshTokenJPAMapper;
 
+    /** Backlog 0027 — bang `review` co adapter tu ADR 0008 tro di. */
+    @MockBean
+    private ReviewJPAMapper reviewJPAMapper;
+
     @MockBean
     private UserRoleJPAMapper userRoleJPAMapper;
 
@@ -239,7 +244,8 @@ class SecurityRulesTest {
     @DisplayName("GET /api/products van cong khai sau khi siet duong ghi")
     void productListStaysPublic() throws Exception {
         Page<Product> emptyPage = new PageImpl<>(List.of());
-        when(productJPAMapper.findActivePage(any())).thenReturn(emptyPage);
+        when(productJPAMapper.findPublicPage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/products"))
                 .andExpect(status().isOk())
@@ -259,7 +265,8 @@ class SecurityRulesTest {
     @DisplayName("Duong doc cong khai khong te hon khi CO token CUSTOMER")
     void publicReadStaysOpenForCustomerToken() throws Exception {
         Page<Product> emptyPage = new PageImpl<>(List.of());
-        when(productJPAMapper.findActivePage(any())).thenReturn(emptyPage);
+        when(productJPAMapper.findPublicPage(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/products")
                         .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER")))
@@ -1329,5 +1336,113 @@ class SecurityRulesTest {
                 // 3. Ca hai CONG KHAI — chi co nghia sau buoc 1
                 .andExpect(jsonPath("$.paths['/api/auth/forgot-password'].post.security").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/auth/reset-password'].post.security").doesNotExist());
+    }
+
+    // ========== DANH GIA: HAI CONG KHAI, MOT CAN TOKEN (§B.8, ADR 0008) ==========
+
+    /**
+     * <b>Ba đường của §B.8 KHÔNG kèm theo một dòng nào trong {@code SecurityConfig}, và ca này là
+     * bằng chứng cho điều đó.</b>
+     * <p>
+     * ADR 0008 làm hàng rào biến mất: hai {@code GET} rơi vào
+     * {@code requestMatchers(HttpMethod.GET, PATHS_PRODUCT_READ).permitAll()} vì
+     * {@code PATHS_PRODUCT_READ} có mẫu {@code /api/products/**}, còn {@code POST} rơi vào
+     * {@code .anyRequest().authenticated()} — <i>đúng</i> luật ta muốn.
+     * <p>
+     * <b>"Không phải sửa" không có nghĩa là "không phải chứng minh".</b> Hàng rào phủ ngầm thì bằng
+     * chứng cũng phải ngầm-nhưng-đo-được, cùng kiểu ma trận mà backlog 0018 đã dùng để chứng minh
+     * §C.4.3a phủ cả endpoint chưa ra đời.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("Hai GET danh gia CONG KHAI — khong token van 200, khong phai 401")
+    void reviewReadEndpointsStayPublic() throws Exception {
+        when(productJPAMapper.findActiveById(any()))
+                .thenReturn(Optional.of(new Product().setId(11L)));
+        when(reviewJPAMapper.findByProductId(any())).thenReturn(List.of());
+        when(reviewJPAMapper.countGroupedByRating(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/products/11/reviews"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/products/11/reviews/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                // Zero-fill: nam muc sao van co mat du khong co danh gia nao
+                .andExpect(jsonPath("$.distribution['1']").value(0))
+                .andExpect(jsonPath("$.distribution['5']").value(0));
+    }
+
+    /**
+     * <b>{@code POST} không token phải là 401, và CUSTOMER phải ĐI QUA được tầng bảo mật.</b>
+     * <p>
+     * Hai khẳng định chỉ có nghĩa khi cùng đúng. Một luật trả 401 cho cả CUSTOMER trông "an toàn"
+     * nhưng nó khoá mất chính người dùng mà ADR 0008 muốn cho phép; một luật cho khách vãng lai đi
+     * qua thì đánh giá lại thành công khai, đúng thứ ADR 0008 dựng ra để chống.
+     * <p>
+     * Mã của cột CUSTOMER là <b>422</b> — mã của tầng <i>sau</i> tầng bảo mật (body rỗng trượt
+     * validate). Nó chứng minh đúng điều cần chứng minh mà không cần một database sống.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("POST danh gia: khong token 401, token CUSTOMER di qua duoc tang bao mat")
+    void reviewWriteRequiresToken() throws Exception {
+        String path = "/api/products/11/reviews";
+
+        // 1. Khach vang lai: 401 — tin hieu "hay dang nhap"
+        mockMvc.perform(post(path)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.detail").value(MESSAGE_UNAUTHENTICATED))
+                .andExpect(jsonPath("$.instance").value(path));
+
+        // 2. CUSTOMER: di qua tang bao mat va dung o tang validate — 422, KHONG phai 401/403
+        mockMvc.perform(post(path)
+                        .header(HttpHeaders.AUTHORIZATION, genBearer("CUSTOMER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                // 422 cua validate CO khoa `errors` — day la thu phan biet no voi 409
+                .andExpect(jsonPath("$.errors").exists())
+                .andExpect(jsonPath("$.errors.content").exists())
+                .andExpect(jsonPath("$.errors.rating").exists())
+                .andExpect(jsonPath("$.errors.authorName").exists());
+    }
+
+    /**
+     * Ba operation mới có mặt trong api-docs, và <b>đúng MỘT</b> trong ba mang {@code security}.
+     * <p>
+     * Positive control đi kèm là bắt buộc: một khẳng định {@code doesNotExist()} sẽ xanh cả khi
+     * phép dò hỏng hoàn toàn. Dòng đầu chứng minh phép dò <i>nhìn thấy được</i> {@code security} ở
+     * chỗ khác.
+     * <p>
+     * <b>Ràng buộc {@code rating} 1–5 cũng được khẳng định ở đây</b> — {@code FE-0031} xin đích
+     * danh điều đó, và một ràng buộc chỉ sống trong annotation mà không ra tới tài liệu thì
+     * frontend không có cách nào biết.
+     *
+     * @throws Exception khi MockMvc lỗi
+     */
+    @Test
+    @DisplayName("api-docs khai du ba operation danh gia, va DUNG MOT mang security")
+    void apiDocsDeclareReviewOperationsWithCorrectSecurity() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                // 1. POSITIVE CONTROL: phep do nhin thay duoc `security` o mot operation khac
+                .andExpect(jsonPath("$.paths['/api/auth/logout'].post.security[0].bearerAuth").exists())
+                // 2. Ba operation moi co mat
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews'].get.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews/summary'].get.summary").exists())
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews'].post.summary").exists())
+                // 3. DUNG MOT mang security — chi co nghia sau buoc 1
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews'].get.security").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/products/{id}/reviews/summary'].get.security").doesNotExist())
+                // 4. Rang buoc rating 1..5 ra toi tai lieu (FE-0031 xin dich danh)
+                .andExpect(jsonPath("$.components.schemas.CreateReviewRequest.properties.rating.minimum").value(1))
+                .andExpect(jsonPath("$.components.schemas.CreateReviewRequest.properties.rating.maximum").value(5));
     }
 }

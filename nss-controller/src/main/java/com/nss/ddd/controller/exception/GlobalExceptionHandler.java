@@ -61,6 +61,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * @param e không tìm thấy danh mục
+     * @return 404 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public ProblemDetail handleCategoryNotFound(CategoryNotFoundException e) {
+        log.warn("handleCategoryNotFound: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /**
      * @param e lỗi trùng slug
      * @return 409 kèm {@code detail} tiếng Việt
      */
@@ -279,6 +289,38 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Tài khoản đã đánh giá sản phẩm này rồi (ADR 0008).
+     * <p>
+     * <b>Cố ý KHÔNG đặt khoá {@code errors}</b> — đây là xung đột trạng thái, không phải lỗi ô
+     * nhập, và sự vắng mặt của khoá đó chính là thứ frontend dùng để phân biệt nó với 422 của
+     * validate (§A.3). Cùng quy ước với {@link #handleDuplicateSlug} và
+     * {@link #handleInvalidCurrentPassword}.
+     *
+     * @param e lỗi trùng đánh giá
+     * @return 409 kèm {@code detail} tiếng Việt, <b>không</b> có khoá {@code errors}
+     */
+    @ExceptionHandler(DuplicateReviewException.class)
+    public ProblemDetail handleDuplicateReview(DuplicateReviewException e) {
+        log.warn("handleDuplicateReview: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /**
+     * Dữ liệu đánh giá vi phạm quy tắc nghiệp vụ — hiện là token trỏ tới một tài khoản không còn
+     * tồn tại.
+     * <p>
+     * <b>Cố ý KHÔNG đặt khoá {@code errors}</b>, cùng lý do với {@link #handleDuplicateReview}.
+     *
+     * @param e lỗi dữ liệu đánh giá
+     * @return 422 kèm {@code detail} tiếng Việt, <b>không</b> có khoá {@code errors}
+     */
+    @ExceptionHandler(InvalidReviewDataException.class)
+    public ProblemDetail handleInvalidReviewData(InvalidReviewDataException e) {
+        log.warn("handleInvalidReviewData: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    }
+
+    /**
      * Lỗi của {@code jakarta.validation} trên {@code @Valid @RequestBody}.
      * <p>
      * <b>422, không phải 400.</b> Mặc định của Spring cho lỗi bind là 400; contract §A.3 và ticket
@@ -299,6 +341,27 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail =
                 ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, MESSAGE_VALIDATION_FAILED);
         problemDetail.setProperty("errors", errors);
+        return problemDetail;
+    }
+
+    /**
+     * Tham số lọc kiểu tập đóng (enum) nhận giá trị lạ — ADR 0007 vế 1.
+     * <p>
+     * <b>422 kèm map {@code errors} có đúng một khoá</b>: tên tham số trên dây
+     * ({@link InvalidFilterValueException#getParameterName()}). Cùng hình dạng với
+     * {@link #handleValidation}, khác nguồn — tham số này đến từ query string, không đi qua
+     * {@code @Valid @RequestBody} nên {@code MethodArgumentNotValidException} không bắt được ca
+     * này (ADR 0007 mục "Phải canh chừng").
+     *
+     * @param e tham số lọc nhận giá trị không nằm trong tập hợp lệ
+     * @return 422 kèm {@code detail} tiếng Việt và map {@code errors}
+     */
+    @ExceptionHandler(InvalidFilterValueException.class)
+    public ProblemDetail handleInvalidFilterValue(InvalidFilterValueException e) {
+        log.warn("handleInvalidFilterValue: field={} message={}", e.getParameterName(), e.getMessage());
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        problemDetail.setProperty("errors", Map.of(e.getParameterName(), e.getMessage()));
         return problemDetail;
     }
 

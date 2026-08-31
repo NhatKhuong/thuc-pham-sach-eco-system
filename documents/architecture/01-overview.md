@@ -307,15 +307,24 @@ Bốn quy tắc không được phá:
 
 ## 7. Response envelope
 
-Mọi controller trả `ResultMessage<T>` dựng qua `ResultUtil.data(...)` / `.success()` / `.error(...)`:
+**Không có envelope.** Controller trả **payload trần**; danh sách trả `PaginatedResponse<T>`; lỗi trả `ProblemDetail` (RFC 7807) kèm **mã HTTP thật**. Luật này do [ADR 0001](../../../../management/decisions/0001-api-response-envelope.md) chốt: trên **bề mặt dây**, `API_CONTRACT.md` §A.3 (mirror, đồng bộ 2026-08-26) thắng quy ước nội bộ.
 
-```json
-{ "success": true, "message": "success", "code": 200, "timestamp": 1766000000000, "result": {} }
+```java
+// ProductController.java:98,124 — hình dạng ĐANG chạy, không bọc gì
+public PaginatedResponse<ProductResponse> getProducts(...)   // { items, total, page, limit, totalPages }
+public ProductResponse getProductBySlug(...)                 // payload trần
 ```
 
-- Payload nằm ở field **`result`** — frontend đọc `response.data.result`.
-- **Thất bại nghiệp vụ = HTTP 200 + `success=false`**, kèm `code` dạng UPPER_SNAKE (`OUT_OF_STOCK`, `TICKET_NOT_FOUND`, `STOCK_CONFLICT`, `PRICE_NOT_FOUND`, `SERVER_ERROR`) và `message` tiếng Việt cho người dùng.
-- Chỉ lỗi hạ tầng thật mới trả 5xx. Nhờ vậy threshold `http_req_failed` của k6 chỉ bắt lỗi server thật, không bắt "hết hàng".
+- **Payload nằm ngay ở gốc response** — frontend đọc thẳng `response.data`, **không** `response.data.result`. Phân trang là `PaginatedResponse<T>` với `{items, total, page, limit, totalPages}` (`PaginatedResponse.java:26-38`), `page` đánh số từ 1.
+- **Thất bại nghiệp vụ vẫn là *giá trị trả về* trong tầng application** — `code` UPPER_SNAKE + `message` tiếng Việt, dựng bằng static factory (`OrderMutationResponse.java:99` `failed(String code, String message)`; mã tại `:49,59,62`). **Phần này không bị ADR 0001 thay thế và giữ nguyên**: nó là hợp đồng *giữa các tầng*, không phải hình dạng trên dây.
+- **Nhưng giá trị đó dừng lại ở ranh giới controller.** `OrderController.extractOrThrow` (`:273-287`) dịch `code` thành exception mang mã HTTP thật — `EMPTY_ORDER` → **400**, `OUT_OF_STOCK` → **409**, còn lại → **422** — rồi `@RestControllerAdvice` biến exception thành `ProblemDetail` (`GlobalExceptionHandler.java:236,252,262`). **Không bao giờ trả HTTP 200 cho một thất bại.** Bảng mã đầy đủ ở `coding-conventions.md` §11.
+- **Threshold giám sát phải lọc theo status — cái giá đã biết của ADR 0001.** Mục này trước đây chọn HTTP 200 chính vì để `http_req_failed` của k6 chỉ bắt lỗi server thật. Với mã HTTP thật thì **4xx nghiệp vụ bị tính là request lỗi** — "hết hàng" nay nằm trong tử số. Threshold k6 và alert **phải loại 4xx nghiệp vụ ra**, không thì báo động giả. Đây là giá phải trả, **không phải một lỗi cần sửa ở tầng code** — đừng "sửa" bằng cách trả 200 lại.
+
+> ⚠️ **Envelope cũ `ResultMessage<T>` dựng qua `ResultUtil.data(...)` / `.success()` / `.error(...)` KHÔNG tồn tại trong code này — đừng chép lại từ dự án tham chiếu.**
+>
+> Đo ngày **2026-08-26**: `ResultUtil` **0** file `.java` (control dương cùng lệnh: `ProblemDetail` **45**, `GlobalExceptionHandler` **30**). `ResultMessage` có mặt ở **14** file `.java` nhưng **cả 14 đều là javadoc nhắc để CẤM** — `ProductController.java:28` viết *"Trả DTO trần, không bọc `ResultMessage` (ADR 0001)"*, và `GlobalExceptionHandler.java:22` gọi đích danh **chính mục này** là chỗ lệch.
+>
+> Mục này ra lệnh envelope cũ suốt từ **2026-08-20** (ngày ADR 0001 được chấp nhận) đến **2026-08-26**. Kéo về khớp code ở [backlog 0029](../../../../management/backlog/0029-architecture-7-envelope-va-dto-lech-code.md); nửa còn lại — `coding-conventions.md` §11 — ở [backlog 0028](../../../../management/backlog/0028-coding-conventions-muc-11-resultutil-400.md).
 
 ---
 

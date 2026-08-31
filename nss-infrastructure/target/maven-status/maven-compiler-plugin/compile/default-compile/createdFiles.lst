@@ -6,6 +6,8 @@ com\nss\ddd\infrastructure\persistence\mapper\UserRoleCode.class
 com\nss\ddd\infrastructure\persistence\repository\UserRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.class
+com\nss\ddd\infrastructure\persistence\mapper\ReviewJPAMapper.class
+com\nss\ddd\infrastructure\persistence\repository\ReviewRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\UserJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\OrderJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\UserRoleJPAMapper.class

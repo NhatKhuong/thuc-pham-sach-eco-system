@@ -4,11 +4,14 @@ import com.nss.ddd.application.mapper.ProductMapper;
 import com.nss.ddd.application.model.command.CreateProductCommand;
 import com.nss.ddd.application.model.command.UpdateProductCommand;
 import com.nss.ddd.application.model.response.PaginatedResponse;
+import com.nss.ddd.application.model.response.PriceRangeResponse;
 import com.nss.ddd.application.model.response.ProductMutationResponse;
 import com.nss.ddd.application.model.response.ProductResponse;
 import com.nss.ddd.application.service.product.ProductAppService;
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.entity.Brand;
 import com.nss.ddd.domain.model.entity.Category;
 import com.nss.ddd.domain.model.entity.Product;
@@ -40,6 +43,12 @@ public class ProductAppServiceImpl implements ProductAppService {
     /** Mặc định của API_CONTRACT §A.4 cho danh sách sản phẩm. */
     private static final int DEFAULT_LIMIT = 12;
 
+    /** Mặc định của {@code GET /products/{slug}/related} (§B.1). */
+    private static final int DEFAULT_RELATED_LIMIT = 4;
+
+    /** Mặc định của {@code GET /products/suggest} (§B.1). */
+    private static final int DEFAULT_SUGGEST_LIMIT = 5;
+
     private static final String MESSAGE_PRODUCT_NOT_FOUND = "Không tìm thấy sản phẩm này.";
 
     private static final String MESSAGE_INVALID_SALE_PRICE = "Giá khuyến mãi phải nhỏ hơn giá gốc.";
@@ -60,13 +69,20 @@ public class ProductAppServiceImpl implements ProductAppService {
     // ========== READ ==========
 
     @Override
-    public PaginatedResponse<ProductResponse> findProducts(int page, int limit) {
-        // 1. Keo tham so ve khoang dung duoc; `page` van danh so tu 1 tren duong day
-        int safePage = Math.max(page, 1);
-        int safeLimit = limit < 1 ? DEFAULT_LIMIT : limit;
-        // 2. Domain tra ve entity + tong so dong; phep tru 1 nam trong adapter
-        PageResult<Product> pageResult = productDomainService.findPage(safePage, safeLimit);
-        log.info("findProducts: success | page={} limit={} total={}", safePage, safeLimit, pageResult.getTotal());
+    public PaginatedResponse<ProductResponse> findProducts(PublicProductFilter filter) {
+        // 1. Keo tham so ve khoang dung duoc — dung mot luat voi khu quan tri (§A.4)
+        int safePage = Math.max(filter.getPage(), 1);
+        int safeLimit = filter.getLimit() < 1 ? DEFAULT_LIMIT : filter.getLimit();
+        // 2. Dung filter MOI thay vi sua cai duoc truyen vao: doi tuong cua phia goi khong duoc
+        //    am tham doi nghia giua chung mot lan xu ly
+        PublicProductFilter safeFilter = PublicProductFilter.of(filter.getKeyword(), filter.getCategorySlug(),
+                filter.getMinPrice(), filter.getMaxPrice(), filter.getMinRating(), filter.getInStockOnly(),
+                filter.getOnSaleOnly(), filter.getIsFeatured(), filter.getIsBestSeller(), filter.getSort(),
+                safePage, safeLimit);
+        PageResult<Product> pageResult = productDomainService.findPublicPage(safeFilter);
+        log.info("findProducts: success | q={} category={} sort={} page={} limit={} total={}",
+                safeFilter.getKeyword(), safeFilter.getCategorySlug(), safeFilter.getSort(),
+                safePage, safeLimit, pageResult.getTotal());
         return toPaginatedResponse(pageResult, safePage, safeLimit);
     }
 
@@ -224,6 +240,44 @@ public class ProductAppServiceImpl implements ProductAppService {
         return deleted;
     }
 
+    // ========== §B.1 CONG KHAI ==========
+
+    @Override
+    public List<ProductResponse> findProductsByIds(List<Long> ids) {
+        List<Product> products = productDomainService.findByIds(ids);
+        log.info("findProductsByIds: success | requested={} found={}",
+                ids == null ? 0 : ids.size(), products.size());
+        return toResponseList(products);
+    }
+
+    @Override
+    public List<ProductResponse> findRelatedProducts(String slug, int limit) {
+        Product product = productDomainService.findBySlug(slug);
+        if (product == null) {
+            log.warn("findRelatedProducts: base product not found | slug={}", slug);
+            return null;
+        }
+        int safeLimit = limit < 1 ? DEFAULT_RELATED_LIMIT : limit;
+        List<Product> related = productDomainService.findRelated(product, safeLimit);
+        log.info("findRelatedProducts: success | slug={} limit={} found={}", slug, safeLimit, related.size());
+        return toResponseList(related);
+    }
+
+    @Override
+    public List<ProductResponse> findSuggestions(String q, int limit) {
+        int safeLimit = limit < 1 ? DEFAULT_SUGGEST_LIMIT : limit;
+        List<Product> suggestions = productDomainService.findSuggestions(q, safeLimit);
+        log.info("findSuggestions: success | q={} limit={} found={}", q, safeLimit, suggestions.size());
+        return toResponseList(suggestions);
+    }
+
+    @Override
+    public PriceRangeResponse findPriceRange() {
+        PriceRange range = productDomainService.findPriceRange();
+        log.info("findPriceRange: success | min={} max={}", range.getMin(), range.getMax());
+        return new PriceRangeResponse().setMin(range.getMin()).setMax(range.getMax());
+    }
+
     // ========== HELPERS ==========
 
     /**
@@ -241,8 +295,21 @@ public class ProductAppServiceImpl implements ProductAppService {
      */
     private PaginatedResponse<ProductResponse> toPaginatedResponse(PageResult<Product> pageResult,
                                                                    int page, int limit) {
-        List<Product> products = pageResult.getItems();
-        // Anh cua ca trang lay trong MOT truy van, tranh N+1
+        List<ProductResponse> items = toResponseList(pageResult.getItems());
+        return PaginatedResponse.of(items, pageResult.getTotal(), page, limit);
+    }
+
+    /**
+     * Lắp một danh sách entity thành response, ảnh của cả danh sách lấy trong <b>một</b> truy vấn.
+     * <p>
+     * Dùng chung cho mọi đường đọc nhiều sản phẩm — có phân trang ({@link #toPaginatedResponse}) hay
+     * không ({@code ids}, liên quan, gợi ý) — vì lý do chống N+1 áp dụng như nhau ở cả hai: xem
+     * javadoc {@link #toPaginatedResponse}.
+     *
+     * @param products entity cần lắp
+     * @return response theo đúng thứ tự của {@code products}
+     */
+    private List<ProductResponse> toResponseList(List<Product> products) {
         Map<Long, List<ProductImage>> imagesByProductId = productDomainService
                 .findImagesGroupedByProductId(products.stream().map(Product::getId).toList());
         List<ProductResponse> items = new ArrayList<>(products.size());
@@ -250,7 +317,7 @@ public class ProductAppServiceImpl implements ProductAppService {
             items.add(ProductMapper.toResponse(product,
                     imagesByProductId.getOrDefault(product.getId(), Collections.emptyList())));
         }
-        return PaginatedResponse.of(items, pageResult.getTotal(), page, limit);
+        return items;
     }
 
     /**

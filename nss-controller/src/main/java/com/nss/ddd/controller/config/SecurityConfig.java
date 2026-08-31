@@ -92,6 +92,15 @@ public class SecurityConfig {
     public static final String[] PATHS_PRODUCT_READ = {"/api/products", "/api/products/**"};
 
     /**
+     * Đường <b>đọc</b> danh mục — công khai theo API_CONTRACT §B.2, và <b>chỉ với {@code GET}</b>
+     * (backlog 0024). Không có endpoint ghi nào trong namespace này.
+     * <p>
+     * Hai mẫu chứ không một, cùng lý do với {@link #PATHS_PRODUCT_READ}: {@code /api/categories} là
+     * danh sách (kèm {@code ?root=true}), {@code /api/categories/**} phủ {@code /{slug}}.
+     */
+    public static final String[] PATHS_CATEGORY_READ = {"/api/categories", "/api/categories/**"};
+
+    /**
      * <b>Toàn bộ khu quản trị — MỘT dòng luật cho cả tiền tố, chỉ ADMIN</b> (API_CONTRACT §C.4.3a,
      * backlog 0018).
      * <p>
@@ -317,6 +326,10 @@ public class SecurityConfig {
                         .requestMatchers(PATH_ADMIN_ALL).hasRole(ROLE_ADMIN)
                         // 2. Luat RONG sau: doc san pham cong khai, va CHI voi GET (§B.1).
                         .requestMatchers(HttpMethod.GET, PATHS_PRODUCT_READ).permitAll()
+                        // 2b. Doc danh muc cong khai, va CHI voi GET (§B.2, backlog 0024). Khong
+                        //     giao voi nhom nao khac (khong nhom nao nam duoi /api/categories) nen
+                        //     vi tri giua cac nhom con lai khong anh huong gi.
+                        .requestMatchers(HttpMethod.GET, PATHS_CATEGORY_READ).permitAll()
                         // 3. Ma giam gia: hai endpoint cong khai (§B.7), moi cai khai DUNG method
                         //    cua no. requestMatchers(String...) khong phan biet method, nen bo
                         //    HttpMethod di la mo luon moi verb tren cung duong dan — ke ca DELETE.

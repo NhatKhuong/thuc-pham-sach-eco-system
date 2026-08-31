@@ -65,7 +65,7 @@
         updated_at datetime(6) comment 'Thoi diem cap nhat gan nhat, luu theo gio UTC',
         user_id bigint comment 'Chu don; null la don khach vang lai',
         phone varchar(20) not null comment 'So dien thoai nguoi nhan',
-        code varchar(32) not null comment 'Ma don hien thi cho khach, duy nhat, vi du NSS-20260817-0001',
+        code varchar(32) not null comment 'Ma don hien thi cho khach, duy nhat, vi du NSS-20260826-K7M2QX9P4T',
         coupon_code varchar(32) comment 'Ma giam gia da ap, ban chup; null neu khong ap ma',
         district varchar(128) not null comment 'Ten quan/huyen giao hang',
         full_name varchar(128) not null comment 'Ho ten nguoi nhan hang',
@@ -184,6 +184,7 @@
         created_at datetime(6) not null comment 'Thoi diem tao, luu theo gio UTC',
         id bigint not null auto_increment comment 'Khoa chinh',
         product_id bigint not null comment 'San pham duoc danh gia',
+        user_id bigint comment 'Tai khoan viet danh gia; null la ban ghi seed co truoc ADR 0008',
         author_name varchar(128) not null comment 'Ten nguoi danh gia tu khai',
         content TEXT not null comment 'Noi dung danh gia, toi thieu 10 ky tu',
         primary key (id)
@@ -303,6 +304,9 @@
     create index idx_product_id 
        on review (product_id);
 
+    alter table review 
+       add constraint uk_review_product_user unique (product_id, user_id);
+
     alter table role 
        add constraint uk_code unique (code);
 
@@ -386,6 +390,11 @@
        add constraint fk_review_product 
        foreign key (product_id) 
        references product (id);
+
+    alter table review 
+       add constraint fk_review_user 
+       foreign key (user_id) 
+       references user (id);
 
     alter table role_permission 
        add constraint fk_role_permission_permission 

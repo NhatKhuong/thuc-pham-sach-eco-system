@@ -1,13 +1,16 @@
 package com.nss.ddd.domain.service;
 
 import com.nss.ddd.domain.model.PageResult;
+import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
+import com.nss.ddd.domain.model.PublicProductFilter;
 import com.nss.ddd.domain.model.StockStatus;
 import com.nss.ddd.domain.model.entity.Brand;
 import com.nss.ddd.domain.model.entity.Category;
 import com.nss.ddd.domain.model.entity.Product;
 import com.nss.ddd.domain.model.entity.ProductImage;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -23,15 +26,6 @@ import java.util.Map;
  * sống ở module controller (§3) nên domain không thể, và không nên, ném chúng.
  */
 public interface ProductDomainService {
-
-    /**
-     * Một trang sản phẩm còn hiệu lực.
-     *
-     * @param page số trang, <b>đánh số từ 1</b>
-     * @param limit số phần tử mỗi trang
-     * @return các phần tử của trang kèm tổng số sản phẩm còn hiệu lực
-     */
-    PageResult<Product> findPage(int page, int limit);
 
     /**
      * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — {@code GET /admin/products}
@@ -200,4 +194,53 @@ public interface ProductDomainService {
      * @return các bản ghi ảnh sau khi ghi
      */
     List<ProductImage> replaceImages(Product product, List<String> urls);
+
+    /**
+     * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — {@code GET /products} công khai
+     * (API_CONTRACT §B.1).
+     * <p>
+     * <b>Quy tắc nghiệp vụ nằm ở đây, không ở adapter: {@code keyword} được bỏ dấu trước khi xuống
+     * port</b> — cùng lý do và cùng cơ chế với {@link #findAdminPage(ProductFilter)}.
+     *
+     * @param filter điều kiện lọc, sắp xếp và phân trang; {@code keyword} còn nguyên dấu
+     * @return các phần tử của trang kèm tổng số dòng khớp điều kiện lọc
+     */
+    PageResult<Product> findPublicPage(PublicProductFilter filter);
+
+    /**
+     * Nhiều sản phẩm còn hiệu lực theo một tập id — {@code GET /products?ids=} (API_CONTRACT §B.1).
+     *
+     * @param ids các khóa chính cần tra; {@code null} hoặc rỗng cho ra danh sách rỗng
+     * @return các sản phẩm còn hiệu lực khớp {@code ids}; thứ tự không đảm bảo
+     */
+    List<Product> findByIds(Collection<Long> ids);
+
+    /**
+     * Sản phẩm "liên quan" tới một sản phẩm gốc — {@code GET /products/{slug}/related}
+     * (API_CONTRACT §B.1).
+     *
+     * @param product sản phẩm gốc, đã nạp {@code category}
+     * @param limit số sản phẩm tối đa cần lấy
+     * @return sản phẩm cùng danh mục còn hiệu lực, loại trừ chính {@code product}
+     */
+    List<Product> findRelated(Product product, int limit);
+
+    /**
+     * Gợi ý tìm kiếm — {@code GET /products/suggest} (API_CONTRACT §B.1).
+     * <p>
+     * Cùng phép bỏ dấu với {@link #findPublicPage(PublicProductFilter)}.
+     *
+     * @param keyword từ khoá thô client gửi, có thể {@code null}
+     * @param limit số gợi ý tối đa cần lấy
+     * @return sản phẩm còn hiệu lực khớp {@code keyword}
+     */
+    List<Product> findSuggestions(String keyword, int limit);
+
+    /**
+     * Khoảng giá {@code MIN}/{@code MAX} trên mọi sản phẩm còn hiệu lực — {@code GET /products/price-range}
+     * (API_CONTRACT §B.1).
+     *
+     * @return khoảng giá theo {@code effectivePrice}
+     */
+    PriceRange findPriceRange();
 }

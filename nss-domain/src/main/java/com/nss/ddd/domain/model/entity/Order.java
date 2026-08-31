@@ -82,7 +82,7 @@ public class Order {
      * {@code length = 32} <b>không đổi</b> theo ticket này: mã mới dài 23 ký tự.
      */
     @Column(nullable = false, length = 32)
-    @Comment("Ma don hien thi cho khach, duy nhat, vi du NSS-20260817-0001")
+    @Comment("Ma don hien thi cho khach, duy nhat, vi du NSS-20260826-K7M2QX9P4T")
     private String code;
 
     /**

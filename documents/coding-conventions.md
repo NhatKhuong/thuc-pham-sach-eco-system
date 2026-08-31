@@ -4,6 +4,8 @@ Quy ước bắt buộc cho mọi dự án dùng stack ở [`architecture/01-ove
 
 Ví dụ trích từ dự án tham chiếu `xxxx.com`. Chỗ nào dự án tham chiếu làm sai, tài liệu ghi rõ **"đừng chép"** và nêu cách đúng.
 
+> **Mọi con trỏ tới `API_CONTRACT.md` trong file này đều ghi kèm *"mirror, đồng bộ `<ngày>`"*.** `API_CONTRACT.md` nằm ở đây là **bản sao**; nguồn thật ở board frontend. Ngày đồng bộ **không** ngăn được lệch — nó chỉ làm sự lỗi thời **nhìn thấy được**: ngày càng cũ thì độ tin của trích dẫn càng thấp, và người đọc biết phải đi đối chiếu nguồn. Sửa nội dung trích thì cập nhật ngày trong cùng lần sửa.
+
 ---
 
 ## 1. Ngôn ngữ
@@ -14,8 +16,18 @@ Ví dụ trích từ dự án tham chiếu `xxxx.com`. Chỗ nào dự án tham 
 | Message nghiệp vụ trả cho người dùng | **Tiếng Việt** (`"Hết vé, vui lòng thử lại sau"`) |
 | Identifier (class, method, biến) | Tiếng Anh |
 | Log message | Tiếng Anh |
-| Validation message (`@NotNull(message=...)`) | Tiếng Anh |
+| Validation message (`@NotNull(message=...)`) | **Tiếng Việt** (`"Email không đúng định dạng."`) |
 | Business error code | Tiếng Anh UPPER_SNAKE (`OUT_OF_STOCK`) |
+
+**Ranh giới là *ai đọc chuỗi*, không phải *chuỗi được viết ở đâu*.** Validation message trông như một chi tiết kỹ thuật vì nó nằm trong annotation cạnh code, nhưng nó không dừng lại ở đó: Spring đặt nó vào map `errors` của response **`422`** (`API_CONTRACT.md` §A.3 — mirror, đồng bộ 2026-08-26) và frontend dán thẳng nó vào ô nhập tương ứng. Người đọc là **người dùng cuối**, nên nó thuộc dòng *"message nghiệp vụ trả cho người dùng"* ở trên, **không** thuộc dòng *"log message"* (người đọc là kỹ sư).
+
+Hệ quả cụ thể:
+
+- Viết thẳng câu tiếng Việt **trong chính annotation**. **Không có tầng i18n / `MessageSource` / `Accept-Language`** — hệ thống chỉ một ngôn ngữ, nên đừng dựng khoá message để tra bảng.
+- **Không lặp lại đường dẫn của trường** trong câu — khoá của map `errors` đã mang đường dẫn rồi: `shipping.email` nhận `"Email nhận thông tin đơn hàng không đúng định dạng."`, không phải `"shipping.email không đúng định dạng"`.
+- Giọng câu cùng giọng với `detail` của `422`: nói *sai ở đâu và sửa thế nào*, không phải tên ràng buộc (`"@Size"`, `"must not be blank"`).
+
+Ghi nhận ở [backlog 0023](../../../management/backlog/0023-thong-diep-validate-tieng-viet.md) (95 thông điệp / 15 file DTO đã chuyển sang tiếng Việt) và [backlog 0026](../../../management/backlog/0026-coding-conventions-muc-1-validation-message.md) (kéo dòng luật này về khớp).
 
 ---
 
@@ -42,7 +54,6 @@ Ví dụ trích từ dự án tham chiếu `xxxx.com`. Chỗ nào dự án tham 
 | `*Repository` (**port**) | domain `repository/` | `IdempotencyKeyRepository` |
 | `*RepositoryImpl` (**adapter**) | infrastructure | `IdempotencyKeyRepositoryImpl` |
 | `*JPAMapper` (Spring Data interface) | infrastructure `persistence/mapper/` | `OutboxEventJPAMapper` — `JPA` viết hoa, field theo tên class: `outboxEventJPAMapper` |
-| `*DTO` | application `model/` | `TicketOrderDTO` |
 | `*Request` (**không** `*Req`) | controller `dto/` | `CreateBookingRequest` |
 | `*Command` | application `model/command/` | `CreateTicketCommand` |
 | `*Response` (**không** `*Resp`) | application `model/response/` | `PlaceOrderResponse` |
@@ -56,6 +67,10 @@ Ví dụ trích từ dự án tham chiếu `xxxx.com`. Chỗ nào dự án tham 
 | `*DO` | infrastructure `persistence/dataobject/` | `PaymentTransactionDO` — chỉ khi row shape lệch entity |
 | `*Exception` | controller `exception/` | `InvalidSignatureException` |
 
+- **Không có hậu tố `*DTO` trong dự án này** — dòng luật cũ trỏ vào `application model/`, và thư mục đó chỉ chứa `.gitkeep`. Đo 2026-08-26: **0** file `*DTO.java`, **0** lần gọi `toDTO`; control dương cùng lệnh: **19** file `*Response.java`, **87** lần gọi `toResponse`. Ranh giới thật là **chiều đi**, không phải một hậu tố chung:
+  - **Vào** — `*Request` (**15** file, controller `dto/`, hình dạng JSON của client) → `*Command` (**13** file, `application model/command/`, ý định đã làm sạch cho tầng application).
+  - **Ra** — `*Response` (**19** file, `application model/response/`), mang **hai** vai đừng lẫn: payload thật lên dây (`ProductResponse`), và **kết quả nghiệp vụ chỉ sống trong tiến trình** (`OrderMutationResponse`) — vai thứ hai bị `OrderController.extractOrThrow` (`:273-287`) bóc ở biên controller và **không bao giờ lên dây**.
+  - Từ *"DTO"* vẫn dùng được như **tên khái niệm chung** trong văn xuôi và javadoc (14 javadoc trong code đang viết *"trả DTO trần"*); cấm là cấm dùng nó làm **hậu tố class**.
 - **Entity là danh từ trần**, không hậu tố: `Ticket`, `OrderQueue`, `OutboxEvent`.
 - **Cấm biến thể `*InfrasRepositoryImpl`** (dự án tham chiếu có `OrderDeductionInfrasRepositoryImpl`, `HiInfrasRepositoryImpl` — đừng chép). Một hậu tố cho một vai trò.
 - Stereotype: `*RepositoryImpl` dùng **`@Repository`**, service dùng `@Service`, job/consumer dùng `@Component`. Dự án tham chiếu đặt `@Service` lên 8/10 repository impl — sai, đừng chép.
@@ -140,26 +155,33 @@ Luồng chuyển đổi ba tầng, mỗi ranh giới một kiểu:
 
 ```
 HTTP JSON -> controller/dto/*Request
-          -> (*ControllerMapper) -> application/model/command/*Command
-          -> (*Mapper.toEntity)  -> domain/model/entity/*
-          -> (*Mapper.toDTO)     -> application/model/*DTO
-          -> ResultMessage<T>
+          -> (*ControllerMapper)  -> application/model/command/*Command
+          -> (*Mapper.toEntity)   -> domain/model/entity/*
+          -> (*Mapper.toResponse) -> application/model/response/*Response
+          -> trả thẳng ra HTTP, KHÔNG envelope (ADR 0001) — lỗi thì là `ProblemDetail`, xem §11
 ```
 
 - `*Request`: `@Data` trần, validation bằng **`jakarta.validation`** (cấm `javax.validation`), date có `@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")`, request lồng nhau đánh `@Valid` trên field. Controller luôn `@Valid @RequestBody`.
 - `*Mapper` là class **stateless, method `public static`, không phải Spring bean**, luôn null-guard:
   ```java
-  public static TicketDTO toDTO(Ticket ticket) {
-      if (ticket == null) return null;
+  // ProductMapper.java:94-97
+  public static ProductResponse toResponse(Product product, List<ProductImage> images) {
+      if (product == null) {
+          return null;
+      }
       ...
   }
   ```
 - `*Response` nghiệp vụ dùng **static factory**, không new trực tiếp ở call site:
   ```java
-  public static PlaceOrderResponse failed(String code, String message) {
-      return new PlaceOrderResponse().setSuccess(false).setCode(code).setMessage(message);
+  // OrderMutationResponse.java:99 — KHÔNG có field `success`; vắng `order` chính là tín hiệu thất bại
+  public static OrderMutationResponse failed(String code, String message) {
+      return new OrderMutationResponse()
+              .setCode(code)
+              .setMessage(message);
   }
   ```
+  Kết quả này **không lên dây**: `OrderController.extractOrThrow` (`:273-287`) bóc nó thành payload thật hoặc exception mang mã HTTP thật (§11 · `architecture/01-overview.md` §7). Một `success=false` đi ra ngoài HTTP là envelope cũ, thứ [ADR 0001](../../../management/decisions/0001-api-response-envelope.md) đã bỏ.
 - Cấm `BeanUtils.copyProperties` để thay mapper. Map `Object[]` theo vị trí chỉ được dùng cho native query, và phải có comment index ngay cạnh.
 
 ---
@@ -225,21 +247,54 @@ HTTP JSON -> controller/dto/*Request
 
 ## 11. Error handling
 
-**Pattern A — thất bại nghiệp vụ là giá trị trả về, không phải exception.** HTTP 200, `success=false`, code UPPER_SNAKE, message tiếng Việt:
+**Pattern A — thất bại nghiệp vụ là *giá trị trả về* trong tầng application, không phải exception.** Static factory, code UPPER_SNAKE, message tiếng Việt:
 
 ```java
-return PlaceOrderResponse.failed("OUT_OF_STOCK", "Hết vé, vui lòng thử lại sau");
+return OrderMutationResponse.failed(OrderMutationResponse.CODE_OUT_OF_STOCK,
+        "Sản phẩm đã hết hàng, vui lòng chọn sản phẩm khác.");
 ```
 
-**Pattern B — `@RestControllerAdvice` là bắt buộc ở dự án mới.** Dự án tham chiếu **không có** global handler → mọi lỗi ngoài dự kiến trả body `{timestamp, status, error, path}` không khớp `ResultMessage`, và frontend vỡ khi parse. Handler tối thiểu phải phủ:
+**Nhưng giá trị đó dừng lại ở ranh giới controller.** Controller dịch kết quả thất bại thành exception mang **mã HTTP thật** (`OrderController.extractOrThrow` là mẫu chuẩn), rồi `@RestControllerAdvice` biến exception thành `ProblemDetail`. **Không bao giờ trả HTTP 200 cho một thất bại**, và **không có envelope** bọc quanh payload.
+
+> **Vì sao mã HTTP thật — và vì sao `422` chứ không phải `400`.**
+>
+> Frontend phân biệt *lỗi ô nhập* với *lỗi nghiệp vụ* bằng **sự có mặt của khoá `errors`**, không phải bằng cách đoán theo mã HTTP (`API_CONTRACT.md` §A.3 — mirror, đồng bộ 2026-08-26):
+>
+> - **Lỗi validate theo trường** (`@Valid` trượt) → **`422` + map `errors`** (`tên trường -> câu tiếng Việt`). Frontend dán từng câu vào đúng ô nhập.
+> - **Lỗi quy tắc nghiệp vụ** → **mã HTTP thật theo ngữ nghĩa** + `detail`, **không có `errors`**. Frontend hiển thị `detail` ở mức form.
+>
+> `400` là mặc định của Spring cho lỗi bind và **không phân biệt được hai loại đó**. Trả `400` không kèm `errors` cho một lỗi validate là **đổi contract trong im lặng**: body vẫn parse được, vẫn đúng hình dạng `ProblemDetail`, nên trông y hệt như đã chạy đúng — [backlog 0008](../../../management/backlog/0008-api-crud-san-pham.md) ghi lại đúng ca này và gọi nó là thứ khó nhận ra nhất.
+>
+> HTTP 200 cho thất bại còn hỏng nặng hơn: cơ chế **tự refresh khi gặp `401`** (`API_CONTRACT.md` §A.2 — mirror, đồng bộ 2026-08-26) mất sạch tín hiệu để bắt. Đó là lý do [ADR 0001](../../../management/decisions/0001-api-response-envelope.md) chốt `ProblemDetail` + mã HTTP thật và **thay thế** envelope cũ `ResultMessage<T>` + HTTP 200 + `ResultUtil.error(...)`. Envelope đó **không tồn tại trong code** — đừng chép lại từ dự án tham chiếu.
+
+Mã theo ngữ nghĩa, đúng như `GlobalExceptionHandler` đang chạy:
+
+| Tình huống | HTTP | Ví dụ exception |
+|---|---|---|
+| Không tìm thấy tài nguyên | 404 | `ProductNotFoundException`, `OrderNotFoundException` |
+| Chưa xác thực / sai thông tin đăng nhập | 401 | `InvalidCredentialsException` |
+| Trùng khoá, xung đột trạng thái | 409 | `DuplicateEmailException`, `OutOfStockException` |
+| Vi phạm quy tắc nghiệp vụ | 422 | `CouponNotApplicableException`, `InvalidOrderDataException` |
+| Request sai dạng, ngoài phạm vi `@Valid` | 400 | `InvalidDateRangeException`, `EmptyOrderException` |
+| Quá ngưỡng gọi | 429 | `TooManyRequestsException` |
+
+**Pattern B — `@RestControllerAdvice` là bắt buộc ở dự án mới.** Dự án tham chiếu **không có** global handler → mọi lỗi ngoài dự kiến trả body `{timestamp, status, error, path}` thay vì `ProblemDetail`, và frontend vỡ khi parse. Handler tối thiểu phải phủ:
 
 | Exception | HTTP | Trả về |
 |---|---|---|
-| `MethodArgumentNotValidException` | 400 | `ResultUtil.error(400, <field errors>)` |
-| `IllegalArgumentException` | 400 | `ResultUtil.error(400, e.getMessage())` |
-| `Exception` | 500 | `ResultUtil.error(500, "<message chung>")` + `log.error` kèm exception |
+| `MethodArgumentNotValidException` | **422** | `ProblemDetail` + property `errors` (`tên trường -> thông điệp`); `detail` là câu chung |
+| `IllegalArgumentException` | **400** | `ProblemDetail` + `detail` là **hằng số chung**, không phải `e.getMessage()` |
+| `Exception` | **500** | `ProblemDetail` + `detail` chung + `log.error` kèm exception |
+
+Ba ràng buộc đi kèm, mỗi cái đều từng làm hỏng một lần:
+
+- **Advice bắt `MethodArgumentNotValidException` phải xếp `@Order(Ordered.HIGHEST_PRECEDENCE)`.** `spring.mvc.problemdetails.enabled` khiến Spring tự đăng ký `ProblemDetailsExceptionHandler` ở order 0, và nó cũng nhận exception này — không xếp trước nó thì lỗi validate trả **`400` "Invalid request content."** thay vì `422` kèm `errors`. Vẫn đúng hình dạng `ProblemDetail`, nên rất dễ tưởng là đã chạy đúng.
+- **`@ExceptionHandler(Exception.class)` phải nằm ở một advice riêng, `@Order(Ordered.LOWEST_PRECEDENCE)`.** Spring chọn advice theo `@Order` *rồi* mới chọn method theo kiểu exception, nên gộp nó vào advice xếp trước thì nó nuốt cả 405 / 415 / 404-không-có-handler mà Spring vốn trả đúng, và biến tất cả thành 500. Xem `UnexpectedExceptionHandler`.
+- **Không đổ `e.getMessage()` vào `detail` cho lỗi kỹ thuật** (`IllegalArgumentException`, `Exception`) — chuỗi đó viết cho kỹ sư đọc, không cho người dùng cuối; dùng hằng số chung. Exception **nghiệp vụ** thì ngược lại: message của nó vốn đã là câu tiếng Việt viết cho người dùng, nên `e.getMessage()` đi thẳng vào `detail`. Cùng một ranh giới *"ai đọc chuỗi"* ở §1.
 
 Có advice rồi thì **bỏ try/catch trùng lặp trong controller**.
+
+Ghi nhận ở [ADR 0001](../../../management/decisions/0001-api-response-envelope.md) (chốt `ProblemDetail` + mã HTTP thật, thay thế envelope `ResultMessage` / `ResultUtil`) và [backlog 0028](../../../management/backlog/0028-coding-conventions-muc-11-resultutil-400.md) (kéo mục này về khớp code).
 
 **Pattern C — catch ladder từ cụ thể đến tổng quát**, mỗi nhánh compensate cache:
 
@@ -478,4 +533,4 @@ try {
 
 ---
 
-*Last updated: 2026-08-26 — cập nhật stamp này trong cùng lần sửa nội dung.*
+*Last updated: 2026-08-26 — §3 + §7: bỏ hậu tố `*DTO` (0 file `*DTO.java`, 0 `toDTO`; thật là `*Response` 19 file / `toResponse` 87 lần), ghi ranh giới **vào `*Request`→`*Command`** / **ra `*Response`** và hai vai của `*Response`; ví dụ mapper + static factory thay bằng class có thật; mọi con trỏ `API_CONTRACT.md` ghi rõ **mirror + ngày đồng bộ** (backlog 0029). Trước đó: §11: kéo Pattern A/B về khớp code — `ProblemDetail` + mã HTTP thật thay envelope `ResultMessage`/`ResultUtil`, validate là **422 + `errors`** chứ không phải 400, kèm lý do và trỏ ADR 0001; §7 sửa đuôi chuỗi chuyển đổi (backlog 0028). Trước đó: §1 validation message chuyển sang **Tiếng Việt** + ghi ranh giới phân nhóm (backlog 0026). Cập nhật stamp này trong cùng lần sửa nội dung.*

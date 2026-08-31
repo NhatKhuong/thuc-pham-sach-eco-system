@@ -9,6 +9,7 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastru
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ProductImageJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ProductJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\RefreshTokenJPAMapper.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\ReviewJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserRoleCode.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\UserRoleJPAMapper.java
@@ -21,5 +22,6 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastru
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\ProductImageRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\ProductRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\RefreshTokenRepositoryImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\ReviewRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\UserRepositoryImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\repository\UserRoleRepositoryImpl.java

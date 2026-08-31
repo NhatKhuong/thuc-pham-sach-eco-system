@@ -39,25 +39,44 @@ Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1`
 Sinh xong thì **kiểm ngay**:
 
 ```bash
-wc -l environment/mysql/init/01-schema.sql            # phải ra 413
+wc -l environment/mysql/init/01-schema.sql            # phải ra 422
 git diff --stat environment/mysql/init/01-schema.sql  # phải RỖNG (không in gì)
 ```
 
 Diff rỗng là **bài kiểm entity chưa trôi khỏi schema**, không phải thủ tục cho có: nó nói rằng schema
 sinh từ entity hiện tại giống hệt bản đang commit. Diff không rỗng nghĩa là entity đã đổi mà bản kết
 xuất chưa theo kịp — đọc diff, xác nhận đúng ý định, rồi commit bản vừa sinh; **tuyệt đối không sửa
-tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 413 khác
+tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 422 khác
 đi mà không do entity đổi thì gần như chắc chắn là quên `rm -f`.
 
 > **Con số này là một literal phải cập nhật cùng lần thêm entity — hoặc thêm CỘT.** 384 → **405** ở
 > [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) khi bảng
 > `password_reset_token` ra đời; 405 → **413** ở
 > [backlog 0019](../../management/backlog/0019-admin-orders-customers-stats.md) khi hai cột
-> `full_name_normalized` (`customer_order` và `user`) cùng hai index của chúng ra đời. Lần này
-> **số bảng và số khoá ngoại không đổi** (vẫn 20 / 17) — đó là điểm phân biệt "thêm cột" với "thêm
+> `full_name_normalized` (`customer_order` và `user`) cùng hai index của chúng ra đời — lần đó
+> **số bảng và số khoá ngoại không đổi** (20 / 17), đó là điểm phân biệt "thêm cột" với "thêm
 > bảng", và `SchemaSmokeTest` khoá đúng hai con số kia chứ không khoá số dòng. Quên sửa literal này
 > thì bước kiểm ở trên báo động giả mỗi lần chạy, và một cảnh báo luôn sai là một cảnh báo không ai
 > còn đọc.
+>
+> **413 → 422 ở [backlog 0027](../../management/backlog/0027-danh-gia-san-pham-cong-khai-b8.md), và
+> lần re-baseline này mang HAI lý do — ghi cả hai ra để lần sau không phải đoán:**
+>
+> 1. **[ADR 0008](../../management/decisions/0008-danh-gia-phai-co-tai-khoan.md) — đánh giá phải có
+>    tài khoản.** Thêm `review.user_id` + `fk_review_user` + `uk_review_product_user`. Đây là lần đầu
+>    **số khoá ngoại đổi mà số bảng thì không**: **20 bảng giữ nguyên, 17 → 18 FK**. `SchemaSmokeTest`
+>    khoá cả hai con số đó, nên phép kiểm chống nới schema ngoài ý muốn vẫn còn nguyên hiệu lực —
+>    đây không phải kiểu "md5 đổi thì cập nhật md5".
+> 2. **`Order.java:85` — `@Comment` lỗi thời.** Nó ghi ví dụ mã đơn `NSS-20260817-0001`, dạng tuần tự
+>    đã bị [bugs/0004](../../management/bugs/0004-ma-don-count-star-dua-nhau.md) thay bằng
+>    `NSS-20260826-K7M2QX9P4T`. Sửa một `@Comment` vốn phá md5 nên việc này bị treo ở
+>    [`decisions/CANDIDATES.md`](../../management/decisions/CANDIDATES.md); gộp vào lần re-baseline
+>    này là lần rẻ nhất, và câu hỏi treo kia tan biến.
+>
+> **md5 của bản kết xuất: `b2bba67c…` → `2c49b5e078b7c63cf3f254294336e69a`.** Diff giữa hai bản là
+> **đúng 4 hunk**: +1 cột · +1 unique index · +1 khoá ngoại · +1 dòng `comment`. Hunk nào ngoài bốn
+> cái đó nghĩa là có entity bị sửa ngoài phạm vi — **dừng và hỏi**, đừng cập nhật số dòng cho qua
+> chuyện.
 
 > **Cảnh báo — `environment/mysql/init/` **đang được mount** vào `docker-entrypoint-initdb.d/`, nên
 > file này được MySQL *thực thi*, không còn nằm im.** Một bản sinh sai — ví dụ file 768 dòng do quên
