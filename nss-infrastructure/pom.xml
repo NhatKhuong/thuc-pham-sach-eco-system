@@ -39,5 +39,25 @@
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
     </dependency>
+    <!-- Redis + Redisson (backlog 0035 Phase 0, architecture/01-overview.md §2/§4/§5) — thi hanh
+         tai lieu: Redis 7.x + Redisson 3.17.1 da co ten trong bang stack tu truoc ticket nay, chua
+         noi day. CHI module nay khai <dependency> that; nss-application KHONG them dependency Redis
+         nao — no chi thay RedissonClient/StringRedisTemplate qua cac adapter (*CacheRedisAdapter,
+         DistributedLockServiceImpl) song o day, dung tinh than "domain va application deu khong biet
+         Redis ton tai" cua coding-conventions §13.
+         spring-boot-starter-data-redis: Lettuce cho du lieu (Guava/Redis 3 tang doc, Lua atomic gate).
+         Version do BOM spring-boot-dependencies 3.3.5 quan — khong khai <version>. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <!-- org.redisson:redisson rieng cho distributed lock chong cache stampede (Phase 3) — KHONG dung
+         chung client voi Lettuce (Redisson dung Netty rieng cua no). Version do root pom quan
+         (dependencyManagement, khuon springdoc — mot <dependency> don, khong BOM rieng vi chi mot
+         artifact). -->
+    <dependency>
+      <groupId>org.redisson</groupId>
+      <artifactId>redisson</artifactId>
+    </dependency>
   </dependencies>
 </project>

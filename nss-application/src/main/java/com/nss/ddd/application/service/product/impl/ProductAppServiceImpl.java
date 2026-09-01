@@ -8,6 +8,7 @@ import com.nss.ddd.application.model.response.PriceRangeResponse;
 import com.nss.ddd.application.model.response.ProductMutationResponse;
 import com.nss.ddd.application.model.response.ProductResponse;
 import com.nss.ddd.application.service.product.ProductAppService;
+import com.nss.ddd.application.service.product.cache.ProductCacheService;
 import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.PriceRange;
 import com.nss.ddd.domain.model.ProductFilter;
@@ -66,6 +67,8 @@ public class ProductAppServiceImpl implements ProductAppService {
 
     private final ProductDomainService productDomainService;
 
+    private final ProductCacheService productCacheService;
+
     // ========== READ ==========
 
     @Override
@@ -102,15 +105,22 @@ public class ProductAppServiceImpl implements ProductAppService {
         return toPaginatedResponse(pageResult, safePage, safeLimit);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Đi qua cache 3 tầng (backlog 0035 Phase 1)</b> thay vì đọc thẳng DB — logic đọc DB cũ đã dời
+     * nguyên trạng vào {@code ProductCacheServiceImpl}, chỉ được gọi khi cả Guava lẫn Redis đều miss.
+     * Response shape và ca "không tồn tại → {@code null}" giữ nguyên y hệt (§Contract của ticket).
+     */
     @Override
     public ProductResponse findProductBySlug(String slug) {
-        Product product = productDomainService.findBySlug(slug);
-        if (product == null) {
+        ProductResponse response = productCacheService.getProductBySlug(slug);
+        if (response == null) {
             log.warn("findProductBySlug: not found | slug={}", slug);
             return null;
         }
-        log.info("findProductBySlug: success | productId={} slug={}", product.getId(), slug);
-        return ProductMapper.toResponse(product, productDomainService.findImages(product.getId()));
+        log.info("findProductBySlug: success | productId={} slug={}", response.getId(), slug);
+        return response;
     }
 
     @Override
@@ -184,6 +194,9 @@ public class ProductAppServiceImpl implements ProductAppService {
             return ProductMutationResponse.failed(ProductMutationResponse.CODE_PRODUCT_NOT_FOUND,
                     MESSAGE_PRODUCT_NOT_FOUND);
         }
+        // Chup slug CU truoc khi ProductMapper.applyUpdate sua thang len chinh doi tuong `existing`
+        // (backlog 0035 Phase 1) — can no de evict ca slug cu lan slug moi neu doi.
+        String oldSlug = existing.getSlug();
         // 2. Chot slug TRUOC khi kiem trung — cung ly do nhu o createProduct
         String slug = productDomainService.genSlug(command.getSlug(), command.getName());
         if (slug == null) {
@@ -224,15 +237,35 @@ public class ProductAppServiceImpl implements ProductAppService {
         // 6. Ghi san pham va thay tron mang anh trong CUNG transaction
         Product saved = productDomainService.update(ProductMapper.applyUpdate(existing, command), category, brand);
         List<ProductImage> images = productDomainService.replaceImages(saved, command.getImages());
+        // 7. Evict cache (backlog 0035 Phase 1) — slug CU luon evict; slug MOI evict them neu doi,
+        //    de mot GET truoc do lo nap nham cache "khong ton tai" cho slug moi cung bi xoa.
+        productCacheService.evict(oldSlug);
+        if (!oldSlug.equals(saved.getSlug())) {
+            productCacheService.evict(saved.getSlug());
+        }
         log.info("updateProduct: success | productId={} slug={}", saved.getId(), saved.getSlug());
         return ProductMutationResponse.success(ProductMapper.toResponse(saved, images));
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Đọc sản phẩm TRƯỚC khi xoá mềm (backlog 0035 Phase 1)</b> — trước ticket này, method đọc
+     * thẳng {@code softDelete(id)} mà không cần biết slug. Nay cần slug để evict cache sau khi xoá
+     * thành công, nên phải đọc trước; bản ghi đã xoá mềm từ trước hành xử như "not found" — không
+     * đổi ý nghĩa của giá trị trả về {@code false} so với trước.
+     */
     @Override
     @Transactional
     public boolean deleteProduct(Long id) {
+        Product existing = productDomainService.findById(id);
+        if (existing == null) {
+            log.warn("deleteProduct: not found | productId={}", id);
+            return false;
+        }
         boolean deleted = productDomainService.softDelete(id);
         if (deleted) {
+            productCacheService.evict(existing.getSlug());
             log.info("deleteProduct: success | productId={}", id);
         } else {
             log.warn("deleteProduct: not found | productId={}", id);

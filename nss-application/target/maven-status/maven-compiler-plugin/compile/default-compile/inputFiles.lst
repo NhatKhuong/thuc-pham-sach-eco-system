@@ -62,6 +62,10 @@ C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-applicati
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\impl\OrderAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\mq\OrderStatusChangedConsumer.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\order\OrderAppService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\cache\impl\ProductCacheServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\cache\impl\StockCacheServiceImpl.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\cache\ProductCacheService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\cache\StockCacheService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\impl\ProductAppServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\product\ProductAppService.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-application\src\main\java\com\nss\ddd\application\service\review\impl\ReviewAppServiceImpl.java

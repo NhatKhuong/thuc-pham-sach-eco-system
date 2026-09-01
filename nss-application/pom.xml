@@ -115,5 +115,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
+    <!-- Guava (backlog 0035 Phase 1, architecture/01-overview.md §2/§4): CacheBuilder cho tang L1
+         cua ProductCacheServiceImpl (service/product/cache/impl/). Day la MO RONG duy nhat cua
+         nss-application lien quan toi ha tang cache — KHONG phai Redis/Redisson: Guava la cache
+         process-local, khong noi mang, nen khong vi pham rang buoc "nss-application khong them
+         dependency Redis nao" cua ticket. Version do root pom quan (dependencyManagement, khuon
+         springdoc). -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
   </dependencies>
 </project>

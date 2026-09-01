@@ -393,4 +393,19 @@ public interface ProductJPAMapper extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.stock = p.stock - :quantity"
             + " WHERE p.id = :id AND p.isActive = true AND p.stock >= :quantity")
     int decreaseStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+    /**
+     * Hoàn tồn kho bằng UPDATE — đối xứng {@link #decreaseStock}, không cần vế {@code >=} vì là phép
+     * cộng (backlog 0035 Phase 2, §Contract của ticket).
+     *
+     * @param id khóa chính của sản phẩm
+     * @param quantity số lượng cần hoàn, phải dương
+     * @return số dòng bị ảnh hưởng — {@code 1} là hoàn được; {@code 0} là id không tồn tại hoặc sản
+     *         phẩm đã bị xoá mềm
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Product p SET p.stock = p.stock + :quantity"
+            + " WHERE p.id = :id AND p.isActive = true")
+    int increaseStock(@Param("id") Long id, @Param("quantity") int quantity);
 }

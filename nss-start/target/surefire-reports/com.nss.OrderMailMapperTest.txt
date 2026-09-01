@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.nss.OrderMailMapperTest
 -------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in com.nss.OrderMailMapperTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in com.nss.OrderMailMapperTest

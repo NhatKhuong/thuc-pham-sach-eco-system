@@ -147,6 +147,11 @@ public class ProductRepositoryImpl implements ProductRepository {
         return productJPAMapper.decreaseStock(id, quantity) == 1;
     }
 
+    @Override
+    public boolean increaseStock(Long id, int quantity) {
+        return productJPAMapper.increaseStock(id, quantity) > 0;
+    }
+
     /**
      * {@inheritDoc}
      * <p>

@@ -1,5 +1,10 @@
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\cache\redis\ProductCacheRedisAdapter.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\cache\redis\StockCacheRedisAdapter.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\config\KafkaTopicConfig.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\config\MySQLUtf8mb4Dialect.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\distributed\redisson\config\RedissonConfig.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\distributed\redisson\DistributedLockService.java
+C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\distributed\redisson\impl\RedissonDistributedLockServiceImpl.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\mq\OrderStatusChangedMessage.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.java
 C:\vibe_code\thuc-pham-sach\harness-starter-git-based\projects\api\nss-infrastructure\src\main\java\com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.java

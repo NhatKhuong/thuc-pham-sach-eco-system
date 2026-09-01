@@ -86,6 +86,25 @@ chạy chứ không chỉ nằm trong `pom.xml`: `KafkaTopicConfig` (infra, `New
 `@KafkaListener`). Bảng `outbox_event` + `idempotency_key` cũng đo được trong
 `environment/mysql/init/01-schema.sql` và trong `SchemaSmokeTest.EXPECTED_TABLE_COUNT` (20 → 22).
 
+**Redis, Redisson và Guava cũng đã rời danh sách này, ở backlog 0035.** Đo lại cùng lệnh
+`<artifactId>` ngày **2026-09-01**: `redis 1` (chỉ `nss-infrastructure/pom.xml`, khai
+`spring-boot-starter-data-redis`), `redisson 1` (`nss-infrastructure/pom.xml`, version do root
+`pom.xml` quản qua `dependencyManagement` — một `<dependency>` đơn, đúng khuôn `springdoc`, không BOM
+riêng vì Redisson chỉ có một artifact), `guava 1` (**chỉ** `nss-application/pom.xml`, dùng cho
+`ProductCacheServiceImpl` — cache L1 process-local, không phải Redis/Redisson nên không phạm ranh
+giới "domain và application không biết Redis tồn tại"). **`lettuce 0` giữ nguyên, và đó là đúng ý
+định** — Lettuce là driver của Spring Data Redis, kéo theo **transitively** qua
+`spring-boot-starter-data-redis` chứ không khai `<dependency>` riêng, cùng lý lẽ đã ghi cho
+`micrometer` vs `micrometer-registry-*` ở trên: một artifact có mặt trong classpath không đồng nghĩa
+nó phải có mặt trong `<dependency>` tường minh — chỉ cái *chủ động khai* mới đếm là "nối dây bởi
+module này". Bốn class chứng minh Redis/Redisson thật sự chạy: `RedissonConfig` (infra
+`distributed/redisson/config/`, `@Bean RedissonClient` đọc `spring.data.redis.*`),
+`ProductCacheRedisAdapter` + `StockCacheRedisAdapter` (infra `cache/redis/`, dùng
+`StringRedisTemplate`), `RedissonDistributedLockServiceImpl` (infra
+`distributed/redisson/impl/`). Service `redis:7-alpine` cũng đo được trong
+`environment/docker-compose-dev.yml`, port host-mapped `6390` — cùng nếp port lệch chuẩn với MySQL
+`3316` / Kafka `9094`.
+
 > **Chữ `registry` trong "micrometer" là load-bearing — đừng rút gọn thành "không có micrometer".**
 > Jar đóng gói **có** mang `micrometer-observation-1.13.6` + `micrometer-commons-1.13.6`; nguồn là
 > `spring-security-core:6.3.4`, **không** phải Resilience4j (hai jar đó cũng có mặt ở những module
@@ -216,6 +235,15 @@ MySQL — bọc trong Redisson lock để chống cache stampede
 - Lock quanh lần load DB: `tryLock(1, 5, TimeUnit.SECONDS)`; **double-check Redis bên trong lock**; `finally { unlock(); }` không có ngoại lệ.
 - Cache mang theo `version` (`System.currentTimeMillis()`) để client hỏi có bản mới hơn không.
 - **Số lượng tồn / counter KHÔNG đi qua cache đọc này.** Nó sống ở key riêng dạng số nguyên (§5).
+
+> **TTL Guava 5 phút là mặc định chung — backlog 0035 (`ProductCacheServiceImpl`, `GET
+> /products/{slug}`) cố ý siết xuống 60 giây.** Đây là ĐỘ LỆCH CÓ CHỦ Ý, Quyết định Owner #3: Owner
+> chấp nhận staleness bị chặn ở một instance (Guava là process-local, không đồng bộ tức thời giữa
+> các instance) thay vì xây pub/sub, nhưng không chấp nhận 5 phút cho một trang chi tiết sản phẩm
+> flash sale — giá/tồn kho hiển thị sai quá lâu sau khi admin sửa là rủi ro nghiệp vụ lớn hơn chi phí
+> thêm vài lần chạm Redis mỗi phút cho mỗi sản phẩm hot. Lý do đầy đủ và code tương ứng ở hằng số
+> `GUAVA_TTL_SECONDS` của `ProductCacheServiceImpl`. Dự án mới khác dùng lại pattern này thì mặc định
+> vẫn là 5 phút trừ khi có quyết định tương tự.
 
 ### Namespace key chuẩn
 
@@ -414,7 +442,7 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 | Package `domain.respository` sai chính tả | Dùng `domain.repository` |
 | `spring-boot-maven-plugin` 3.4.0 lệch BOM 3.3.5 | Đồng bộ một version |
 | Hai namespace validation cùng classpath (`javax` + `jakarta`) | Chỉ `jakarta.validation` |
-| Redisson hardcode address, tách rời `spring.data.redis` | Một nguồn cấu hình |
+| Redisson hardcode address, tách rời `spring.data.redis` | Một nguồn cấu hình — **đã làm đúng ở backlog 0035**: `RedissonConfig.redissonClient(...)` đọc `spring.data.redis.host`/`.port` qua `@Value`, cùng nguồn cấu hình với Lettuce (`StringRedisTemplate`, tự động cấu hình bởi `spring-boot-starter-data-redis`), không tự khai địa chỉ riêng |
 | `@KafkaListener(concurrency="10")` trên topic 3 partition | `concurrency` ≤ số partition — **đã làm đúng ở backlog 0032**: topic `order.status-changed` 3 partition, `OrderStatusChangedConsumer` khai `concurrency = "3"` |
 | Không có DLT / retry policy — mất bản ghi sau 10 lần thử | Cấu hình `DefaultErrorHandler` + DLT — **CHƯA làm ở backlog 0032**, dùng nguyên retry mặc định của Spring Boot (không DLT). Ghi nhận là nợ kỹ thuật còn mở, không phải một ô đã làm đúng; xem Outcome của backlog 0032 |
 | Cache Redis không đặt TTL | Luôn `set` kèm TTL |
@@ -426,7 +454,10 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-08-31 — backlog 0032: Kafka + Thymeleaf rời danh sách "có tên nhưng chưa nối dây"
+*Last updated: 2026-09-01 — backlog 0035: Redis + Redisson + Guava rời danh sách "có tên nhưng chưa
+nối dây" (§2, đo lại `<artifactId>`); §4 thêm note độ lệch TTL Guava 60s (Quyết định Owner #3, khác
+mặc định 5 phút); §11 đánh dấu "Redisson hardcode address" đã sửa đúng. Trước đó: 2026-08-31 —
+backlog 0032: Kafka + Thymeleaf rời danh sách "có tên nhưng chưa nối dây"
 (§2), đo lại `<artifactId>` và khoá `application.yml`; §6 thêm callout "triển khai THẬT" cho
 `OrderStatusChanged` (khác blueprint ở chỗ không có `<business>_queue`/status endpoint, không cần
 `TransactionTemplate`); §11 cập nhật hai dòng Kafka (`concurrency` đã đúng, DLT vẫn là nợ mở). Trước

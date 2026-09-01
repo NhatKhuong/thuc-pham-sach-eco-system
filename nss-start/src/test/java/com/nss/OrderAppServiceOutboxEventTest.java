@@ -6,6 +6,7 @@ import com.nss.ddd.application.model.command.CreateOrderCommand;
 import com.nss.ddd.application.model.command.ShippingInfoCommand;
 import com.nss.ddd.application.service.order.OrderAppService;
 import com.nss.ddd.application.service.order.impl.OrderAppServiceImpl;
+import com.nss.ddd.application.service.product.cache.StockCacheService;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OutboxEvent;
 import com.nss.ddd.domain.model.entity.Product;
@@ -51,8 +52,17 @@ class OrderAppServiceOutboxEventTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final OrderAppService orderAppService = new OrderAppServiceImpl(
-            orderDomainService, couponDomainService, productDomainService, outboxEventRepository, objectMapper);
+    /**
+     * Mock trần, không stub {@code deductStock} — Mockito trả {@code 0} (int) mặc định, tức
+     * {@code StockCacheService.INSUFFICIENT}. Không kích hoạt warm/retry (chỉ {@code MISS} mới kích
+     * hoạt) và không được thêm vào danh sách compensate (chỉ {@code DEDUCTED} mới được thêm) — Tầng 2
+     * (đã mock ở dưới) vẫn là trọng tài quyết định thành/bại, đúng ý {@code createOrder} sau backlog
+     * 0035 Phase 2.
+     */
+    private final StockCacheService stockCacheService = mock(StockCacheService.class);
+
+    private final OrderAppService orderAppService = new OrderAppServiceImpl(orderDomainService,
+            couponDomainService, productDomainService, outboxEventRepository, objectMapper, stockCacheService);
 
     @Test
     @DisplayName("createOrder thanh cong -> dung 1 outbox_event, fromStatus=null, payload dung hinh dang")

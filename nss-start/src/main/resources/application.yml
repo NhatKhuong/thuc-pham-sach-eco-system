@@ -59,6 +59,22 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
+  data:
+    redis:
+      # Redis (backlog 0035 Phase 0, architecture/01-overview.md §2/§4/§5). Theo dung nep
+      # ${ENV_VAR:dev-default} — khong tao profile moi.
+      #
+      # Mac dinh khop service `redis` cua environment/docker-compose-dev.yml, port host-mapped 6390 —
+      # cung nep dat port khong chuan voi MySQL (3316) va Kafka (9094) de tranh dung voi cai dat native
+      # tren may dev.
+      #
+      # DAY LA NGUON CAU HINH DUY NHAT cho ca Lettuce (StringRedisTemplate) LAN Redisson —
+      # RedissonConfig doc dung hai khoa nay qua @Value, khong tu khai dia chi rieng. Day la cho sua
+      # nguoc dung nợ ky thuat da ghi o architecture §11 "Redisson hardcode address, tach roi
+      # spring.data.redis" cua du an tham chieu.
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6390}
+
   kafka:
     # Broker Kafka (backlog 0032, architecture/01-overview.md §6). Theo dung nep ${ENV_VAR:dev-default}.
     # Mac dinh khop service `kafka` cua environment/docker-compose-dev.yml, listener host-mapped 9094 —
