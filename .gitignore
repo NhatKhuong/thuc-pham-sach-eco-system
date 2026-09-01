@@ -1,3 +1,4 @@
 environment/.env
 environment/data/
 data/
+**/target/

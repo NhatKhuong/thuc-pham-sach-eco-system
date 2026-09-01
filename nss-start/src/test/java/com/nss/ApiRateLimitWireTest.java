@@ -3,6 +3,7 @@ package com.nss;
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.EmailConfirmationTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.IdempotencyKeyJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
@@ -107,6 +108,10 @@ class ApiRateLimitWireTest {
 
     @MockBean
     private PasswordResetTokenJPAMapper passwordResetTokenJPAMapper;
+
+    /** Backlog 0037 — xac nhan email: cung ly do voi passwordResetTokenJPAMapper o tren. */
+    @MockBean
+    private EmailConfirmationTokenJPAMapper emailConfirmationTokenJPAMapper;
 
     /** Backlog 0032 — Outbox + Kafka: outbox_event/idempotency_key co adapter tu ticket do tro di. */
     @MockBean

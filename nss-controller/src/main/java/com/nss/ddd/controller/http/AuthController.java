@@ -5,17 +5,22 @@ import com.nss.ddd.application.model.response.AuthResponse;
 import com.nss.ddd.application.model.response.PasswordMutationResponse;
 import com.nss.ddd.application.model.response.PasswordResetMutationResponse;
 import com.nss.ddd.application.model.response.ProfileMutationResponse;
+import com.nss.ddd.application.model.response.RegisterMutationResponse;
+import com.nss.ddd.application.model.response.RegisterResponse;
 import com.nss.ddd.application.model.response.UserResponse;
 import com.nss.ddd.application.service.auth.AuthAppService;
 import com.nss.ddd.controller.config.ForgotPasswordRateLimiter;
+import com.nss.ddd.controller.config.ResendConfirmationRateLimiter;
 import com.nss.ddd.controller.dto.ChangePasswordRequest;
 import com.nss.ddd.controller.dto.ForgotPasswordRequest;
 import com.nss.ddd.controller.dto.LoginRequest;
 import com.nss.ddd.controller.dto.RefreshTokenRequest;
 import com.nss.ddd.controller.dto.RegisterRequest;
+import com.nss.ddd.controller.dto.ResendConfirmationRequest;
 import com.nss.ddd.controller.dto.ResetPasswordRequest;
 import com.nss.ddd.controller.dto.UpdateProfileRequest;
 import com.nss.ddd.controller.exception.DuplicateEmailException;
+import com.nss.ddd.controller.exception.EmailNotVerifiedException;
 import com.nss.ddd.controller.exception.InvalidCredentialsException;
 import com.nss.ddd.controller.exception.InvalidCurrentPasswordException;
 import com.nss.ddd.controller.exception.InvalidResetTokenException;
@@ -36,13 +41,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -102,26 +111,52 @@ public class AuthController {
     private static final String MESSAGE_TOO_MANY_REQUESTS =
             "Bạn đã yêu cầu đặt lại mật khẩu quá nhiều lần, vui lòng thử lại sau ít phút.";
 
+    /** Thông điệp 429 của {@code resend-confirmation} (backlog 0037) — cùng lý do đã viết ở {@link #MESSAGE_TOO_MANY_REQUESTS}. */
+    private static final String MESSAGE_TOO_MANY_REQUESTS_RESEND =
+            "Bạn đã yêu cầu gửi lại email xác nhận quá nhiều lần, vui lòng thử lại sau ít phút.";
+
+    /**
+     * Trang HTML tối giản của {@code GET /api/auth/confirm-email} — <b>không phụ thuộc frontend</b>
+     * (backlog 0037 §Contract). {@code %s} là câu thông báo, tiếng Việt cho người dùng cuối.
+     */
+    private static final String CONFIRM_EMAIL_HTML_TEMPLATE = """
+            <!doctype html>
+            <html lang="vi">
+            <head><meta charset="utf-8"><title>Xác nhận tài khoản — Nông Sản Sạch</title></head>
+            <body style="font-family: sans-serif; text-align: center; padding: 48px;">
+            <h1>%s</h1>
+            </body>
+            </html>
+            """;
+
+    private static final String MESSAGE_CONFIRM_EMAIL_SUCCESS =
+            "Xác nhận email thành công! Bạn có thể đăng nhập ngay bây giờ.";
+
+    private static final String MESSAGE_CONFIRM_EMAIL_FAILURE =
+            "Liên kết xác nhận không hợp lệ hoặc đã hết hạn, vui lòng yêu cầu gửi lại email xác nhận.";
+
     private final AuthAppService authAppService;
 
     private final ForgotPasswordRateLimiter forgotPasswordRateLimiter;
 
+    private final ResendConfirmationRateLimiter resendConfirmationRateLimiter;
+
     /**
      * @param request body đã qua validate
-     * @return phiên vừa cấp
+     * @return câu xác nhận — <b>không</b> phiên đăng nhập (backlog 0037)
      */
     @Operation(summary = "Đăng ký tài khoản mới",
             description = """
-                    Tạo tài khoản và **đăng nhập luôn** — trả về `AuthResponse` chứ không phải `201` \
-                    rỗng, nên người dùng không phải nhập lại mật khẩu ngay sau khi đăng ký.
+                    Tạo tài khoản **CHƯA kích hoạt** và gửi email xác nhận — **KHÔNG còn đăng nhập \
+                    luôn** kể từ backlog 0037 (breaking change đã Owner duyệt). Response không còn \
+                    `AuthResponse`: không `user`, không `token`, không `refreshToken`.
 
-                    - Tài khoản mới nhận vai trò `CUSTOMER`; vai trò **không** xuất hiện trong \
-                    response, nó nằm trong claim `roles` của access token.
-                    - `user` trả về đúng 5 trường (`id`, `fullName`, `email`, `phone`, `avatar`) và \
-                    **không bao giờ** chứa mật khẩu, kể cả dạng đã băm.
-                    - Trường access token tên là **`token`**, không phải `accessToken`.
-                    - `refreshToken` dùng cho `POST /api/auth/refresh`.""")
-    @ApiResponse(responseCode = "200", description = "Đăng ký thành công, kèm phiên vừa cấp")
+                    - Tài khoản mới nhận vai trò `CUSTOMER` và bắt đầu ở trạng thái chưa xác nhận \
+                    email — `POST /api/auth/login` sẽ trả `403 EMAIL_NOT_VERIFIED` cho tới khi tài \
+                    khoản được xác nhận qua `GET /api/auth/confirm-email`.
+                    - Việc gửi mail chạy bất đồng bộ; `200` chỉ xác nhận yêu cầu đăng ký đã ghi nhận, \
+                    không đảm bảo email đã tới nơi.""")
+    @ApiResponse(responseCode = "200", description = "Đăng ký thành công, kèm câu xác nhận")
     @ApiResponse(responseCode = "409",
             description = "Email đã có tài khoản khác giữ; `detail` viết tiếng Việt",
             content = @Content(mediaType = PROBLEM_JSON,
@@ -133,7 +168,7 @@ public class AuthController {
             content = @Content(mediaType = PROBLEM_JSON,
                     schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping("/auth/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+    public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         log.info("AuthController:->register | email={}", request.getEmail());
         return extractOrThrow(authAppService.register(AuthControllerMapper.toCommand(request)));
     }
@@ -148,10 +183,18 @@ public class AuthController {
 
                     **Email không tồn tại và sai mật khẩu trả về cùng một `401` với cùng một chuỗi \
                     `detail`.** Đây là chủ ý, không phải thiếu sót: phân biệt hai ca sẽ biến endpoint \
-                    này thành công cụ dò xem địa chỉ nào đã đăng ký.""")
+                    này thành công cụ dò xem địa chỉ nào đã đăng ký.
+
+                    **Thông tin đăng nhập đúng nhưng tài khoản chưa xác nhận email trả `403`**
+                    (backlog 0037) — khác `401` vì thông tin đăng nhập không sai, chỉ thiếu một bước \
+                    xác nhận; xem `GET /api/auth/confirm-email` và `POST /api/auth/resend-confirmation`.""")
     @ApiResponse(responseCode = "200", description = "Đăng nhập thành công, kèm phiên vừa cấp")
     @ApiResponse(responseCode = "401",
             description = "Sai email hoặc mật khẩu; `detail` viết tiếng Việt và giống nhau cho cả hai ca",
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403",
+            description = "Thông tin đăng nhập đúng nhưng tài khoản chưa xác nhận email; `detail` viết tiếng Việt",
             content = @Content(mediaType = PROBLEM_JSON,
                     schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "422",
@@ -417,6 +460,85 @@ public class AuthController {
     }
 
     /**
+     * Xác nhận email bằng token nhận qua link trong mail — trả <b>HTML, không JSON</b> (backlog 0037
+     * §Contract).
+     * <p>
+     * <b>Đây là ngoại lệ duy nhất trong controller này không đi qua {@code ProblemDetail}.</b> Link
+     * được người dùng mở trực tiếp trên trình duyệt — không có mã JavaScript nào ở phía kia đọc
+     * JSON — nên cả hai nhánh (thành công / token không dùng được) đều trả một trang HTML tối giản
+     * mà mắt người đọc được ngay, đúng ý "không phụ thuộc frontend" của ticket.
+     * <p>
+     * <b>Không dùng {@code InvalidResetTokenException} hay bất kỳ {@code *Exception} nào khác ở
+     * đây.</b> {@code GlobalExceptionHandler} dịch exception thành {@code ProblemDetail} — đúng thứ
+     * endpoint này cố tình không dùng — nên nhánh thất bại được xử lý tại chỗ, không ném ra ngoài.
+     *
+     * @param token chuỗi token thô từ query string
+     * @return trang HTML xác nhận, {@code 200} khi thành công, {@code 400} khi token không dùng được
+     */
+    @Operation(summary = "Xác nhận email bằng token",
+            description = """
+                    Xác nhận email của tài khoản mới đăng ký và trả về một **trang HTML tối giản** \
+                    (`Content-Type: text/html`), **không phải JSON** — endpoint này do chính backend \
+                    phục vụ, không phụ thuộc `app` (frontend hiện là stub rỗng).
+
+                    - **Token dùng được đúng MỘT lần**, có hiệu lực 24 giờ (đổi được bằng \
+                    `EMAIL_CONFIRMATION_TOKEN_TTL`).
+                    - **Ba trường hợp — token không tồn tại, đã dùng, đã hết hạn — trả cùng một \
+                    trang lỗi**, cùng lý do đã chốt ở `POST /api/auth/reset-password`.
+                    - Xác nhận thành công đặt `user.email_verified = true`, cho phép \
+                    `POST /api/auth/login` cấp phiên.""")
+    @ApiResponse(responseCode = "200", description = "Xác nhận thành công",
+            content = @Content(mediaType = MediaType.TEXT_HTML_VALUE))
+    @ApiResponse(responseCode = "400", description = "Token không tồn tại / đã dùng / đã hết hạn",
+            content = @Content(mediaType = MediaType.TEXT_HTML_VALUE))
+    @GetMapping("/auth/confirm-email")
+    public ResponseEntity<String> confirmEmail(@RequestParam("token") String token) {
+        log.info("AuthController:->confirmEmail");
+        boolean confirmed = authAppService.confirmEmail(token);
+        String html = CONFIRM_EMAIL_HTML_TEMPLATE.formatted(
+                confirmed ? MESSAGE_CONFIRM_EMAIL_SUCCESS : MESSAGE_CONFIRM_EMAIL_FAILURE);
+        HttpStatus status = confirmed ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).contentType(MediaType.TEXT_HTML).body(html);
+    }
+
+    /**
+     * Gửi lại email xác nhận tài khoản — trả 204 với thân rỗng, <b>luôn luôn</b>.
+     *
+     * @param request body đã qua validate
+     * @param httpRequest chỉ dùng để lấy IP người gọi cho bộ chống dò tần suất
+     */
+    @Operation(summary = "Gửi lại email xác nhận tài khoản",
+            description = """
+                    Gửi lại một email chứa link xác nhận và trả **`204`** với **thân rỗng**, \
+                    <b>luôn luôn</b> — kể cả khi email không ứng với tài khoản nào, hoặc tài khoản đó \
+                    đã xác nhận rồi (anti-enumeration, nhất quán với `forgot-password` ở backlog 0017).
+
+                    - Endpoint **công khai**, và **có giới hạn tần suất** theo cả IP lẫn địa chỉ \
+                    email đích, tái dùng đúng khuôn `ForgotPasswordRateLimiter` — vượt ngưỡng trả `429`.
+                    - `204` KHÔNG có nghĩa là email đã tới nơi; kết quả gửi thật nằm ở log server.""")
+    @ApiResponse(responseCode = "204", description = "Đã nhận yêu cầu; không có thân phản hồi",
+            content = @Content)
+    @ApiResponse(responseCode = "422",
+            description = "Thiếu email hoặc email sai định dạng; kèm map **`errors`**",
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "429",
+            description = "Yêu cầu quá nhiều lần trong một khoảng thời gian ngắn; `detail` viết tiếng Việt",
+            content = @Content(mediaType = PROBLEM_JSON,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @PostMapping("/auth/resend-confirmation")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resendConfirmation(@Valid @RequestBody ResendConfirmationRequest request,
+                                   HttpServletRequest httpRequest) {
+        log.info("AuthController:->resendConfirmation | email={}", request.getEmail());
+        if (resendConfirmationRateLimiter.hasExceededLimit(httpRequest.getRemoteAddr(),
+                request.getEmail())) {
+            throw new TooManyRequestsException(MESSAGE_TOO_MANY_REQUESTS_RESEND);
+        }
+        authAppService.resendConfirmation(AuthControllerMapper.toResendConfirmationCommand(request));
+    }
+
+    /**
      * Dịch kết quả đặt lại mật khẩu thành 204 hoặc exception.
      * <p>
      * Thành công đọc từ cờ {@code success}, và nhánh {@code default} nổ thành 500 — cùng lý do đã
@@ -521,6 +643,10 @@ public class AuthController {
      * <p>
      * Đây là chỗ duy nhất mã lỗi nghiệp vụ gặp mã HTTP: application không được biết HTTP, và kiểu
      * {@code *Exception} sống ở module controller (§3) nên application cũng không ném được chúng.
+     * <p>
+     * <b>Từ backlog 0037, kiểu này chỉ còn phục vụ {@code login} và {@code refresh}</b> —
+     * {@code register} có kết quả riêng ({@link RegisterMutationResponse}), xem
+     * {@link #extractOrThrow(RegisterMutationResponse)}.
      *
      * @param result kết quả của lệnh xác thực
      * @return phiên khi thành công
@@ -529,11 +655,32 @@ public class AuthController {
         if (result.getAuth() != null) {
             return result.getAuth();
         }
-        if (AuthMutationResponse.CODE_DUPLICATE_EMAIL.equals(result.getCode())) {
-            throw new DuplicateEmailException(result.getMessage());
+        if (AuthMutationResponse.CODE_EMAIL_NOT_VERIFIED.equals(result.getCode())) {
+            throw new EmailNotVerifiedException(result.getMessage());
         }
         // CODE_INVALID_CREDENTIALS va CODE_INVALID_REFRESH_TOKEN cung ra 401: client.ts phan ung
         // voi 401 bang dung mot hanh vi, va hai ca deu la "phien nay khong dung duoc".
         throw new InvalidCredentialsException(result.getMessage());
+    }
+
+    /**
+     * Dịch kết quả đăng ký thành payload hoặc exception (backlog 0037).
+     * <p>
+     * <b>Kiểu riêng, tách khỏi {@link #extractOrThrow(AuthMutationResponse)}</b> — cùng lý do đã
+     * viết ở {@link #extractOrThrow(ProfileMutationResponse)}: gộp hai tập mã lại thì một mã quên
+     * map sau này sẽ âm thầm rơi vào nhánh {@code default} của một lệnh khác. Nhánh {@code default}
+     * ở đây nổ thành 500 — ồn ào, tức là sửa được.
+     *
+     * @param result kết quả của lệnh đăng ký
+     * @return câu xác nhận khi thành công
+     */
+    private RegisterResponse extractOrThrow(RegisterMutationResponse result) {
+        if (result.getRegister() != null) {
+            return result.getRegister();
+        }
+        if (RegisterMutationResponse.CODE_DUPLICATE_EMAIL.equals(result.getCode())) {
+            throw new DuplicateEmailException(result.getMessage());
+        }
+        throw new IllegalStateException("Unmapped register code " + result.getCode());
     }
 }

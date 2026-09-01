@@ -76,7 +76,7 @@ class PasswordResetAppServiceTest {
      */
     private AuthAppServiceImpl genService() {
         return new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
-                Duration.ofMinutes(30), Duration.ofDays(14), RESET_TTL);
+                Duration.ofMinutes(30), Duration.ofDays(14), RESET_TTL, Duration.ofHours(24));
     }
 
     /**
@@ -108,10 +108,25 @@ class PasswordResetAppServiceTest {
     void nonPositiveResetTtlFailsAtStartup() {
         assertThrows(IllegalStateException.class,
                 () -> new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
-                        Duration.ofMinutes(30), Duration.ofDays(14), Duration.ZERO));
+                        Duration.ofMinutes(30), Duration.ofDays(14), Duration.ZERO, Duration.ofHours(24)));
         assertThrows(IllegalStateException.class,
                 () -> new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
-                        Duration.ofMinutes(30), Duration.ofDays(14), Duration.ofMinutes(-1)));
+                        Duration.ofMinutes(30), Duration.ofDays(14), Duration.ofMinutes(-1), Duration.ofHours(24)));
+    }
+
+    /**
+     * <b>Backlog 0037.</b> Cùng kỷ luật với TTL token đặt lại mật khẩu, áp cho TTL token xác nhận
+     * email — cả hai đều fail lúc khởi động thay vì phát ra những token chết ngay lúc sinh.
+     */
+    @Test
+    @DisplayName("TTL token xac nhan email <= 0: fail NGAY luc dung bean")
+    void nonPositiveEmailConfirmationTtlFailsAtStartup() {
+        assertThrows(IllegalStateException.class,
+                () -> new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
+                        Duration.ofMinutes(30), Duration.ofDays(14), RESET_TTL, Duration.ZERO));
+        assertThrows(IllegalStateException.class,
+                () -> new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
+                        Duration.ofMinutes(30), Duration.ofDays(14), RESET_TTL, Duration.ofHours(-1)));
     }
 
     // ========== POST /auth/forgot-password ==========

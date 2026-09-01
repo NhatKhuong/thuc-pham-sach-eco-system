@@ -167,21 +167,27 @@ Mặc định: `limit = 12` cho sản phẩm, `6` cho bài viết.
 
 | Hàm frontend | Endpoint | Request | Response | Lỗi | Auth |
 |---|---|---|---|---|---|
-| `login` | `POST /auth/login` | `LoginPayload` | `AuthResponse` | 401 sai thông tin | ⬜ |
-| `register` | `POST /auth/register` | `RegisterPayload` | `AuthResponse` | 409 email trùng | ⬜ |
+| `login` | `POST /auth/login` | `LoginPayload` | `AuthResponse` | 401 sai thông tin, **403 email chưa xác nhận** | ⬜ |
+| `register` | `POST /auth/register` | `RegisterPayload` | **`{ message: string }`** (backlog 0037 — không còn `AuthResponse`) | 409 email trùng | ⬜ |
 | `refreshSession` | `POST /auth/refresh` | `{ refreshToken }` | `AuthResponse` | 401 hết hạn | ⬜ |
 | `logout` | `POST /auth/logout` | `{ refreshToken }` | `204` | — | ✅ |
 | `forgotPassword` | `POST /auth/forgot-password` | `{ email }` | `204` | 400 | ⬜ |
+| `confirmEmail` *(mới, backlog 0037)* | `GET /auth/confirm-email` | query `token` | **HTML**, không JSON | — | ⬜ |
+| `resendConfirmation` *(mới, backlog 0037)* | `POST /auth/resend-confirmation` | `{ email }` | `204` | — | ⬜ |
 | `updateProfile` | `PUT /auth/me` | `Partial<User>` | `User` | 404, 409 email trùng | ✅ |
 | `changePassword` | `PUT /auth/password` | `ChangePasswordPayload` | `204` | 401, 422 sai mật khẩu cũ | ✅ |
 
-**Năm điều bắt buộc:**
+**Chín điều bắt buộc:**
 
 1. `User` trả về **không bao giờ chứa password** — kể cả dạng đã hash.
 2. `updateProfile` **không được cho phép ghi đè `id` hay `role`**, kể cả khi client gửi lên. Hai trường này bị chốt lại từ bản ghi cũ; sửa hồ sơ không được phép tự nâng quyền.
 3. `register` **luôn tạo tài khoản `role: "customer"` và bỏ qua mọi trường `role` gửi lên trong body.** `RegisterPayload` cố ý không khai `role`, nhưng backend vẫn phải tự bỏ qua nó — client gửi thừa một trường là chuyện không ngăn được. **Vai trò chỉ được gán ở phía server** (§C.4.2 và [ADR 0002](../../../management/decisions/0002-phan-quyen-role-va-namespace-admin.md)); nếu client tự chọn được vai trò thì ai cũng tự cấp quyền quản trị cho mình được.
 4. `logout` phải **thu hồi refresh token**, nếu không nó vẫn dùng được đến khi hết hạn dù người dùng đã thoát.
 5. `forgotPassword` **luôn trả 204**, kể cả khi email không tồn tại. Trả 404 sẽ biến endpoint này thành công cụ dò xem địa chỉ nào đã đăng ký.
+6. **`register` không còn tự đăng nhập (backlog 0037).** Response chỉ mang một câu xác nhận (`{ message }`) — **không còn** `user`, `token`, `refreshToken`. Đây là **breaking change** so với dòng #5 của bảng "Bảy thay đổi hợp đồng đã tích luỹ" ở mục D (`AuthResponse.refreshToken` thêm ở giai đoạn 10): `register` không còn trả `AuthResponse` nữa nên trường đó không còn xuất hiện ở đây. Tài khoản mới ở trạng thái chưa xác nhận email; frontend phải điều hướng sang màn "kiểm tra email" thay vì lưu phiên như trước. Tài khoản tạo trước ticket 0037 được grandfather (`emailVerified = true`), không bị ảnh hưởng.
+7. **`login` trả 403 khi tài khoản đúng thông tin đăng nhập nhưng chưa xác nhận email (backlog 0037).** `ProblemDetail.detail` nói rõ việc phải làm tiếp (kiểm tra email / bấm gửi lại), khác hẳn câu chung chung của 401 sai thông tin. **Cố ý không dùng 401** — 401 kích hoạt cơ chế tự gọi `POST /auth/refresh` ở §A.2, và đây không phải một phiên hết hạn.
+8. **`confirmEmail` do chính backend phục vụ, trả HTML chứ không phải JSON** — link trong email xác nhận trỏ thẳng vào endpoint này, không qua một route nào của `app`. `projects/app` hiện chưa có code (stub rỗng), nên đây là ngoại lệ có chủ ý so với mọi endpoint khác trong bảng; khi `app` có code thật, thay link này bằng một route riêng là một ticket khác.
+9. **`resendConfirmation` luôn trả 204**, kể cả khi email không tồn tại hoặc tài khoản đã xác nhận — cùng nguyên tắc anti-enumeration với `forgotPassword` (điều 5).
 
 `getCurrentUserId()` trong cùng file **không phải endpoint** — nó giải id từ token phía client. Khi ghép backend thật, id lấy từ JWT ở phía server.
 

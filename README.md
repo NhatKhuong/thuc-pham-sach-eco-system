@@ -39,7 +39,7 @@ Hai cờ `allow_jdbc_metadata_access=false` và `initialization-fail-timeout=-1`
 Sinh xong thì **kiểm ngay**:
 
 ```bash
-wc -l environment/mysql/init/01-schema.sql            # phải ra 422
+wc -l environment/mysql/init/01-schema.sql            # phải ra 463
 git diff --stat environment/mysql/init/01-schema.sql  # phải RỖNG (không in gì)
 ```
 
@@ -48,6 +48,14 @@ sinh từ entity hiện tại giống hệt bản đang commit. Diff không rỗ
 xuất chưa theo kịp — đọc diff, xác nhận đúng ý định, rồi commit bản vừa sinh; **tuyệt đối không sửa
 tay file SQL** ([ADR 0002](../../management/decisions/0002-schema-nguon-chan-ly.md)). Con số 422 khác
 đi mà không do entity đổi thì gần như chắc chắn là quên `rm -f`.
+
+> **422 → 463 ở [backlog 0037](../../management/backlog/0037-xac-nhan-email-kich-hoat-tai-khoan.md)** —
+> xác nhận email để kích hoạt tài khoản. Hai thay đổi entity, cả hai đã Owner duyệt trước khi ticket
+> được viết: **+1 cột** `user.email_verified` (`Boolean`, `columnDefinition = "BIT DEFAULT TRUE"` —
+> grandfather tài khoản cũ, xem javadoc `User.emailVerified`) và **+1 bảng mới**
+> `email_confirmation_token` (đi đúng khuôn `password_reset_token`: `uk_token_hash`, `idx_user_id`,
+> `fk_email_confirmation_token_user`). **22 → 23 bảng, 18 → 19 khoá ngoại** — `SchemaSmokeTest` khoá
+> cả hai con số. md5 bản kết xuất: `dd39cd296bcaa66af26b6109ae8cfb73`.
 
 > **Con số này là một literal phải cập nhật cùng lần thêm entity — hoặc thêm CỘT.** 384 → **405** ở
 > [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) khi bảng
@@ -219,6 +227,44 @@ của hệ thống sau `jwt-secret`** — không bao giờ commit. Hai giá tr�
 > [backlog 0017](../../management/backlog/0017-forgot-password-chua-co-duong-di.md) nằm ở repo khác.
 > Đây là điều đã biết, không phải bất ngờ lúc ghép: link sẽ đúng ngay khi FE dựng trang, và sai một
 > cách hiển nhiên — 404 ngay khi bấm — nếu FE chọn đường khác.
+
+## Giám sát (dev) — Prometheus + Grafana
+
+`environment/docker-compose-dev.yml` chạy thêm **Prometheus** (thu thập metric) và **Grafana**
+(dashboard) — dev-only, cùng pattern Kafka UI ([backlog 0034](../../management/backlog/0034-kafka-ui-dev-tooling.md)).
+
+```bash
+docker compose -f environment/docker-compose-dev.yml up -d prometheus grafana
+```
+
+| | |
+|---|---|
+| Prometheus UI | <http://localhost:9090> — xem target, chạy PromQL tay |
+| Grafana | <http://localhost:3000> — login mặc định của image: `admin` / `admin` (**không đổi**, dev-only) |
+| Dashboard | Mở sẵn, **không cần** thêm datasource hay import JSON bằng tay — provision qua `environment/grafana/provisioning/` |
+| `/actuator/prometheus` | `http://localhost:8081/actuator/prometheus` — management port riêng của app, xem bên dưới |
+
+**Vì sao management port (`8081`) tách khỏi `8080` — đừng "gộp" nó vào `SecurityConfig` cho gọn.**
+`server.port=8080` mang toàn bộ `/api/**`, khoá bằng JWT (`SecurityConfig`, `nss-controller`).
+`management.server.port=8081` (`${MANAGEMENT_SERVER_PORT:8081}`) chỉ mang `/actuator/prometheus` +
+`/actuator/health`, khoá bằng một `SecurityFilterChain` **riêng**
+(`com.nss.config.ManagementSecurityConfig`, `nss-start`) — không JWT, không RBAC, cùng mức lộ diện
+dev-only đã chấp nhận cho `3316`/`9094`/`6390`/`8089` trong file compose này. Hai lý do tách:
+
+1. **Trực giác "port khác thì tự động thoát bảo mật chính" là SAI** — đã đo được lúc thi công
+   ([backlog 0038](../../management/backlog/0038-giam-sat-prometheus-grafana.md)): thiếu
+   `ManagementSecurityConfig` thì `/actuator/prometheus` **kế thừa nhầm** luật `anyRequest()
+   .authenticated()` của `/api/**` và trả 401. Đây là chỗ dễ "sửa" sai nhất — đừng thử nối actuator
+   vào `SecurityConfig` hiện có, dùng đúng cơ chế `@ManagementContextConfiguration(CHILD)`.
+2. **Prometheus/Grafana chạy trong container, app chạy trên host.** App `api` **không** containerize
+   (chạy qua IntelliJ/Maven trực tiếp trên máy dev — chỉ hạ tầng chạy trong compose), nên
+   `environment/prometheus/prometheus.yml` scrape qua `host.docker.internal:8081`, **không** qua tên
+   service trong `ssn-event-network`.
+
+Dashboard dựng sẵn (`environment/grafana/provisioning/dashboards/nss-api-overview.json`) có 9 panel:
+JVM (heap/GC/threads), HTTP request rate + latency trung bình theo endpoint, Hikari pool
+(active/idle/pending/max), RateLimiter 3 tier (`auth`/`write`/`read` — [backlog 0021](../../management/backlog/0021-lop-bao-ve-resilience4j.md)),
+CircuitBreaker SMTP (state + số lần gọi — cùng backlog 0021).
 
 ### Test
 

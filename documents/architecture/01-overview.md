@@ -45,7 +45,7 @@ Hai quy tắc phái sinh, vi phạm là hỏng mô hình:
 | Thymeleaf |  | `spring-boot-starter-thymeleaf`, khai ở `*-application` (backlog 0032, Quyết định Owner 2). Dựng HTML cho email trạng thái đơn hàng (`MailAppServiceImpl.sendOrderStatusEmail`); email quên-mật-khẩu (backlog 0017) vẫn là văn bản thuần, không qua Thymeleaf. Template vật lý nằm ở `nss-start/src/main/resources/templates/mail/` — "chỉ `*-start` có `src/main/resources`" ở §1 vẫn đúng, module khác chỉ mang code dùng nó. |
 | Guava | 32.1.2-jre | L1 cache in-process (`CacheBuilder`)                                               |
 | Resilience4j | **2.1.0** | **Đã nối dây** ([ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md), backlog 0021): `resilience4j-ratelimiter` ở `*-controller` — biên **vào**, ba tier `auth`/`write`/`read`, vượt trần trả 429; `resilience4j-circuitbreaker` ở `*-application` — biên **ra**, bọc đường gửi SMTP. Version pin bằng **import `resilience4j-bom`** ở root pom ⇒ đúng **một** `<version>` (`pom.xml:94`) cho cả dòng. **Không** dùng `resilience4j-spring-boot3` (starter đó kéo theo AOP + Actuator) |
-| Actuator + micrometer-registry-prometheus | 1.13.6 |                                                                                    |
+| Actuator + micrometer-registry-prometheus | 1.13.6 | **Đã nối dây** (backlog 0038): khai ở `*-start` (`spring-boot-starter-actuator` + `micrometer-registry-prometheus`, version đo thật từ `dependency:tree`, khớp bảng này). `management.server.port` riêng (`${MANAGEMENT_SERVER_PORT:8081}`), tách hẳn khỏi `server.port=8080` và **không** đi qua `SecurityFilterChain` của `SecurityConfig` (`nss-controller`) — xem `com.nss.config.ManagementSecurityConfig` (`*-start`), chain riêng cho context quản lý, scope `/actuator/**`. Chỉ bật `management.endpoints.web.exposure.include=prometheus,health`. `com.nss.config.ResilienceMetricsConfig` (`*-start`) bind RateLimiter/CircuitBreaker (backlog 0021) vào Micrometer qua `resilience4j-micrometer` — hai class đó trước đây dựng bằng factory tĩnh (`RateLimiter.of`/`CircuitBreaker.of`), nay dựng qua registry nội bộ (`getRateLimiterRegistry()`/`getCircuitBreakerRegistry()`) chỉ để có chỗ cho Micrometer bám vào, hành vi/ngưỡng giữ nguyên 100%. |
 | logstash-logback-encoder | 8.0 | Log JSON → Logstash TCP                                                            |
 | Spring Security |  | Xác thực và phân quyền theo RBAC                                                   |
 | Swagger | **2.6.0** | `springdoc-openapi-starter-webmvc-ui`, khai ở `*-controller`; BOM không quản version nên pin ở root pom |
@@ -105,14 +105,46 @@ module này". Bốn class chứng minh Redis/Redisson thật sự chạy: `Redis
 `environment/docker-compose-dev.yml`, port host-mapped `6390` — cùng nếp port lệch chuẩn với MySQL
 `3316` / Kafka `9094`.
 
+**Actuator + `micrometer-registry-prometheus` cũng đã rời danh sách này, ở backlog 0038.** Đo lại
+cùng lệnh `<artifactId>` ngày **2026-09-01**: `actuator 1` (**chỉ** `nss-start/pom.xml`, khai
+`spring-boot-starter-actuator`), `resilience 4` (BOM + `ratelimiter` + `circuitbreaker` + **mới**
+`resilience4j-micrometer` — cầu nối bắt buộc để RateLimiter/CircuitBreaker lên được Prometheus, xem
+dưới). Version thật đo từ `dependency:tree` (không chép từ tài liệu): `spring-boot-starter-actuator`
+**3.3.5**, `micrometer-registry-prometheus` **1.13.6** — khớp đúng bảng §2. Jar đóng gói mang
+`spring-boot-actuator-3.3.5.jar` + `spring-boot-actuator-autoconfigure-3.3.5.jar` +
+`micrometer-registry-prometheus-1.13.6.jar` + `resilience4j-micrometer-2.1.0.jar` (đo bằng
+`unzip -l nss-start/target/nss-start-*.jar | grep BOOT-INF/lib`).
+
+**Management port riêng, KHÔNG đi qua `SecurityConfig` — nhưng không phải vì tự động.** Giả định ban
+đầu của backlog 0038 là "management port khác `server.port` thì Spring Boot tự loại nó khỏi
+`SecurityFilterChain` chính". **Đo thật cho thấy điều ngược lại**: `curl` không token vào
+`:8081/actuator/prometheus` **trước khi có class dưới đây trả 401**, không phải 200 — vì
+`ManagementWebSecurityAutoConfiguration` back off (`@ConditionalOnMissingBean(SecurityFilterChain
+.class)` thấy bean của `SecurityConfig`), và context quản lý vẫn resolve được `FilterChainProxy` của
+context cha qua bean-lookup phân cấp. Sửa đúng: `com.nss.config.ManagementSecurityConfig`
+(`*-start`) khai một `SecurityFilterChain` RIÊNG qua
+`@ManagementContextConfiguration(ManagementContextType.CHILD)`, matcher `/actuator/**`,
+`@Order(HIGHEST_PRECEDENCE)` — lớp phòng thủ thứ hai bắt buộc vì `@SpringBootTest` (`MockMvc`, không
+server thật) không dựng nổi context con riêng, nên bean này bị nạp lẫn vào CÙNG context với
+`SecurityConfig` trong test; thiếu matcher thì 45/81 test của `SecurityRulesTest` đỏ (đo được, xem
+Outcome backlog 0038).
+
+`com.nss.config.ResilienceMetricsConfig` (`*-start`) bind hai registry (`ApiRateLimitInterceptor
+.getRateLimiterRegistry()`, `MailAppService.getCircuitBreakerRegistry()` — interface, không phải
+`MailAppServiceImpl`: bean thật đứng sau JDK dynamic proxy vì `@Async`) vào `MeterRegistry` qua
+`TaggedRateLimiterMetrics`/`TaggedCircuitBreakerMetrics`, null-safe cho trường hợp bean đó bị
+`@MockBean` trong test (đo được: `OrderStatusChangedOutboxIntegrationTest` mock `MailAppService`).
+
 > **Chữ `registry` trong "micrometer" là load-bearing — đừng rút gọn thành "không có micrometer".**
 > Jar đóng gói **có** mang `micrometer-observation-1.13.6` + `micrometer-commons-1.13.6`; nguồn là
 > `spring-security-core:6.3.4`, **không** phải Resilience4j (hai jar đó cũng có mặt ở những module
-> không hề có Resilience4j). Câu đúng là **`micrometer-registry-*` = 0** và `spring-boot-actuator`
-> = 0 — tức đường xuất metric ra ngoài chưa được nối, chứ không phải cả họ micrometer vắng mặt. Đo
-> ngày 2026-08-26 trên `nss-start/target/nss-start-*.jar` bằng `unzip -l | grep -c`: control dương
-> `BOOT-INF/lib/spring-security` → **7**; `BOOT-INF/lib/micrometer-registry` → **0**;
-> `BOOT-INF/lib/spring-boot-actuator` → **0**.
+> không hề có Resilience4j). Câu đúng — **tại thời điểm đo 2026-08-26** — là **`micrometer-registry-*`
+> = 0** và `spring-boot-actuator` = 0 — tức đường xuất metric ra ngoài chưa được nối, chứ không phải
+> cả họ micrometer vắng mặt. Đo ngày 2026-08-26 trên `nss-start/target/nss-start-*.jar` bằng
+> `unzip -l | grep -c`: control dương `BOOT-INF/lib/spring-security` → **7**;
+> `BOOT-INF/lib/micrometer-registry` → **0**; `BOOT-INF/lib/spring-boot-actuator` → **0**.
+> **Cả hai số 0 đó đổi thành khác 0 ở backlog 0038** (xem đoạn ngay trên) — giữ nguyên khối này làm
+> hồ sơ lịch sử của phép đo, đừng xoá.
 
 **Phép đo tương ứng trên `application.yml` phải bỏ comment TRƯỚC khi đếm.** Bản cũ của tài liệu này
 grep chuỗi trần trên cả file và khẳng định `redis` / `resilience` / `kafka` đều **0 hit**. Phép đo đó
@@ -420,10 +452,19 @@ Hiện trạng dự án tham chiếu — bốn gạch đầu dòng dưới đây
 
 **Dự án này chưa nối dây thứ nào ở trên** — đừng đọc mấy dòng trên như hiện trạng chỉ vì chúng nói bằng chi tiết vận hành. §2 đo trên source ngày **2026-08-26**, đếm khai báo `<artifactId>` thật: `actuator` **0** · `micrometer` **0** · `logstash` **0** (control dương `mysql` 1, `mail` 1). Actuator, `micrometer-registry-prometheus` và `logstash-logback-encoder` **có tên trong bảng §2 nhưng chưa nối dây**; `*-start` cũng **chưa có `logback-spring.xml`** nào. Nối chúng lên là **thi hành tài liệu**, nhưng nó mở một public surface mới phải khoá RBAC và khai trong `SecurityConfig` + Swagger — [ADR 0005](../../../../management/decisions/0005-lop-bao-ve-resilience4j.md) đã cố ý loại việc đó ra khỏi backlog 0021, nên nó là **một ticket riêng**, không phải việc làm kèm.
 
+**Actuator + `micrometer-registry-prometheus` đã nối dây ở backlog 0038 — logstash-logback-encoder thì CHƯA.** Chỉ đúng hai trong ba thứ liệt kê ở đoạn trên rời danh sách "có tên nhưng chưa nối dây" (chi tiết đo lường ở §2); `logstash-logback-encoder` và `%X{traceId}` MDC filter vẫn là việc chưa làm, giữ nguyên hai gạch đầu dòng "Chuẩn cho dự án mới" bên dưới. **"Mở một public surface mới phải khoá RBAC"** hoá ra là một giả định cần sửa khi thi công thật: management port tách biệt (`8081` ≠ `8080`) không tự động thoát khỏi `SecurityFilterChain` như kỳ vọng ban đầu — xem đoạn "Management port riêng" ở §2 cho hành vi thật đã đo và cách sửa (`ManagementSecurityConfig`, KHÔNG đụng `SecurityConfig`/RBAC hiện có).
+
 **Chuẩn cho dự án mới — bắt buộc:**
 
 - **Một filter set `MDC traceId`, đi kèm pattern logback in `%X{traceId}`.** Hai nửa phải có cùng lúc: dự án tham chiếu có nửa sau mà thiếu nửa đầu nên trường đó luôn rỗng; dự án này thì chưa có nửa nào.
 - **Đo `hikaricp.connections.acquire`.** Đây là nhận định kỹ thuật **chung**, không phải một chi tiết riêng của dự án tham chiếu: khi lời gọi DB là lời gọi **chặn**, trần thông lượng nằm ở **pool DB**, không phải ở pool thread nhận request. **Virtual threads làm nhận định này đúng hơn chứ không phải hết hiệu lực** — dự án này bật `spring.threads.virtual.enabled: true` (§2; `application.yml:11`), tức thread nhận request gần như không còn là giới hạn, nên `maximum-pool-size: 100` (`application.yml:29`) mới đúng là chỗ hàng đợi thật sự hình thành. Không đo nó thì p99 dâng lên mà không có số nào chỉ ra vì sao.
+
+**Hiện trạng THẬT của dự án này (backlog 0038) — khác dự án tham chiếu ở đúng hai điểm liệt kê đầu mục này, và cả hai đều có chủ đích:**
+
+- **Không expose toàn bộ Actuator.** `management.endpoints.web.exposure.include=prometheus,health` — đúng tinh thần "không public surface thừa" của ADR 0005, dù đây là management port riêng chứ không phải `/api/**`.
+- **Prometheus scrape mỗi 15s, không phải 5s.** `environment/prometheus/prometheus.yml`, `global.scrape_interval: 15s` — đây là dev-only, không phải một SLO thật cần độ phân giải cao.
+- Prometheus + Grafana chạy trong `environment/docker-compose-dev.yml` (dev-only, cùng pattern Kafka UI ở backlog 0034), Grafana provision sẵn datasource + một dashboard (JVM, HTTP, Hikari pool, RateLimiter 3 tier, CircuitBreaker SMTP) qua file — xem `environment/grafana/provisioning/`.
+- `hikaricp.connections.acquire` **chưa** có panel riêng trong dashboard dựng sẵn (backlog 0038 chỉ dựng `hikaricp_connections_{active,idle,pending,max}` — số connection đang dùng, không phải thời gian chờ để lấy được connection); đo nó vẫn là khuyến nghị đúng ở gạch đầu dòng trên, chỉ là dashboard chưa vẽ riêng nó — Prometheus scrape metric này rồi (`hikaricp_connections_acquire_seconds_*` có mặt trong `/actuator/prometheus`), thêm panel là việc nhỏ cho ticket sau nếu cần.
 
 ---
 
@@ -454,7 +495,13 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-09-01 — backlog 0035: Redis + Redisson + Guava rời danh sách "có tên nhưng chưa
+*Last updated: 2026-09-01 — backlog 0038: Actuator + `micrometer-registry-prometheus` rời danh sách
+"có tên nhưng chưa nối dây" (§2, đo lại `<artifactId>` + `dependency:tree`); §2 thêm `ResilienceMetricsConfig`
+(bind RateLimiter/CircuitBreaker vào Micrometer) và `ManagementSecurityConfig` (management port
+`8081` tách khỏi `SecurityConfig`, kèm phát hiện thật khác giả định ban đầu của ticket — xem đoạn
+"Management port riêng"); §9 ghi rõ hiện trạng THẬT của dự án này (khác dự án tham chiếu ở
+`exposure=prometheus,health` và `scrape_interval=15s`), `logstash-logback-encoder`/MDC traceId vẫn
+là nợ mở. Trước đó: 2026-09-01 — backlog 0035: Redis + Redisson + Guava rời danh sách "có tên nhưng chưa
 nối dây" (§2, đo lại `<artifactId>`); §4 thêm note độ lệch TTL Guava 60s (Quyết định Owner #3, khác
 mặc định 5 phút); §11 đánh dấu "Redisson hardcode address" đã sửa đúng. Trước đó: 2026-08-31 —
 backlog 0032: Kafka + Thymeleaf rời danh sách "có tên nhưng chưa nối dây"

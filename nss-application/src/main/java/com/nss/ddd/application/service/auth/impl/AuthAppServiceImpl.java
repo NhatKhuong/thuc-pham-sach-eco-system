@@ -7,6 +7,7 @@ import com.nss.ddd.application.model.command.LoginCommand;
 import com.nss.ddd.application.model.command.LogoutCommand;
 import com.nss.ddd.application.model.command.RefreshCommand;
 import com.nss.ddd.application.model.command.RegisterCommand;
+import com.nss.ddd.application.model.command.ResendConfirmationCommand;
 import com.nss.ddd.application.model.command.ResetPasswordCommand;
 import com.nss.ddd.application.model.command.UpdateProfileCommand;
 import com.nss.ddd.application.model.response.AuthMutationResponse;
@@ -14,8 +15,11 @@ import com.nss.ddd.application.model.response.AuthResponse;
 import com.nss.ddd.application.model.response.PasswordMutationResponse;
 import com.nss.ddd.application.model.response.PasswordResetMutationResponse;
 import com.nss.ddd.application.model.response.ProfileMutationResponse;
+import com.nss.ddd.application.model.response.RegisterMutationResponse;
+import com.nss.ddd.application.model.response.RegisterResponse;
 import com.nss.ddd.application.service.auth.AuthAppService;
 import com.nss.ddd.application.service.mail.MailAppService;
+import com.nss.ddd.domain.model.entity.EmailConfirmationToken;
 import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
@@ -121,6 +125,21 @@ public class AuthAppServiceImpl implements AuthAppService {
     private static final String MESSAGE_INVALID_RESET_TOKEN =
             "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn, vui lòng yêu cầu liên kết mới.";
 
+    /**
+     * Câu xác nhận trả về khi đăng ký thành công (backlog 0037 §Contract điều 1) — người dùng cuối
+     * đọc trực tiếp, không phải một mã lỗi.
+     */
+    private static final String MESSAGE_REGISTER_SUCCESS =
+            "Đăng ký thành công, vui lòng kiểm tra email để xác nhận tài khoản.";
+
+    /**
+     * <b>Thông tin đăng nhập đúng, nhưng tài khoản chưa xác nhận email.</b> Khác
+     * {@link #MESSAGE_INVALID_CREDENTIALS}: câu này nói rõ việc phải làm tiếp (kiểm tra email) thay
+     * vì gợi ý người dùng thử lại mật khẩu — không có gì cần "thử lại" ở đây.
+     */
+    private static final String MESSAGE_EMAIL_NOT_VERIFIED =
+            "Tài khoản chưa xác nhận email, vui lòng kiểm tra hộp thư để kích hoạt tài khoản.";
+
     private final AuthDomainService authDomainService;
 
     private final MailAppService mailAppService;
@@ -132,6 +151,8 @@ public class AuthAppServiceImpl implements AuthAppService {
     private final Duration refreshTokenTtl;
 
     private final Duration passwordResetTokenTtl;
+
+    private final Duration emailConfirmationTokenTtl;
 
     /**
      * Constructor injection viết tay thay vì {@code @RequiredArgsConstructor}.
@@ -149,15 +170,21 @@ public class AuthAppServiceImpl implements AuthAppService {
      * @param passwordResetTokenTtl thời hạn token đặt lại mật khẩu, dạng ISO-8601 ({@code PT15M});
      *                              <b>ngắn hơn access token là có chủ ý</b> — một link nằm trong
      *                              hộp thư lâu hơn nhiều so với một token trong bộ nhớ trình duyệt
-     * @throws IllegalStateException khi TTL token đặt lại không dương — fail lúc khởi động, đúng
-     *                               tiền lệ {@code JwtConfig} với {@code jwt-secret}
+     * @param emailConfirmationTokenTtl thời hạn token xác nhận email, dạng ISO-8601 ({@code PT24H},
+     *                                  backlog 0037) — dài hơn hẳn token đặt lại mật khẩu vì đây
+     *                                  không phải bí mật cho phép chiếm quyền, chỉ xác nhận một hộp
+     *                                  thư có thật; người dùng dễ trì hoãn việc bấm link xác nhận
+     *                                  hơn nhiều so với một yêu cầu đặt lại mật khẩu đang khẩn cấp
+     * @throws IllegalStateException khi một TTL không dương — fail lúc khởi động, đúng tiền lệ
+     *                               {@code JwtConfig} với {@code jwt-secret}
      */
     public AuthAppServiceImpl(AuthDomainService authDomainService,
                               MailAppService mailAppService,
                               JwtEncoder jwtEncoder,
                               @Value("${nss.auth.access-token-ttl}") Duration accessTokenTtl,
                               @Value("${nss.auth.refresh-token-ttl}") Duration refreshTokenTtl,
-                              @Value("${nss.auth.password-reset-token-ttl}") Duration passwordResetTokenTtl) {
+                              @Value("${nss.auth.password-reset-token-ttl}") Duration passwordResetTokenTtl,
+                              @Value("${nss.auth.email-confirmation-token-ttl}") Duration emailConfirmationTokenTtl) {
         // TTL khong duong nghia la moi token dat lai chet ngay khi vua sinh ra: nguoi dung nhan mail,
         // bam link, va nhan 422 — mot he thong hong hoan toan ma khong endpoint nao bao loi. Fail o
         // day thi loi thuoc ve nguoi deploy, dung ky luat JwtConfig.genSecretKey().
@@ -166,23 +193,30 @@ public class AuthAppServiceImpl implements AuthAppService {
             throw new IllegalStateException("nss.auth.password-reset-token-ttl must be a positive"
                     + " ISO-8601 duration; got: " + passwordResetTokenTtl);
         }
+        // Cung ly do voi passwordResetTokenTtl o tren, ap dung cho token xac nhan email.
+        if (emailConfirmationTokenTtl == null || emailConfirmationTokenTtl.isZero()
+                || emailConfirmationTokenTtl.isNegative()) {
+            throw new IllegalStateException("nss.auth.email-confirmation-token-ttl must be a positive"
+                    + " ISO-8601 duration; got: " + emailConfirmationTokenTtl);
+        }
         this.authDomainService = authDomainService;
         this.mailAppService = mailAppService;
         this.jwtEncoder = jwtEncoder;
         this.accessTokenTtl = accessTokenTtl;
         this.refreshTokenTtl = refreshTokenTtl;
         this.passwordResetTokenTtl = passwordResetTokenTtl;
+        this.emailConfirmationTokenTtl = emailConfirmationTokenTtl;
     }
 
     // ========== WRITE ==========
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AuthMutationResponse register(RegisterCommand command) {
+    public RegisterMutationResponse register(RegisterCommand command) {
         // 1. Email la khoa duy nhat tren toan bang — kiem truoc de tra 409 thay vi loi rang buoc
         if (authDomainService.hasEmailTaken(command.getEmail())) {
             log.warn("register: duplicate email | email={}", command.getEmail());
-            return AuthMutationResponse.failed(AuthMutationResponse.CODE_DUPLICATE_EMAIL,
+            return RegisterMutationResponse.failed(RegisterMutationResponse.CODE_DUPLICATE_EMAIL,
                     MESSAGE_DUPLICATE_EMAIL);
         }
         // 2. Vai tro mac dinh phai co san trong DB. Thieu no la sai cau hinh he thong, khong phai
@@ -192,11 +226,18 @@ public class AuthAppServiceImpl implements AuthAppService {
             log.error("register: role {} missing in database", ROLE_CUSTOMER);
             throw new IllegalStateException("Role " + ROLE_CUSTOMER + " is missing in database");
         }
-        // 3. Bam mat khau, ghi user va dong user_role trong CUNG transaction cua method nay
+        // 3. Bam mat khau, dat emailVerified=false, ghi user va dong user_role trong CUNG transaction
+        //    cua method nay (AuthDomainServiceImpl.register).
         User saved = authDomainService.register(UserMapper.toEntity(command),
                 command.getPassword(), customerRole);
-        log.info("register: success | userId={} email={}", saved.getId(), saved.getEmail());
-        return AuthMutationResponse.success(genSession(saved, List.of(customerRole.getCode())));
+        // 4. KHONG con genSession (backlog 0037 §Contract dieu 1) — thay vao do phat token xac nhan
+        //    email va gui mail. Token duoc ghi trong CUNG transaction voi user, dung khuon
+        //    OutboxEvent o architecture §6 muc "outbox va business row viet trong cung transaction".
+        String rawToken = authDomainService.issueEmailConfirmationToken(saved, emailConfirmationTokenTtl);
+        mailAppService.sendEmailConfirmationMail(saved.getEmail(), rawToken);
+        log.info("register: success, confirmation mail queued | userId={} email={}",
+                saved.getId(), saved.getEmail());
+        return RegisterMutationResponse.success(new RegisterResponse().setMessage(MESSAGE_REGISTER_SUCCESS));
     }
 
     @Override
@@ -209,7 +250,15 @@ public class AuthAppServiceImpl implements AuthAppService {
             return AuthMutationResponse.failed(AuthMutationResponse.CODE_INVALID_CREDENTIALS,
                     MESSAGE_INVALID_CREDENTIALS);
         }
-        // 2. Vai tro nap bang truy van tuong minh — open-in-view: false nen quan he LAZY khong doc
+        // 2. Thong tin dang nhap DUNG nhung tai khoan chua xac nhan email (backlog 0037). Kiem SAU
+        //    buoc 1 — mot tai khoan khong ton tai khong duoc phep tiet lo bat ky thu gi ngoai
+        //    "sai thong tin dang nhap", ke ca gian tiep qua nhanh loi khac o day.
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            log.warn("login: email not verified | userId={}", user.getId());
+            return AuthMutationResponse.failed(AuthMutationResponse.CODE_EMAIL_NOT_VERIFIED,
+                    MESSAGE_EMAIL_NOT_VERIFIED);
+        }
+        // 3. Vai tro nap bang truy van tuong minh — open-in-view: false nen quan he LAZY khong doc
         //    duoc sau khi session dong
         List<String> roles = authDomainService.findRoleCodes(user.getId());
         log.info("login: success | userId={} roles={}", user.getId(), roles);
@@ -423,6 +472,71 @@ public class AuthAppServiceImpl implements AuthAppService {
         int revoked = authDomainService.revokeAllSessions(user.getId());
         log.info("resetPassword: success | userId={} revokedSessions={}", user.getId(), revoked);
         return PasswordResetMutationResponse.success();
+    }
+
+    // ========== EMAIL CONFIRMATION (backlog 0037) ==========
+
+    /**
+     * <b>THỨ TỰ CỦA METHOD NÀY LÀ MỘT PHẦN CỦA TÍNH ĐÚNG ĐẮN</b>, cùng luật đã chốt ở
+     * {@link #resetPassword}: cổng tiêu token phải đóng lại <i>trước</i> khi entity
+     * {@code User} bị sửa — entity đọc trong {@code @Transactional} là entity được quản lý, sửa nó
+     * rồi trả về {@code false} thì transaction <b>vẫn commit</b>.
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean confirmEmail(String rawToken) {
+        // 1. Doc — chua sua gi. Ba ca that bai (khong ton tai / da dung / da het han) gop lam mot.
+        EmailConfirmationToken usable = authDomainService.findUsableEmailConfirmationToken(rawToken);
+        if (usable == null) {
+            log.warn("confirmEmail: no usable confirmation token");
+            return false;
+        }
+        // 2. CONG: tieu token bang UPDATE co dieu kien, NGAY trong transaction nay.
+        if (!authDomainService.consumeEmailConfirmationToken(rawToken)) {
+            log.warn("confirmEmail: token was consumed concurrently | userId={}",
+                    usable.getUser().getId());
+            return false;
+        }
+        // 3. Moi bat dau sua. Chu so huu da duoc JOIN FETCH san cung cau truy van o buoc 1.
+        User user = authDomainService.confirmEmail(usable.getUser());
+        log.info("confirmEmail: success | userId={}", user.getId());
+        return true;
+    }
+
+    /**
+     * <b>Toàn bộ thân method chạy sau ranh giới {@code @Async}</b> — cùng lý do đã viết ở
+     * {@link #forgotPassword}: contract trả 204 cho mọi trường hợp, nên luồng request phải làm đúng
+     * một lượng việc như nhau bất kể nhánh, và mọi việc bất đối xứng phải nằm sau ranh giới này.
+     *
+     * @param command lệnh gửi lại xác nhận
+     */
+    @Override
+    @Async
+    public void resendConfirmation(ResendConfirmationCommand command) {
+        try {
+            // 1. Doc — email den tu body vi endpoint nay cong khai, khong co claim nao de doc.
+            User user = authDomainService.findByEmail(command.getEmail());
+            if (user == null) {
+                log.warn("resendConfirmation: no account for requested email | email={}",
+                        command.getEmail());
+                return;
+            }
+            // 2. Da xac nhan roi: KHONG phat token moi, KHONG gui mail — resend mot lien ket vo
+            //    nghia cho mot tai khoan da kich hoat chi tho phinh bang token.
+            if (Boolean.TRUE.equals(user.getEmailVerified())) {
+                log.warn("resendConfirmation: account already verified | userId={}", user.getId());
+                return;
+            }
+            // 3. Phat token moi. Chuoi tho chi ton tai o bien nay va o email.
+            String rawToken = authDomainService.issueEmailConfirmationToken(user, emailConfirmationTokenTtl);
+            mailAppService.sendEmailConfirmationMail(user.getEmail(), rawToken);
+            log.info("resendConfirmation: confirmation token issued and mail queued | userId={}",
+                    user.getId());
+        } catch (Exception e) {
+            // Nguoi dung DA nhan 204 tu lau. Dong log nay la tin hieu duy nhat con lai.
+            log.error("resendConfirmation: failed to issue confirmation token | email={}",
+                    command.getEmail(), e);
+        }
     }
 
     // ========== HELPERS ==========

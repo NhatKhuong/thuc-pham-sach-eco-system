@@ -97,6 +97,34 @@ public class User {
     @Comment("Bam mat khau; tuyet doi khong tra ra response")
     private String passwordHash;
 
+    /**
+     * Tương ứng cột {@code email_verified} — tài khoản chỉ đăng nhập được khi cột này là
+     * {@code true} (backlog 0037, {@code AuthAppServiceImpl.login}).
+     * <p>
+     * <b>{@code columnDefinition} mang {@code DEFAULT TRUE}, NGƯỢC với ý định của một tài khoản mới
+     * — và đó là chủ ý, không phải chép nhầm từ {@code Product.isActive}.</b> Cột này phục vụ hai
+     * quần thể khác nhau theo hai hướng ngược nhau, và {@code DEFAULT TRUE} là thứ đúng cho quần thể
+     * <i>đông hơn và im lặng hơn</i>:
+     * <ul>
+     *   <li><b>Tài khoản đã có trước ticket này (grandfather, §Contract điều 4)</b> — đây là lý do
+     *       cột tồn tại với DEFAULT TRUE: {@code 02-seed-data.sql} chèn {@code user} bằng danh sách
+     *       cột tường minh không có {@code email_verified}, và một triển khai thật chạy
+     *       {@code ddl-auto: update} sẽ thêm cột NOT NULL vào bảng đang có dữ liệu — MySQL tự điền
+     *       giá trị DEFAULT cho <i>mọi dòng sẵn có</i>. Thiếu DEFAULT (hoặc DEFAULT FALSE) thì mọi
+     *       tài khoản đang hoạt động bị khoá khỏi đăng nhập trong một lần deploy, không dòng log
+     *       nào báo trước — đúng loại hỏng im lặng mà {@code Product.isActive} đã ghi lại một lần.</li>
+     *   <li><b>Tài khoản đăng ký mới sau ticket này</b> — phải bắt đầu {@code false}. Cột không tự
+     *       làm được việc đó (DEFAULT chỉ áp dụng khi câu {@code INSERT} không liệt kê cột), nên
+     *       {@code AuthDomainServiceImpl.register} đặt tường minh
+     *       {@code draft.setEmailVerified(Boolean.FALSE)} — xem javadoc ở đó.</li>
+     * </ul>
+     * <b>Không lộ ra {@code UserResponse}</b> — cùng luật với mọi cột nội bộ khác của entity này;
+     * {@code UserMapper} liệt kê tay đúng năm trường được phép lên dây, trường này không nằm trong đó.
+     */
+    @Column(nullable = false, columnDefinition = "BIT DEFAULT TRUE")
+    @Comment("Da xac nhan email hay chua; tai khoan cu duoc grandfather = true, dang ky moi bat dau false")
+    private Boolean emailVerified;
+
     /** Tương ứng cột {@code created_at} — <b>lưu giờ UTC</b>, set bằng {@code LocalDateTime.now(ZoneOffset.UTC)}. */
     @Column(nullable = false)
     @Comment("Thoi diem tao, luu theo gio UTC")

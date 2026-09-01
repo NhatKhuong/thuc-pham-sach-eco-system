@@ -9,6 +9,7 @@ import com.nss.ddd.domain.model.entity.OrderItem;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -113,6 +114,28 @@ public class MailAppServiceImpl implements MailAppService {
     /** Tên tham số mang token trên link đặt lại; phải khớp thứ trang frontend đọc ra. */
     private static final String TOKEN_QUERY_PARAM = "token";
 
+    /** Tiêu đề email xác nhận tài khoản (backlog 0037) — tiếng Việt, người dùng cuối đọc (§1). */
+    private static final String SUBJECT_EMAIL_CONFIRMATION = "Xác nhận tài khoản — Nông Sản Sạch";
+
+    /**
+     * Thân email xác nhận tài khoản, văn bản thuần — cùng lý do đã viết ở
+     * {@link #BODY_PASSWORD_RESET}: người nhận nhìn thấy đúng đường dẫn mình sắp mở.
+     */
+    private static final String BODY_EMAIL_CONFIRMATION = """
+            Xin chào,
+
+            Cảm ơn bạn đã đăng ký tài khoản tại Nông Sản Sạch. Bấm vào đường dẫn dưới đây
+            để xác nhận địa chỉ email và kích hoạt tài khoản:
+
+            %s
+
+            Đường dẫn có hiệu lực trong %d giờ và chỉ dùng được MỘT lần.
+
+            Nếu bạn không thực hiện đăng ký này, hãy bỏ qua email này.
+
+            Nông Sản Sạch
+            """;
+
     /**
      * Tên template Thymeleaf của email trạng thái đơn hàng (backlog 0032), <b>không có đuôi
      * {@code .html}</b> — {@code ThymeleafAutoConfiguration} tự thêm suffix theo
@@ -158,6 +181,18 @@ public class MailAppServiceImpl implements MailAppService {
     private final JavaMailSender javaMailSender;
 
     /**
+     * Registry RIÊNG chỉ để có chỗ đăng ký breaker — {@code CircuitBreaker.of(name, config)} tĩnh
+     * (dùng trước backlog 0038) không để lại một {@code Registry} nào cho Micrometer bám vào.
+     * {@code TaggedCircuitBreakerMetrics} (resilience4j-micrometer) chỉ nhận
+     * {@code CircuitBreakerRegistry}, không có overload cho một instance rời — xem
+     * {@link #getCircuitBreakerRegistry()} và {@code com.nss.config.ResilienceMetricsConfig} ở
+     * {@code nss-start}. Đổi CÁCH tạo breaker, không đổi HÀNH VI: breaker vẫn dựng với đúng
+     * {@code config} tường minh bên dưới, registry chỉ là nơi giữ nó.
+     */
+    private final CircuitBreakerRegistry circuitBreakerRegistry =
+            CircuitBreakerRegistry.of(CircuitBreakerConfig.ofDefaults());
+
+    /**
      * Breaker của đường gửi SMTP. Dựng trong constructor, đúng tiền lệ
      * {@code ApiRateLimitInterceptor}: cấu hình sai thì <b>fail lúc khởi động</b>, không đợi lần
      * gửi đầu tiên.
@@ -176,6 +211,11 @@ public class MailAppServiceImpl implements MailAppService {
 
     private final long tokenTtlMinutes;
 
+    /** Endpoint tự backend phục vụ ({@code GET /api/auth/confirm-email}), không phải trang frontend. */
+    private final String emailConfirmUrl;
+
+    private final long emailConfirmationTokenTtlHours;
+
     /**
      * Constructor injection viết tay thay vì {@code @RequiredArgsConstructor} — cùng lý do đã viết
      * ở {@code AuthAppServiceImpl}: {@code @Value} chỉ dùng được trên tham số constructor, và
@@ -184,8 +224,13 @@ public class MailAppServiceImpl implements MailAppService {
      * @param javaMailSender bộ gửi do {@code spring-boot-starter-mail} dựng từ {@code spring.mail.*}
      * @param fromAddress địa chỉ người gửi
      * @param passwordResetUrl đường dẫn trang đặt lại phía frontend, chưa kèm query
-     * @param tokenTtl thời hạn token — chỉ dùng để viết số phút vào thân thư; nguồn chân lý của
-     *                 thời hạn là cột {@code expires_at}, không phải con số in ra cho người đọc
+     * @param tokenTtl thời hạn token đặt lại — chỉ dùng để viết số phút vào thân thư; nguồn chân lý
+     *                 của thời hạn là cột {@code expires_at}, không phải con số in ra cho người đọc
+     * @param emailConfirmUrl endpoint xác nhận email do <b>chính backend</b> phục vụ (backlog 0037),
+     *                        chưa kèm query — khác {@code passwordResetUrl}, đây không phải một
+     *                        trang frontend
+     * @param emailConfirmationTokenTtl thời hạn token xác nhận email — chỉ dùng để viết số giờ vào
+     *                                  thân thư, cùng lý do với {@code tokenTtl}
      * @param slidingWindowSize số lời gọi gần nhất dùng để tính tỉ lệ lỗi
      * @param minimumNumberOfCalls số lời gọi tối thiểu trước khi tỉ lệ lỗi được tính tới
      * @param failureRateThreshold ngưỡng tỉ lệ lỗi (phần trăm) để chuyển sang OPEN
@@ -199,6 +244,8 @@ public class MailAppServiceImpl implements MailAppService {
                               @Value("${nss.mail.from}") String fromAddress,
                               @Value("${nss.mail.password-reset-url}") String passwordResetUrl,
                               @Value("${nss.auth.password-reset-token-ttl}") Duration tokenTtl,
+                              @Value("${nss.mail.email-confirm-url}") String emailConfirmUrl,
+                              @Value("${nss.auth.email-confirmation-token-ttl}") Duration emailConfirmationTokenTtl,
                               @Value("${nss.mail.circuit-breaker.sliding-window-size}") int slidingWindowSize,
                               @Value("${nss.mail.circuit-breaker.minimum-number-of-calls}") int minimumNumberOfCalls,
                               @Value("${nss.mail.circuit-breaker.failure-rate-threshold}") int failureRateThreshold,
@@ -219,13 +266,35 @@ public class MailAppServiceImpl implements MailAppService {
             throw new IllegalStateException(
                     "nss.auth.password-reset-token-ttl must be a positive ISO-8601 duration; got: " + tokenTtl);
         }
+        if (emailConfirmUrl == null || emailConfirmUrl.isBlank()
+                || !(emailConfirmUrl.startsWith("http://") || emailConfirmUrl.startsWith("https://"))) {
+            throw new IllegalStateException(
+                    "nss.mail.email-confirm-url must be an absolute http(s) URL; got: " + emailConfirmUrl);
+        }
+        if (emailConfirmationTokenTtl == null || emailConfirmationTokenTtl.isZero()
+                || emailConfirmationTokenTtl.isNegative()) {
+            throw new IllegalStateException("nss.auth.email-confirmation-token-ttl must be a positive"
+                    + " ISO-8601 duration; got: " + emailConfirmationTokenTtl);
+        }
         this.javaMailSender = javaMailSender;
         this.fromAddress = fromAddress;
         this.passwordResetUrl = passwordResetUrl;
         this.tokenTtlMinutes = tokenTtl.toMinutes();
+        this.emailConfirmUrl = emailConfirmUrl;
+        this.emailConfirmationTokenTtlHours = emailConfirmationTokenTtl.toHours();
         this.circuitBreaker = genCircuitBreaker(slidingWindowSize, minimumNumberOfCalls,
                 failureRateThreshold, waitDurationInOpenState, permittedCallsInHalfOpenState);
         this.templateEngine = templateEngine;
+    }
+
+    /**
+     * @return registry đang giữ breaker {@value #CIRCUIT_BREAKER_NAME} — xem javadoc
+     *         {@link MailAppService#getCircuitBreakerRegistry()} cho lý do method này khai trên
+     *         interface dù là một accessor quan sát (observability), không phải nghiệp vụ.
+     */
+    @Override
+    public CircuitBreakerRegistry getCircuitBreakerRegistry() {
+        return circuitBreakerRegistry;
     }
 
     @Override
@@ -268,6 +337,37 @@ public class MailAppServiceImpl implements MailAppService {
             // Chay tren luong khac nen nem ra khong ai bat. Nuot MA KHONG LOG thi endpoint 204 tro
             // thanh mot cai hop den hoan toan — dung thu §11 cam.
             log.error("sendPasswordResetMail: failed | to={}", toEmail, e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Cùng khuôn ba bước với {@link #sendPasswordResetMail}, dùng lại đúng một {@link #circuitBreaker}
+     * (tên instance {@code "mail"}) — không dựng breaker thứ hai chỉ vì thêm một loại email. Khác
+     * đúng một điểm: link trỏ tới {@link #emailConfirmUrl} (endpoint backend), không phải
+     * {@link #passwordResetUrl} (trang frontend).
+     */
+    @Override
+    @Async
+    public void sendEmailConfirmationMail(String toEmail, String rawToken) {
+        try {
+            String link = genConfirmLink(rawToken);
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(SUBJECT_EMAIL_CONFIRMATION);
+            helper.setText(BODY_EMAIL_CONFIRMATION.formatted(link, emailConfirmationTokenTtlHours), false);
+            // RANH GIOI BREAKER — dung MOT dong, nam TRONG khoi try nay — xem sendPasswordResetMail.
+            circuitBreaker.executeRunnable(() -> javaMailSender.send(message));
+            // KHONG log rawToken va KHONG log link (link CHUA token).
+            log.info("sendEmailConfirmationMail: sent | to={}", toEmail);
+        } catch (CallNotPermittedException e) {
+            log.warn("sendEmailConfirmationMail: skipped, circuit breaker is open | to={} breaker={}",
+                    toEmail, CIRCUIT_BREAKER_NAME);
+        } catch (Exception e) {
+            log.error("sendEmailConfirmationMail: failed | to={}", toEmail, e);
         }
     }
 
@@ -401,7 +501,7 @@ public class MailAppServiceImpl implements MailAppService {
                 // dung thu no duoc dung de bao ve: duong SMTP.
                 .recordExceptions(MailException.class, MessagingException.class)
                 .build();
-        CircuitBreaker breaker = CircuitBreaker.of(CIRCUIT_BREAKER_NAME, config);
+        CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER_NAME, config);
         // Resilience4j KHONG tu log transition nao. Khong co dong nay thi trang thai breaker chi ton
         // tai trong bo nho: endpoint van 204 o ca hai nhanh, va khong con cach nao NGOAI BANG de
         // biet breaker dang mo hay dong. Dinh dang [TAG] theo §9 cho luong bat dong bo.
@@ -432,6 +532,22 @@ public class MailAppServiceImpl implements MailAppService {
     private String genResetLink(String rawToken) {
         String separator = passwordResetUrl.contains("?") ? "&" : "?";
         return passwordResetUrl + separator + TOKEN_QUERY_PARAM + "="
+                + URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Dựng link xác nhận email.
+     * <p>
+     * Khác {@link #genResetLink}: {@link #emailConfirmUrl} trỏ tới một endpoint <b>do chính backend
+     * phục vụ</b> ({@code GET /api/auth/confirm-email}) nên đường dẫn này luôn hoạt động ngay từ khi
+     * ticket 0037 đóng — không phụ thuộc frontend.
+     *
+     * @param rawToken chuỗi token thô
+     * @return link đầy đủ kèm query {@code ?token=...}
+     */
+    private String genConfirmLink(String rawToken) {
+        String separator = emailConfirmUrl.contains("?") ? "&" : "?";
+        return emailConfirmUrl + separator + TOKEN_QUERY_PARAM + "="
                 + URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
     }
 }

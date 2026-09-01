@@ -3,6 +3,8 @@ package com.nss.ddd.application.service.mail;
 import com.nss.ddd.domain.model.entity.Order;
 import com.nss.ddd.domain.model.entity.OrderItem;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+
 import java.util.List;
 
 /**
@@ -46,6 +48,20 @@ public interface MailAppService {
     void sendPasswordResetMail(String toEmail, String rawToken);
 
     /**
+     * Gửi email chứa link xác nhận tài khoản (backlog 0037).
+     * <p>
+     * <b>Cùng ba tính chất với {@link #sendPasswordResetMail}</b>: chạy bất đồng bộ và trả về ngay,
+     * tự nuốt mọi ngoại lệ (method chạy trên luồng khác nên không ai bắt được nếu ném ra), và bọc
+     * {@code CircuitBreaker} quanh đúng lời gọi {@code send()}. Khác đúng một điểm: link trỏ tới
+     * endpoint do <b>chính backend phục vụ</b> ({@code GET /api/auth/confirm-email?token=...}), không
+     * phải một trang frontend.
+     *
+     * @param toEmail địa chỉ nhận — đã xác nhận là của một tài khoản có thật
+     * @param rawToken chuỗi token thô đặt vào link; <b>không bao giờ được ghi vào log</b>
+     */
+    void sendEmailConfirmationMail(String toEmail, String rawToken);
+
+    /**
      * Gửi email HTML thông báo trạng thái đơn hàng (backlog 0032, Quyết định Owner 2) — kích hoạt
      * bởi {@code OrderStatusChangedConsumer}, sau khi Kafka đã publish event {@code OrderStatusChanged}.
      * <p>
@@ -67,4 +83,20 @@ public interface MailAppService {
      * @param toStatus trạng thái mới của đơn tại thời điểm event được sinh ra, con số cột {@code status}
      */
     void sendOrderStatusEmail(String toEmail, Order order, List<OrderItem> items, Integer toStatus);
+
+    /**
+     * Cho {@code nss-start} lấy về để bind vào Micrometer (backlog 0038,
+     * {@code com.nss.config.ResilienceMetricsConfig}).
+     * <p>
+     * <b>Khai trên interface dù đây là chi tiết quan sát (observability), không phải nghiệp vụ gửi
+     * mail — lý do là kỹ thuật, không phải kiến trúc.</b> {@code sendPasswordResetMail}/
+     * {@code sendEmailConfirmationMail}/{@code sendOrderStatusEmail} đều {@code @Async}, nên Spring
+     * bọc bean thật bằng một JDK dynamic proxy chỉ hiện diện qua interface này — autowire theo type
+     * cụ thể {@code MailAppServiceImpl} ném {@code BeanNotOfRequiredTypeException} ngay lúc khởi
+     * động context (đã đo được: proxy thật sự là {@code jdk.proxy2.$ProxyNNN}, không phải
+     * {@code MailAppServiceImpl}). Không có cách nào lấy registry này mà không đi qua interface.
+     *
+     * @return registry đang giữ breaker của đường gửi SMTP
+     */
+    CircuitBreakerRegistry getCircuitBreakerRegistry();
 }

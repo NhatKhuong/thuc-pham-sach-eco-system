@@ -1,0 +1,15 @@
+# Datasource Prometheus, provision qua file (backlog 0038) — Owner khong phai click "Add data
+# source" bang tay. `uid` khai co dinh de dashboard JSON o thu muc ../dashboards tham chieu dung
+# datasource nay ma khong phu thuoc thu tu Grafana tu sinh uid.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus-nss-event
+    type: prometheus
+    access: proxy
+    # Ten service trong CUNG mot docker network (ssn-event-network) — khac voi target cua chinh
+    # Prometheus (host.docker.internal:8081): Grafana goi Prometheus, ca hai deu la container.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

@@ -25,6 +25,39 @@
       <groupId>com.nss</groupId>
       <artifactId>nss-controller</artifactId>
     </dependency>
+    <!-- Actuator + micrometer-registry-prometheus (backlog 0038, architecture/01-overview.md §2/§9).
+         THI HANH TAI LIEU, khong phai mo rong stack: ca hai da co ten trong bang stack §2 tu truoc
+         ticket nay ("co ten nhung chua noi day"), version 1.13.6 do BOM spring-boot-dependencies
+         3.3.5 quan — khong khai <version>.
+         Dat o day chu khong o nss-controller/nss-application: khong co class nghiep vu nao trong
+         repo import truc tiep API cua Actuator/Micrometer (khong MeterRegistryCustomizer, khong
+         HealthIndicator viet tay) — day la mot moi quan tam CUA CA UNG DUNG, kich hoat hoan toan qua
+         autoconfiguration + khoa cau hinh trong application.yml, dung nhu Thymeleaf/mail o tren.
+         nss-start la module DUY NHAT so huu application.yml (kien truc muc 1) nen la noi tu nhien de
+         khai — khong module nao khac can no tren classpath bien dich.
+         KHONG dung resilience4j-spring-boot3 hay bat ky starter nao keo theo Actuator o cac module
+         khac (ADR 0005 da tranh dieu nay o backlog 0021); day la lan DAU TIEN va lan DUY NHAT
+         Actuator that su vao classpath. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <!-- resilience4j-micrometer (backlog 0038): TaggedRateLimiterMetrics / TaggedCircuitBreakerMetrics
+         — cau noi RIENG bat buoc phai co de day trang thai RateLimiter/CircuitBreaker (backlog 0021,
+         ADR 0005) ra Prometheus. Version do BOM resilience4j o root pom quan — KHONG khai <version>,
+         dung tien le voi resilience4j-ratelimiter/circuitbreaker.
+         Dat o day (khong o nss-controller/nss-application): ResilienceMetricsConfig — noi DUY NHAT
+         dung API cua artifact nay — song o nss-start vi no can ca MeterRegistry (tu
+         spring-boot-starter-actuator, cung chi khai o day) LAN ApiRateLimitInterceptor +
+         MailAppServiceImpl (co san tren classpath qua nss-controller/nss-application transitively). -->
+    <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-micrometer</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

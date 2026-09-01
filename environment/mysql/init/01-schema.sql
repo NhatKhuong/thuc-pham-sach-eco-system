@@ -85,9 +85,19 @@
         primary key (code)
     ) comment='Quan/huyen; code la natural key' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
+    create table email_confirmation_token (
+        is_used bit not null comment 'Da dung hay chua; xac nhan thanh cong dat cot nay thanh true',
+        created_at datetime(6) not null comment 'Thoi diem phat token, luu theo gio UTC',
+        expires_at datetime(6) not null comment 'Thoi diem het han, luu theo gio UTC',
+        id bigint not null auto_increment comment 'Khoa chinh',
+        user_id bigint not null comment 'Nguoi dung dang cho xac nhan email',
+        token_hash varchar(64) not null comment 'SHA-256 cua token dang hex, duy nhat; chuoi tho khong bao gio duoc luu',
+        primary key (id)
+    ) comment='Token xac nhan email, dung mot lan, luu duoi dang hash' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
     create table idempotency_key (
-        event_id bigint not null comment 'Id cua outbox_event tuong ung, khoa idempotent cho consumer',
         created_at datetime(6) not null comment 'Thoi diem consumer xu ly thanh cong lan dau, luu theo gio UTC',
+        event_id bigint not null comment 'Id cua outbox_event tuong ung, khoa idempotent cho consumer',
         primary key (event_id)
     ) comment='Khoa idempotency cua consumer Kafka, tranh xu ly trung mot event' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
@@ -224,6 +234,7 @@
     ) comment='Bang noi role - permission' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
     create table user (
+        email_verified BIT DEFAULT TRUE not null comment 'Da xac nhan email hay chua; tai khoan cu duoc grandfather = true, dang ky moi bat dau false',
         created_at datetime(6) not null comment 'Thoi diem tao, luu theo gio UTC',
         id bigint not null auto_increment comment 'Khoa chinh',
         updated_at datetime(6) comment 'Thoi diem cap nhat gan nhat, luu theo gio UTC',
@@ -275,19 +286,25 @@
     create index idx_province_code 
        on district (province_code);
 
+    create index idx_user_id 
+       on email_confirmation_token (user_id);
+
+    alter table email_confirmation_token 
+       add constraint uk_token_hash unique (token_hash);
+
     create index idx_order_id 
        on order_item (order_id);
 
     create index idx_product_id 
        on order_item (product_id);
 
-    create index idx_order_id
+    create index idx_order_id 
        on order_status_history (order_id);
 
-    create index idx_status_created
+    create index idx_status_created 
        on outbox_event (status, created_at);
 
-    create index idx_user_id
+    create index idx_user_id 
        on password_reset_token (user_id);
 
     alter table password_reset_token 
@@ -369,6 +386,11 @@
        add constraint fk_district_province 
        foreign key (province_code) 
        references province (code);
+
+    alter table email_confirmation_token 
+       add constraint fk_email_confirmation_token_user 
+       foreign key (user_id) 
+       references user (id);
 
     alter table order_item 
        add constraint fk_order_item_order 

@@ -1,0 +1,14 @@
+# Provider dashboard — nap moi file .json trong cung thu muc nay luc Grafana khoi dong (backlog
+# 0038). Owner khong phai import JSON bang tay.
+apiVersion: 1
+
+providers:
+  - name: nss-event-api
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

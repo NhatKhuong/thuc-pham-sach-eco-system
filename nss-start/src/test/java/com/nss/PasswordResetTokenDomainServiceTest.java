@@ -2,6 +2,7 @@ package com.nss;
 
 import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.User;
+import com.nss.ddd.domain.repository.EmailConfirmationTokenRepository;
 import com.nss.ddd.domain.repository.PasswordResetTokenRepository;
 import com.nss.ddd.domain.repository.RefreshTokenRepository;
 import com.nss.ddd.domain.repository.UserRepository;
@@ -67,13 +68,16 @@ class PasswordResetTokenDomainServiceTest {
     @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Mock
+    private EmailConfirmationTokenRepository emailConfirmationTokenRepository;
+
     /**
      * @return service với {@code BCryptPasswordEncoder} thật — cùng lý do đã viết ở
      *         {@code AuthDomainServiceTest}
      */
     private AuthDomainServiceImpl genService() {
         return new AuthDomainServiceImpl(userRepository, userRoleRepository, refreshTokenRepository,
-                passwordResetTokenRepository, new BCryptPasswordEncoder());
+                passwordResetTokenRepository, emailConfirmationTokenRepository, new BCryptPasswordEncoder());
     }
 
     /**

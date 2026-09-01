@@ -50,9 +50,13 @@ class SchemaSmokeTest {
      * được Owner duyệt tường minh qua phiên plan-mode trước khi ticket được persist (xem "Quyết
      * định Owner" trong ticket).
      * <p>
+     * <b>22 → 23 ở backlog 0037</b> — {@code email_confirmation_token}, bảng token xác nhận email;
+     * Owner duyệt qua AskUserQuestion trước khi ticket được viết (xem "Quyết định của Owner" trong
+     * ticket).
+     * <p>
      * Sửa hằng số này rồi báo "test vẫn xanh" là làm mất đúng thứ nó bảo vệ.
      */
-    private static final int EXPECTED_TABLE_COUNT = 22;
+    private static final int EXPECTED_TABLE_COUNT = 23;
 
     /**
      * <b>16 → 17 ở backlog 0017</b> — đúng một khoá ngoại mới:
@@ -62,11 +66,15 @@ class SchemaSmokeTest {
      * ({@code fk_review_user}), do <b>ADR 0008</b> chốt đánh giá phải có tài khoản. Đây là lần duy nhất con
      * số này đổi mà <b>không</b> kèm một bảng mới — {@link #EXPECTED_TABLE_COUNT} vẫn là 20.
      * <p>
+     * <b>18 → 19 ở backlog 0037</b> — đúng một: {@code email_confirmation_token.user_id} →
+     * {@code user.id} ({@code fk_email_confirmation_token_user}), đi kèm bảng mới cùng ticket nên
+     * {@link #EXPECTED_TABLE_COUNT} cũng đổi trong cùng lần.
+     * <p>
      * Đếm riêng khỏi số bảng vì hai con số hỏng theo hai kiểu khác nhau: một bảng mới <i>quên</i>
      * khoá ngoại vẫn giữ nguyên số bảng đúng, và một dòng token mồ côi thì không có gì phát hiện ra
      * cho tới lúc cần biết nó thuộc về ai.
      */
-    private static final int EXPECTED_FOREIGN_KEY_COUNT = 18;
+    private static final int EXPECTED_FOREIGN_KEY_COUNT = 19;
 
     private final DataSource dataSource;
 
@@ -76,7 +84,7 @@ class SchemaSmokeTest {
     }
 
     @Test
-    @DisplayName("Schema co dung 20 bang")
+    @DisplayName("Schema co dung 23 bang")
     void schemaHasExpectedTableCount() throws SQLException {
         String actual = getScalar("SELECT COUNT(*) FROM information_schema.tables"
                 + " WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'");

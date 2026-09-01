@@ -1,11 +1,13 @@
 package com.nss.ddd.domain.service.impl;
 
 import com.nss.ddd.domain.model.TextNormalizer;
+import com.nss.ddd.domain.model.entity.EmailConfirmationToken;
 import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.User;
 import com.nss.ddd.domain.model.entity.UserRole;
+import com.nss.ddd.domain.repository.EmailConfirmationTokenRepository;
 import com.nss.ddd.domain.repository.PasswordResetTokenRepository;
 import com.nss.ddd.domain.repository.RefreshTokenRepository;
 import com.nss.ddd.domain.repository.UserRepository;
@@ -80,6 +82,8 @@ public class AuthDomainServiceImpl implements AuthDomainService {
 
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
+    private final EmailConfirmationTokenRepository emailConfirmationTokenRepository;
+
     private final PasswordEncoder passwordEncoder;
 
     // ========== READ ==========
@@ -145,6 +149,9 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         //    GET /admin/customers, va khong co gi bao loi.
         draft.setPasswordHash(passwordEncoder.encode(rawPassword))
                 .setFullNameNormalized(TextNormalizer.genNormalized(draft.getFullName()))
+                // emailVerified = false TUONG MINH (backlog 0037) — cot mang DEFAULT TRUE de
+                // grandfather tai khoan cu, nen dang ky MOI phai tu tay ghi de default do.
+                .setEmailVerified(Boolean.FALSE)
                 .setCreatedAt(now)
                 .setUpdatedAt(now);
         User saved = userRepository.save(draft);
@@ -293,6 +300,55 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         return consumed;
     }
 
+    // ========== EMAIL CONFIRMATION (backlog 0037) ==========
+
+    @Override
+    public String issueEmailConfirmationToken(User user, Duration ttl) {
+        // Cung khuon issuePasswordResetToken: chuoi tho ton tai trong bo nho DUNG mot lan, chi HASH
+        // di xuong DB. Khong log rawToken o bat ky muc nao.
+        String rawToken = genEmailConfirmationTokenValue();
+        LocalDateTime now = genUtcNow();
+        EmailConfirmationToken saved = emailConfirmationTokenRepository.save(new EmailConfirmationToken()
+                .setUser(user)
+                .setTokenHash(genTokenHash(rawToken))
+                .setExpiresAt(now.plus(ttl))
+                .setIsUsed(Boolean.FALSE)
+                .setCreatedAt(now));
+        log.info("issueEmailConfirmationToken: issued | userId={} tokenId={} expiresAt={}",
+                user.getId(), saved.getId(), saved.getExpiresAt());
+        return rawToken;
+    }
+
+    @Override
+    public EmailConfirmationToken findUsableEmailConfirmationToken(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return null;
+        }
+        return emailConfirmationTokenRepository
+                .findUsableByTokenHash(genTokenHash(rawToken), genUtcNow())
+                .orElse(null);
+    }
+
+    @Override
+    public boolean consumeEmailConfirmationToken(String rawToken) {
+        boolean consumed = rawToken != null && !rawToken.isBlank()
+                && emailConfirmationTokenRepository.markUsed(genTokenHash(rawToken), genUtcNow());
+        if (!consumed) {
+            // Khong log chuoi token va khong log userId — cung ky luat voi consumePasswordResetToken.
+            log.warn("consumeEmailConfirmationToken: no usable row matched");
+        }
+        return consumed;
+    }
+
+    @Override
+    public User confirmEmail(User user) {
+        user.setEmailVerified(Boolean.TRUE)
+                .setUpdatedAt(genUtcNow());
+        User saved = userRepository.save(user);
+        log.info("confirmEmail: email verified | userId={}", saved.getId());
+        return saved;
+    }
+
     // ========== HELPERS ==========
 
     /**
@@ -330,6 +386,19 @@ public class AuthDomainServiceImpl implements AuthDomainService {
      * @return chuỗi ngẫu nhiên 43 ký tự
      */
     private String genResetTokenValue() {
+        byte[] bytes = new byte[RESET_TOKEN_BYTES];
+        SECURE_RANDOM.nextBytes(bytes);
+        return TOKEN_ENCODER.encodeToString(bytes);
+    }
+
+    /**
+     * Sinh chuỗi token xác nhận email — cùng mức entropy và cùng lý do Base64 URL-safe với
+     * {@link #genResetTokenValue()}: chuỗi này cũng sống trong một link email dưới dạng query
+     * parameter.
+     *
+     * @return chuỗi ngẫu nhiên 43 ký tự
+     */
+    private String genEmailConfirmationTokenValue() {
         byte[] bytes = new byte[RESET_TOKEN_BYTES];
         SECURE_RANDOM.nextBytes(bytes);
         return TOKEN_ENCODER.encodeToString(bytes);

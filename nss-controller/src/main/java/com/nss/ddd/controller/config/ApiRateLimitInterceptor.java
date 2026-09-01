@@ -4,6 +4,7 @@ import com.nss.ddd.controller.exception.TooManyRequestsException;
 
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -64,6 +65,17 @@ public class ApiRateLimitInterceptor implements HandlerInterceptor {
     private static final Duration TIMEOUT_DURATION = Duration.ZERO;
 
     private final Map<ApiRateLimitTier, RateLimiter> limiters = new EnumMap<>(ApiRateLimitTier.class);
+
+    /**
+     * Registry RIÊNG chỉ để có chỗ đăng ký ba limiter — {@code RateLimiter.of(name, config)} tĩnh
+     * (dùng trước backlog 0038) không để lại một {@code Registry} nào cho Micrometer bám vào.
+     * {@code TaggedRateLimiterMetrics} (resilience4j-micrometer) chỉ nhận {@code RateLimiterRegistry},
+     * không có overload cho một instance rời — xem {@link #getRateLimiterRegistry()} và
+     * {@code com.nss.config.ResilienceMetricsConfig} ở {@code nss-start}. Đổi CÁCH tạo limiter,
+     * không đổi HÀNH VI: mỗi limiter vẫn dựng với đúng {@code config} tường minh của
+     * {@link #genLimiter}, registry chỉ là nơi giữ chúng.
+     */
+    private final RateLimiterRegistry rateLimiterRegistry = RateLimiterRegistry.of(RateLimiterConfig.ofDefaults());
 
     /**
      * @param authLimitForPeriod      số permit mỗi chu kỳ cho {@code /api/auth/**}
@@ -165,6 +177,16 @@ public class ApiRateLimitInterceptor implements HandlerInterceptor {
                 .limitRefreshPeriod(refreshPeriod)
                 .timeoutDuration(TIMEOUT_DURATION)
                 .build();
-        return RateLimiter.of(tier.getInstanceName(), config);
+        return rateLimiterRegistry.rateLimiter(tier.getInstanceName(), config);
+    }
+
+    /**
+     * Cho {@code nss-start} lấy về để bind vào Micrometer (backlog 0038,
+     * {@code com.nss.config.ResilienceMetricsConfig}).
+     *
+     * @return registry đang giữ cả ba limiter tier {@code auth}/{@code write}/{@code read}
+     */
+    public RateLimiterRegistry getRateLimiterRegistry() {
+        return rateLimiterRegistry;
     }
 }

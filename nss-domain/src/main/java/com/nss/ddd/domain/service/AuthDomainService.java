@@ -1,5 +1,6 @@
 package com.nss.ddd.domain.service;
 
+import com.nss.ddd.domain.model.entity.EmailConfirmationToken;
 import com.nss.ddd.domain.model.entity.PasswordResetToken;
 import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
@@ -56,7 +57,14 @@ public interface AuthDomainService {
 
     /**
      * Tạo tài khoản mới: băm mật khẩu, đóng dấu {@code createdAt} / {@code updatedAt} theo
-     * <b>giờ UTC</b>, rồi gán vai trò trong cùng transaction của tầng gọi.
+     * <b>giờ UTC</b>, đặt {@code emailVerified = false}, rồi gán vai trò trong cùng transaction của
+     * tầng gọi.
+     * <p>
+     * <b>{@code emailVerified = false} đặt tường minh ở đây, không trông vào cột DEFAULT</b>
+     * (backlog 0037). Cột {@code user.email_verified} mang {@code DEFAULT TRUE} để grandfather các
+     * tài khoản đã có trước ticket này (xem javadoc {@code User.emailVerified}); DEFAULT đó chỉ áp
+     * dụng khi câu {@code INSERT} không liệt kê cột, nên đường ghi tường minh này là nơi duy nhất
+     * khiến tài khoản <i>mới</i> bắt đầu ở trạng thái chưa xác nhận.
      *
      * @param draft bản nháp dựng từ command — chỉ có {@code fullName}, {@code email}, {@code phone}
      * @param rawPassword mật khẩu thô client gửi lên; <b>không bao giờ được ghi xuống DB</b>
@@ -208,4 +216,50 @@ public interface AuthDomainService {
      * @return true nếu có đúng một dòng vừa chuyển sang trạng thái đã dùng
      */
     boolean consumePasswordResetToken(String rawToken);
+
+    // ========== EMAIL CONFIRMATION (backlog 0037) ==========
+
+    /**
+     * Phát một token xác nhận email mới và ghi <b>hash</b> của nó xuống DB — cùng khuôn
+     * {@link #issuePasswordResetToken}.
+     * <p>
+     * Trả về chuỗi THÔ; cột {@code token_hash} chỉ giữ SHA-256 và không có đường nào đọc ngược. Giá
+     * trị trả về phải đi thẳng vào email và <b>không bao giờ</b> được đưa vào log hay response.
+     *
+     * @param user chủ tài khoản, đã có id
+     * @param ttl thời hạn tính từ bây giờ
+     * @return chuỗi token thô để đặt vào link xác nhận
+     */
+    String issueEmailConfirmationToken(User user, Duration ttl);
+
+    /**
+     * @param rawToken chuỗi token thô client gửi lên; được băm ở đây rồi mới đem đi tra
+     * @return bản ghi kèm chủ sở hữu đã nạp sẵn, hoặc {@code null} khi không tồn tại / đã dùng /
+     *         đã hết hạn — <b>ba ca gộp làm một</b>, đúng nếp {@link #findUsablePasswordResetToken}
+     */
+    EmailConfirmationToken findUsableEmailConfirmationToken(String rawToken);
+
+    /**
+     * Tiêu token xác nhận: đánh dấu đã dùng bằng UPDATE có điều kiện.
+     * <p>
+     * <b>Phải gọi trước khi đặt {@code emailVerified = true}</b> — cùng luật thứ tự đã chốt ở
+     * {@link #consumePasswordResetToken}: giá trị trả về quyết định request này có được phép xác
+     * nhận hay không. Hai request đồng thời cầm cùng một chuỗi thì đúng một cái nhận {@code true}.
+     *
+     * @param rawToken chuỗi token thô client gửi lên
+     * @return true nếu có đúng một dòng vừa chuyển sang trạng thái đã dùng
+     */
+    boolean consumeEmailConfirmationToken(String rawToken);
+
+    /**
+     * Đặt {@code emailVerified = true} và đóng dấu {@code updatedAt} theo <b>giờ UTC</b>.
+     * <p>
+     * <b>Cổng tiêu token KHÔNG nằm ở đây</b> — nó phải chạy <i>trước</i> khi entity bị sửa, cùng
+     * kỷ luật đã viết ở {@link #changePassword}: entity đọc trong một transaction là entity được
+     * quản lý, sửa nó rồi trả về một giá trị thất bại thì transaction vẫn commit.
+     *
+     * @param user chủ tài khoản, đang được transaction của tầng gọi quản lý
+     * @return bản ghi sau khi ghi
+     */
+    User confirmEmail(User user);
 }

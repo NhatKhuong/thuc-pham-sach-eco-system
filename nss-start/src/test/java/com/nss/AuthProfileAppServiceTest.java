@@ -74,7 +74,7 @@ class AuthProfileAppServiceTest {
      */
     private AuthAppServiceImpl genService() {
         return new AuthAppServiceImpl(authDomainService, mailAppService, jwtEncoder,
-                Duration.ofMinutes(30), Duration.ofDays(14), Duration.ofMinutes(15));
+                Duration.ofMinutes(30), Duration.ofDays(14), Duration.ofMinutes(15), Duration.ofHours(24));
     }
 
     /**

@@ -219,30 +219,33 @@ public class SecurityConfig {
     public static final String CLAIM_ROLES = "roles";
 
     /**
-     * <b>Năm</b> endpoint xác thực công khai; {@code /api/auth/logout} cố ý không nằm trong đây.
+     * <b>Bảy</b> endpoint xác thực công khai; {@code /api/auth/logout} cố ý không nằm trong đây.
      * <p>
-     * <b>Hai dòng cuối đến từ backlog 0017, và chúng là NGOẠI LỆ so với backlog 0016.</b> Ở ticket
-     * đó, {@code PUT /auth/me} và {@code PUT /auth/password} <i>cần</i> token nên
-     * {@code .anyRequest().authenticated()} đã phủ sẵn và file này không phải sửa gì. Ở đây thì
-     * ngược lại: người gọi {@code forgot-password} và {@code reset-password} <b>đang không đăng
-     * nhập</b> — đó là toàn bộ lý do hai endpoint tồn tại. Thiếu một dòng ở đây là một endpoint đặt
-     * lại mật khẩu đòi đăng nhập, tức vô nghĩa theo đúng nghĩa đen, và triệu chứng là một 401 chứ
-     * không phải một lỗi nào đọc ra được.
+     * <b>Hai dòng đến từ backlog 0017</b> ({@code forgot-password}, {@code reset-password}) <b>và
+     * hai dòng đến từ backlog 0037</b> ({@code confirm-email}, {@code resend-confirmation}) đều là
+     * NGOẠI LỆ so với backlog 0016. Ở ticket đó, {@code PUT /auth/me} và {@code PUT /auth/password}
+     * <i>cần</i> token nên {@code .anyRequest().authenticated()} đã phủ sẵn và file này không phải
+     * sửa gì. Ở đây thì ngược lại: người gọi bốn endpoint này <b>đang không đăng nhập</b> — đó là
+     * toàn bộ lý do chúng tồn tại. Thiếu một dòng ở đây là một endpoint đòi đăng nhập, tức vô nghĩa
+     * theo đúng nghĩa đen, và triệu chứng là một 401 chứ không phải một lỗi nào đọc ra được.
      * <p>
-     * <b>Cả năm khai bằng đường dẫn literal, không phải mẫu {@code /api/auth/**}.</b> Một mẫu rộng
+     * <b>Cả bảy khai bằng đường dẫn literal, không phải mẫu {@code /api/auth/**}.</b> Một mẫu rộng
      * ở đây sẽ mở công khai <i>mọi</i> đường xác thực ra đời sau này — kể cả {@code logout} và hai
      * đường ghi vào hồ sơ người dùng của backlog 0016 — theo đúng kiểu lỗi mà backlog 0012 sinh ra
      * để vá. Nới quyền phải là một quyết định viết ra, không phải một hệ quả phụ.
      * <p>
-     * <b>Cả năm cố ý KHÔNG khai {@code HttpMethod}, khác các nhóm phía trên</b>, và sự khác biệt đó
-     * cũng có lý do: năm đường dẫn này mỗi cái chỉ có duy nhất một handler {@code POST}, và chúng
-     * không nằm trong namespace nào mà một đường ghi khác có thể mọc vào — {@code /api/auth/me} và
-     * {@code /api/auth/password} là hai đường dẫn <i>khác</i>, không phải đường lồng bên dưới năm
-     * cái này. Một verb khác trên chúng dừng ở tầng định tuyến với 405, không chạm được gì.
+     * <b>Cả bảy cố ý KHÔNG khai {@code HttpMethod}, khác các nhóm phía trên</b>, và sự khác biệt đó
+     * cũng có lý do: mỗi đường dẫn ở đây chỉ có duy nhất <b>một</b> handler — sáu cái là
+     * {@code POST}, riêng {@code confirm-email} là {@code GET} (backlog 0037, nó trả HTML chứ không
+     * JSON) — và không nằm trong namespace nào mà một đường ghi khác có thể mọc vào;
+     * {@code /api/auth/me} và {@code /api/auth/password} là hai đường dẫn <i>khác</i>, không phải
+     * đường lồng bên dưới bảy cái này. Một verb khác trên chúng dừng ở tầng định tuyến với 405,
+     * không chạm được gì.
      */
     public static final String[] PATHS_AUTH_PUBLIC = {
             "/api/auth/register", "/api/auth/login", "/api/auth/refresh",
-            "/api/auth/forgot-password", "/api/auth/reset-password"
+            "/api/auth/forgot-password", "/api/auth/reset-password",
+            "/api/auth/confirm-email", "/api/auth/resend-confirmation"
     };
 
     /**

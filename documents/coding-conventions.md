@@ -455,6 +455,9 @@ Cùng loại lỗi, khác phép toán: quy ước **bỏ dấu** cho tìm kiếm
 - [ ] Không chép lại phép bỏ dấu thành bản thứ hai — dùng lại đúng một hàm (§18)
 - [ ] Không đặt ranh giới breaker ngoài khối tự nuốt exception; không để `RateLimiter` chạy `timeoutDuration` mặc định (§20)
 - [ ] Không thêm `@Scheduled` job mới mà thiếu smoke assertion xác nhận `@EnableScheduling` thực sự bật (bean `ScheduledAnnotationBeanPostProcessor` trong context, không chờ timer) — thiếu `@EnableScheduling` không lỗi gì lúc khởi động, job chỉ lặng lẽ không bao giờ chạy; ca thật: `OutboxPublisherJob` ở backlog 0032, mẫu test ở `SchedulingEnabledSmokeTest` (backlog 0033)
+- [ ] Không thêm JPA repository/entity mới mà quên `@MockBean <TênMapper>JPAMapper` vào **cả năm** file `@SpringBootTest` mock-toàn-bộ-mapper-để-chạy-không-cần-DB (`SecurityRulesTest`, `ApiRateLimitWireTest`, `HelloEndpointTest`, `PublicCatalogEndpointsTest`, `SchedulingEnabledSmokeTest`) — thiếu một file thì context load lỗi `UnsatisfiedDependencyException` chung chung, không trỏ tới nguyên nhân thật; ca thật: `EmailConfirmationTokenJPAMapper` ở backlog 0037, vá bằng cách mirror đúng dòng `@MockBean` đã có cho `PasswordResetTokenJPAMapper`
+- [ ] Không thêm `SecurityFilterChain` bean mới (kể cả qua `@ManagementContextConfiguration`) mà thiếu `securityMatcher(...)` hẹp + `@Order` tường minh — thiếu thì bean bị nạp lẫn context chính trong `@SpringBootTest`/`MockMvc` và có thể nuốt luôn `/api/**` (§21 điều 3, ca thật: 45/81 test `SecurityRulesTest` đỏ ở backlog 0038)
+- [ ] Không gọi thẳng getter observability (kiểu `getXxxRegistry()`) của một bean có thể bị `@MockBean` mà không null-check — Mockito trả `null` cho method không stub, gọi thẳng vào API đòi non-null (`Objects.requireNonNull`) ném `NullPointerException` lúc `@PostConstruct` và làm gãy toàn bộ context của lớp test đó (§21 điều 5, ca thật: `MailAppService` bị mock ở `OrderStatusChangedOutboxIntegrationTest`, backlog 0038)
 
 ---
 
@@ -554,7 +557,68 @@ try {
 
 ---
 
-*Last updated: 2026-09-01 — §13: thêm mục "`@Lazy` phải nằm ở cả hai đầu" (trên `@Bean` factory
+## 21. Actuator & Micrometer (backlog 0038)
+
+**1. Không bao giờ `management.endpoints.web.exposure.include=*`.** Chỉ liệt kê đúng những gì thật
+sự cần (`prometheus,health`) — đúng tinh thần "không public surface thừa" của ADR 0005. Bật toàn bộ
+Actuator (`/actuator/env`, `/actuator/beans`, `/actuator/heapdump`, …) là mở một mặt lộ diện mới
+không ai duyệt, kể cả khi nó sống trên management port riêng.
+
+**2. Management port riêng KHÔNG tự động thoát khỏi `SecurityFilterChain` chính — phải tự chứng minh bằng request thật.** Trực giác "port khác thì context khác thì bảo mật khác" là sai: khi không có
+`SecurityFilterChain` khai riêng cho context quản lý, `ManagementWebSecurityAutoConfiguration` back
+off (thấy bean của `SecurityConfig` qua `@ConditionalOnMissingBean`), và context quản lý vẫn resolve
+được `FilterChainProxy` của context cha qua bean-lookup phân cấp — nghĩa là JWT của `/api/**` áp
+luôn lên `/actuator/**`. Muốn tách thật, khai một `SecurityFilterChain` riêng qua
+`@ManagementContextConfiguration(ManagementContextType.CHILD)` (đăng ký qua
+`META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports`
+— **không phải** `spring.factories`, đã đổi cơ chế từ Spring Boot 3). Bằng chứng bắt buộc: `curl`
+không token vào endpoint quản lý phải **200**, cùng lúc một endpoint `/api/**` không token vẫn
+**401** như cũ — control âm/dương cùng một lần chạy, không suy diễn từ tài liệu Spring.
+
+**3. Một `SecurityFilterChain` mới PHẢI khai `securityMatcher(...)` hẹp + `@Order` tường minh, kể cả khi nó chỉ định sống trong context con.** `@SpringBootTest` (`MockMvc`, không server thật) không
+dựng nổi context con riêng cho management port — bean `@ManagementContextConfiguration(CHILD)` bị
+nạp lẫn vào CÙNG context với `SecurityConfig` trong test. Thiếu `securityMatcher` thì hai chain cùng
+khớp "any request", và chain mới (thường permissive hơn) có thể nuốt luôn `/api/**` trong bộ test —
+ca thật đã đo: thiếu bước này làm 45/81 test của `SecurityRulesTest` đỏ (401 kỳ vọng thành 422/500,
+`NullPointerException` vì request không còn qua JWT converter). Giới hạn matcher đúng phạm vi định
+làm (`/actuator/**`) là lưới an toàn thứ hai, không phải chi tiết thẩm mỹ.
+
+**4. Muốn Resilience4j (RateLimiter/CircuitBreaker) lên Prometheus thì PHẢI dựng qua `Registry`, không phải factory tĩnh.** `RateLimiter.of(name, config)` / `CircuitBreaker.of(name, config)` (dùng từ
+backlog 0021) không để lại chỗ nào cho Micrometer bám vào — `TaggedRateLimiterMetrics`/
+`TaggedCircuitBreakerMetrics` (resilience4j-micrometer) chỉ nhận `RateLimiterRegistry`/
+`CircuitBreakerRegistry`, không có overload cho một instance rời. Đổi sang
+`registry.rateLimiter(name, config)` / `registry.circuitBreaker(name, config)` — đổi CÁCH tạo, không
+đổi ngưỡng/hành vi — rồi expose registry đó qua một getter (`getRateLimiterRegistry()`/
+`getCircuitBreakerRegistry()`) cho lớp bind ở `*-start` gọi.
+
+**5. Getter observability mới (kiểu điều 4) PHẢI null-safe ở nơi gọi nếu bean sở hữu nó có thể bị `@MockBean`.** Mockito trả `null` cho một method trả object không được stub. Ca thật: `MailAppService`
+bị `@MockBean` trong `OrderStatusChangedOutboxIntegrationTest` → `getCircuitBreakerRegistry()` trả
+`null` → gọi thẳng vào `TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(null)` ném
+`NullPointerException` ngay lúc `@PostConstruct`, làm gãy **toàn bộ** context của lớp test đó (context
+load failure, không riêng gì test liên quan tới mail). Bind trong một `if (registry != null)` kèm
+`log.warn`, không giả định bean luôn là instance thật.
+
+**6. Getter observability đặt trên INTERFACE khi bean thật đứng sau proxy.** Một bean có method
+`@Async` được Spring bọc bằng JDK dynamic proxy (chỉ hiện diện qua interface nó implement) — tiêm
+theo type cụ thể (`FooServiceImpl`) ném `BeanNotOfRequiredTypeException` ngay lúc khởi động context.
+Getter chỉ phục vụ quan sát (không phải nghiệp vụ) vẫn phải khai trên interface nếu bean có khả năng
+bị proxy hoá — đây là lý do kỹ thuật, không phải sở thích kiến trúc.
+
+**7. Tag `application=<ten-service>` trên mọi metric.** `management.metrics.tags.application` —
+để dashboard lọc được khi sau này có nhiều instance/service cùng scrape vào một Prometheus. Không
+đặt tên tag khác `application` — đó là tên chuẩn Micrometer/Grafana cộng đồng dùng, tự chế tên khác
+chỉ tạo thêm một khoá phải nhớ.
+
+---
+
+*Last updated: 2026-09-01 — thêm §21 "Actuator & Micrometer" (backlog 0038): management port riêng
+không tự thoát `SecurityFilterChain` chính (phải tự chứng minh bằng request thật), `SecurityFilterChain`
+mới cần `securityMatcher` + `@Order` để không nuốt `/api/**` trong `@SpringBootTest`, Resilience4j
+phải dựng qua `Registry` (không factory tĩnh) để bind Micrometer, getter observability phải null-safe
+khi bean có thể bị `@MockBean` và phải khai trên interface khi bean thật đứng sau proxy `@Async`;
+§17 thêm hai checklist tương ứng. Trước đó cùng ngày — §17: thêm checklist "JPA repository/entity mới phải kèm `@MockBean` vào
+cả năm file `@SpringBootTest` mock-toàn-bộ-mapper" — ca thật `EmailConfirmationTokenJPAMapper` thiếu
+ở 5 file khiến context load lỗi (backlog 0037). Trước đó cùng ngày — §13: thêm mục "`@Lazy` phải nằm ở cả hai đầu" (trên `@Bean` factory
 method LẪN trên tham số constructor nơi tiêm nó) cho bean có side-effect kết nối mạng lúc khởi tạo,
 ví dụ `RedissonClient` qua `Redisson.create()`; trích code thật `RedissonConfig` +
 `RedissonDistributedLockServiceImpl`, ca đo được ở harness delta backlog 0035 (thiếu nửa sau làm

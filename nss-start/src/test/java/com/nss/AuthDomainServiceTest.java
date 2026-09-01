@@ -4,6 +4,7 @@ import com.nss.ddd.domain.model.entity.RefreshToken;
 import com.nss.ddd.domain.model.entity.Role;
 import com.nss.ddd.domain.model.entity.User;
 import com.nss.ddd.domain.model.entity.UserRole;
+import com.nss.ddd.domain.repository.EmailConfirmationTokenRepository;
 import com.nss.ddd.domain.repository.PasswordResetTokenRepository;
 import com.nss.ddd.domain.repository.RefreshTokenRepository;
 import com.nss.ddd.domain.repository.UserRepository;
@@ -65,6 +66,9 @@ class AuthDomainServiceTest {
     @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Mock
+    private EmailConfirmationTokenRepository emailConfirmationTokenRepository;
+
     /**
      * Dựng service với {@code BCryptPasswordEncoder} thật.
      *
@@ -72,7 +76,7 @@ class AuthDomainServiceTest {
      */
     private AuthDomainServiceImpl genService() {
         return new AuthDomainServiceImpl(userRepository, userRoleRepository, refreshTokenRepository,
-                passwordResetTokenRepository, new BCryptPasswordEncoder());
+                passwordResetTokenRepository, emailConfirmationTokenRepository, new BCryptPasswordEncoder());
     }
 
     @Test
@@ -127,6 +131,24 @@ class AuthDomainServiceTest {
         assertFalse(saved.getCreatedAt().isBefore(beforeUtc), "createdAt som hon moc UTC truoc khi goi");
         assertFalse(saved.getCreatedAt().isAfter(afterUtc), "createdAt muon hon moc UTC sau khi goi");
         assertEquals(saved.getCreatedAt(), saved.getUpdatedAt());
+    }
+
+    /**
+     * <b>Backlog 0037 §Contract điều 1.</b> Tài khoản mới phải bắt đầu ở trạng thái chưa xác nhận —
+     * cột {@code email_verified} mang {@code DEFAULT TRUE} để grandfather tài khoản cũ (xem javadoc
+     * {@code User.emailVerified}), nên đường ghi mới BẮT BUỘC tự tay ghi đè {@code false}, không
+     * được trông vào DEFAULT của cột.
+     */
+    @Test
+    @DisplayName("register dat emailVerified=false tuong minh, khong trong vao DEFAULT cua cot")
+    void registerStartsWithEmailUnverified() {
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AuthDomainServiceImpl service = genService();
+
+        User saved = service.register(new User().setEmail("moi@nongsansach.vn"), "abc123",
+                genCustomerRole());
+
+        assertEquals(Boolean.FALSE, saved.getEmailVerified());
     }
 
     @Test

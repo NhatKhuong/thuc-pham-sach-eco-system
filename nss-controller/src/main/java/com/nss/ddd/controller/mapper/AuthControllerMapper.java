@@ -6,6 +6,7 @@ import com.nss.ddd.application.model.command.LoginCommand;
 import com.nss.ddd.application.model.command.LogoutCommand;
 import com.nss.ddd.application.model.command.RefreshCommand;
 import com.nss.ddd.application.model.command.RegisterCommand;
+import com.nss.ddd.application.model.command.ResendConfirmationCommand;
 import com.nss.ddd.application.model.command.ResetPasswordCommand;
 import com.nss.ddd.application.model.command.UpdateProfileCommand;
 import com.nss.ddd.controller.dto.ChangePasswordRequest;
@@ -13,6 +14,7 @@ import com.nss.ddd.controller.dto.ForgotPasswordRequest;
 import com.nss.ddd.controller.dto.LoginRequest;
 import com.nss.ddd.controller.dto.RefreshTokenRequest;
 import com.nss.ddd.controller.dto.RegisterRequest;
+import com.nss.ddd.controller.dto.ResendConfirmationRequest;
 import com.nss.ddd.controller.dto.ResetPasswordRequest;
 import com.nss.ddd.controller.dto.UpdateProfileRequest;
 
@@ -169,5 +171,19 @@ public final class AuthControllerMapper {
         return new ResetPasswordCommand()
                 .setToken(request.getToken())
                 .setNewPassword(request.getNewPassword());
+    }
+
+    /**
+     * <b>Không có tham số {@code userId}</b>, cùng lý do đã viết ở {@link #toForgotPasswordCommand}
+     * — endpoint công khai, email trong body chỉ chọn hộp thư nhận link.
+     *
+     * @param request body của {@code POST /api/auth/resend-confirmation}
+     * @return lệnh gửi lại xác nhận, hoặc {@code null} khi {@code request} rỗng
+     */
+    public static ResendConfirmationCommand toResendConfirmationCommand(ResendConfirmationRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return new ResendConfirmationCommand().setEmail(request.getEmail());
     }
 }

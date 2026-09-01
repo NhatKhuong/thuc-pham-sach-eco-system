@@ -98,6 +98,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Thông tin đăng nhập đúng nhưng tài khoản chưa xác nhận email (backlog 0037).
+     * <p>
+     * <b>403, không phải 401</b> — xem javadoc {@link EmailNotVerifiedException} về lý do đầy đủ.
+     *
+     * @param e lỗi tài khoản chưa xác nhận email
+     * @return 403 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ProblemDetail handleEmailNotVerified(EmailNotVerifiedException e) {
+        log.warn("handleEmailNotVerified: login rejected, account not verified");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+    }
+
+    /**
      * @param e lỗi trùng email
      * @return 409 kèm {@code detail} tiếng Việt
      */

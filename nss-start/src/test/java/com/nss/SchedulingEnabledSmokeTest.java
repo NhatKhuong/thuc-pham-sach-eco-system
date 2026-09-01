@@ -3,6 +3,7 @@ package com.nss;
 import com.nss.ddd.infrastructure.persistence.mapper.BrandJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CategoryJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.CouponJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.EmailConfirmationTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.IdempotencyKeyJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderItemJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.OrderJPAMapper;
@@ -104,6 +105,10 @@ class SchedulingEnabledSmokeTest {
 
     @MockBean
     private PasswordResetTokenJPAMapper passwordResetTokenJPAMapper;
+
+    /** Backlog 0037 — xac nhan email: cung ly do voi passwordResetTokenJPAMapper o tren. */
+    @MockBean
+    private EmailConfirmationTokenJPAMapper emailConfirmationTokenJPAMapper;
 
     @MockBean
     private OutboxEventJPAMapper outboxEventJPAMapper;

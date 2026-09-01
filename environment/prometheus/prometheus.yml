@@ -1,0 +1,24 @@
+# Prometheus scrape config cho moi truong dev (backlog 0038).
+#
+# MOT GIA DINH DA SAI LUC LAP TICKET, VA FILE NAY SUA NO: ky vong ban dau la app `api` chay trong
+# CUNG mot container network voi Prometheus (nhu mysql/redis/kafka), nen target se la ten service
+# vd `api:8081`. THUC TE KHONG PHAI VAY — app chay truc tiep tren may host qua IntelliJ/Maven,
+# KHONG containerize (xem backlog 0038 §"Mot gia dinh can sua"). Container Prometheus vi vay phai
+# goi RA host qua `host.docker.internal`, khong phai ten service trong `ssn-event-network`.
+global:
+  # 15s la du cho dev — day KHONG phai SLO that (khac "moi 5s" cua du an tham chieu,
+  # architecture/01-overview.md §9).
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "api"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # host.docker.internal: Docker Desktop (Windows/Mac) phan giai san ten nay ve IP cua may host.
+      # Tren Linux can them "host-gateway" o muc extra_hosts cua service prometheus trong
+      # docker-compose-dev.yml — da khai o do, dong nay hoat dong tren ca ba he dieu hanh.
+      # Port 8081 = management.server.port mac dinh cua application.yml (backlog 0038).
+      - targets: ["host.docker.internal:8081"]
+        labels:
+          service: nss-event-api

@@ -6,12 +6,14 @@ import com.nss.ddd.application.model.command.LoginCommand;
 import com.nss.ddd.application.model.command.LogoutCommand;
 import com.nss.ddd.application.model.command.RefreshCommand;
 import com.nss.ddd.application.model.command.RegisterCommand;
+import com.nss.ddd.application.model.command.ResendConfirmationCommand;
 import com.nss.ddd.application.model.command.ResetPasswordCommand;
 import com.nss.ddd.application.model.command.UpdateProfileCommand;
 import com.nss.ddd.application.model.response.AuthMutationResponse;
 import com.nss.ddd.application.model.response.PasswordMutationResponse;
 import com.nss.ddd.application.model.response.PasswordResetMutationResponse;
 import com.nss.ddd.application.model.response.ProfileMutationResponse;
+import com.nss.ddd.application.model.response.RegisterMutationResponse;
 
 /**
  * Use case của vòng phiên xác thực — API_CONTRACT §B.4.
@@ -25,20 +27,25 @@ import com.nss.ddd.application.model.response.ProfileMutationResponse;
 public interface AuthAppService {
 
     /**
-     * Đăng ký tài khoản mới và <b>đăng nhập luôn</b> — contract trả {@code AuthResponse} chứ không
-     * trả 201 rỗng, nên người dùng không phải nhập lại mật khẩu ngay sau khi đăng ký.
+     * Đăng ký tài khoản mới — <b>KHÔNG còn đăng nhập luôn</b> kể từ backlog 0037 (breaking change đã
+     * Owner duyệt, §Contract điều 1). Sau khi ghi tài khoản, phát một token xác nhận email và gửi
+     * mail (fire-and-forget, cùng khuôn {@code MailAppService}) rồi trả về một câu xác nhận —
+     * <b>không</b> {@code AuthResponse}, không {@code token}/{@code refreshToken}. Tài khoản chỉ
+     * đăng nhập được sau khi xác nhận qua {@code GET /api/auth/confirm-email}.
      * <p>
-     * Tài khoản mới nhận vai trò {@code CUSTOMER}.
+     * Tài khoản mới nhận vai trò {@code CUSTOMER} và bắt đầu ở trạng thái {@code emailVerified = false}
+     * (xem {@code AuthDomainServiceImpl#register}).
      *
      * @param command lệnh đăng ký
-     * @return phiên vừa cấp, hoặc {@link AuthMutationResponse#CODE_DUPLICATE_EMAIL}
+     * @return câu xác nhận, hoặc {@link RegisterMutationResponse#CODE_DUPLICATE_EMAIL}
      */
-    AuthMutationResponse register(RegisterCommand command);
+    RegisterMutationResponse register(RegisterCommand command);
 
     /**
      * @param command lệnh đăng nhập
-     * @return phiên vừa cấp, hoặc {@link AuthMutationResponse#CODE_INVALID_CREDENTIALS} — dùng
-     *         chung cho cả email không tồn tại lẫn sai mật khẩu
+     * @return phiên vừa cấp, hoặc {@link AuthMutationResponse#CODE_INVALID_CREDENTIALS} (sai email /
+     *         mật khẩu, gộp làm một) / {@link AuthMutationResponse#CODE_EMAIL_NOT_VERIFIED} (thông
+     *         tin đăng nhập đúng nhưng tài khoản chưa xác nhận email — backlog 0037)
      */
     AuthMutationResponse login(LoginCommand command);
 
@@ -149,4 +156,40 @@ public interface AuthAppService {
      *         cho cả ba ca</b> token không tồn tại / đã dùng / đã hết hạn
      */
     PasswordResetMutationResponse resetPassword(ResetPasswordCommand command);
+
+    // ========== EMAIL CONFIRMATION (backlog 0037) ==========
+
+    /**
+     * Xác nhận email bằng token nhận qua {@code GET /api/auth/confirm-email?token=...}.
+     * <p>
+     * <b>Trả {@code boolean} trần, không một kiểu {@code *MutationResponse}</b> — controller của
+     * endpoint này không trả JSON (§Contract), nó tự dựng trang HTML từ giá trị boolean, nên không
+     * cần một cặp {@code code}/{@code message} để dịch thành {@code ProblemDetail}.
+     * <p>
+     * <b>Thứ tự bên trong là một phần của tính đúng đắn</b>, cùng luật đã chốt ở
+     * {@link #resetPassword}: cổng tiêu token phải đóng lại <i>trước</i> khi
+     * {@code User.emailVerified} bị đổi, vì entity đọc trong {@code @Transactional} là entity được
+     * quản lý.
+     *
+     * @param rawToken chuỗi token thô từ query string
+     * @return true nếu xác nhận thành công; false nếu token không tồn tại / đã dùng / đã hết hạn
+     */
+    boolean confirmEmail(String rawToken);
+
+    /**
+     * Gửi lại email xác nhận tài khoản ({@code POST /api/auth/resend-confirmation}).
+     * <p>
+     * <b>Cùng lý do bất đồng bộ với {@link #forgotPassword}: đây là bảo mật, không phải hiệu năng.</b>
+     * Contract trả {@code 204} cho mọi trường hợp — email không tồn tại, email đã xác nhận rồi, hay
+     * email hợp lệ và chưa xác nhận — nên toàn bộ việc bất đối xứng (tra email, phát token, gửi mail)
+     * phải nằm sau ranh giới {@code @Async} để luồng request làm đúng một lượng việc như nhau cho
+     * mọi nhánh trước khi trả 204.
+     * <p>
+     * <b>Tài khoản đã xác nhận rồi: KHÔNG phát token, KHÔNG gửi mail</b> — resend một link vô nghĩa
+     * cho một tài khoản đã kích hoạt chỉ tổ phình bảng token; response vẫn 204 như hai nhánh còn lại
+     * nên không có tín hiệu nào lộ ra ngoài.
+     *
+     * @param command lệnh gửi lại xác nhận
+     */
+    void resendConfirmation(ResendConfirmationCommand command);
 }

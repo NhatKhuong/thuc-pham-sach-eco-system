@@ -45,6 +45,10 @@ class MailCircuitBreakerTest {
 
     private static final Duration TOKEN_TTL = Duration.ofMinutes(30);
 
+    private static final String CONFIRM_URL = "http://localhost:8080/api/auth/confirm-email";
+
+    private static final Duration CONFIRM_TOKEN_TTL = Duration.ofHours(24);
+
     private static final Duration WAIT_IN_OPEN = Duration.ofSeconds(60);
 
     private static final String TO_EMAIL = "demo@nongsansach.vn";
@@ -97,7 +101,7 @@ class MailCircuitBreakerTest {
     private MailAppServiceImpl genService(JavaMailSender sender, int slidingWindowSize,
                                           int minimumNumberOfCalls, int failureRatePercent,
                                           int halfOpenCalls) {
-        return new MailAppServiceImpl(sender, FROM, RESET_URL, TOKEN_TTL,
+        return new MailAppServiceImpl(sender, FROM, RESET_URL, TOKEN_TTL, CONFIRM_URL, CONFIRM_TOKEN_TTL,
                 slidingWindowSize, minimumNumberOfCalls, failureRatePercent, WAIT_IN_OPEN,
                 halfOpenCalls, STUB_TEMPLATE_ENGINE);
     }
@@ -222,7 +226,8 @@ class MailCircuitBreakerTest {
     void invalidWaitDurationFailsAtStartup() {
         IllegalStateException e = assertThrows(IllegalStateException.class,
                 () -> new MailAppServiceImpl(new CountingMailSender(false), FROM, RESET_URL,
-                        TOKEN_TTL, 20, 10, 50, Duration.ZERO, 3, STUB_TEMPLATE_ENGINE));
+                        TOKEN_TTL, CONFIRM_URL, CONFIRM_TOKEN_TTL, 20, 10, 50, Duration.ZERO, 3,
+                        STUB_TEMPLATE_ENGINE));
         assertTrue(e.getMessage().contains("nss.mail.circuit-breaker.wait-duration-in-open-state"),
                 e.getMessage());
     }
@@ -235,5 +240,61 @@ class MailCircuitBreakerTest {
         assertTrue(e.getMessage()
                         .contains("nss.mail.circuit-breaker.permitted-calls-in-half-open-state"),
                 e.getMessage());
+    }
+
+    /**
+     * Backlog 0037 — {@code nss.mail.email-confirm-url} chịu đúng phép kiểm của
+     * {@code nss.mail.password-reset-url}: phải là URL http(s) tuyệt đối.
+     */
+    @Test
+    @DisplayName("email-confirm-url rong hoac khong phai URL: fail luc khoi dong, kem ten khoa")
+    void invalidEmailConfirmUrlFailsAtStartup() {
+        IllegalStateException blank = assertThrows(IllegalStateException.class,
+                () -> new MailAppServiceImpl(new CountingMailSender(false), FROM, RESET_URL,
+                        TOKEN_TTL, "", CONFIRM_TOKEN_TTL, 20, 10, 50, WAIT_IN_OPEN, 3,
+                        STUB_TEMPLATE_ENGINE));
+        assertTrue(blank.getMessage().contains("nss.mail.email-confirm-url"), blank.getMessage());
+
+        IllegalStateException notUrl = assertThrows(IllegalStateException.class,
+                () -> new MailAppServiceImpl(new CountingMailSender(false), FROM, RESET_URL,
+                        TOKEN_TTL, "not-a-url", CONFIRM_TOKEN_TTL, 20, 10, 50, WAIT_IN_OPEN, 3,
+                        STUB_TEMPLATE_ENGINE));
+        assertTrue(notUrl.getMessage().contains("nss.mail.email-confirm-url"), notUrl.getMessage());
+    }
+
+    /**
+     * Backlog 0037 — TTL token xác nhận email không dương khiến mọi token chết ngay lúc sinh, cùng
+     * lý do đã chốt cho {@code nss.auth.password-reset-token-ttl}.
+     */
+    @Test
+    @DisplayName("email-confirmation-token-ttl <= 0: fail luc khoi dong, kem ten khoa")
+    void invalidEmailConfirmationTokenTtlFailsAtStartup() {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> new MailAppServiceImpl(new CountingMailSender(false), FROM, RESET_URL,
+                        TOKEN_TTL, CONFIRM_URL, Duration.ZERO, 20, 10, 50, WAIT_IN_OPEN, 3,
+                        STUB_TEMPLATE_ENGINE));
+        assertTrue(e.getMessage().contains("nss.auth.email-confirmation-token-ttl"), e.getMessage());
+    }
+
+    /**
+     * <b>{@code sendEmailConfirmationMail} dùng chung breaker với {@code sendPasswordResetMail}</b>
+     * (tên instance {@code "mail"}, xem javadoc {@code MailAppServiceImpl}) — không phải hai breaker
+     * độc lập. Ca này khoá lại đúng tính chất đó: mở breaker bằng lỗi của một loại email thì loại
+     * email kia cũng bị bỏ qua ngay lập tức, vì cả hai cùng đi qua một cổng.
+     */
+    @Test
+    @DisplayName("sendEmailConfirmationMail dung CHUNG breaker voi sendPasswordResetMail")
+    void sendEmailConfirmationMailSharesBreakerWithPasswordReset() {
+        CountingMailSender sender = new CountingMailSender(true);
+        MailAppServiceImpl service = genService(sender, 2, 2, 50, 3);
+
+        // Mo breaker bang HAI lan that bai cua sendPasswordResetMail.
+        service.sendPasswordResetMail(TO_EMAIL, RAW_TOKEN);
+        service.sendPasswordResetMail(TO_EMAIL, RAW_TOKEN);
+        assertEquals(2, sender.sendCount.get());
+
+        // sendEmailConfirmationMail phai bi BO QUA ngay — khong co lan thu SMTP thu ba nao.
+        assertDoesNotThrow(() -> service.sendEmailConfirmationMail(TO_EMAIL, RAW_TOKEN));
+        assertEquals(2, sender.sendCount.get());
     }
 }

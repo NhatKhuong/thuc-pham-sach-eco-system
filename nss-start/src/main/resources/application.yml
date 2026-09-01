@@ -2,6 +2,36 @@
 server:
   port: 8080
 
+# Actuator + Micrometer (backlog 0038, architecture/01-overview.md §2/§9). Theo dung nep
+# ${ENV_VAR:dev-default} — khong tao profile moi.
+#
+# MANAGEMENT PORT TACH RIENG 8081, CO Y — day KHONG phai chi tiet cau hinh, day la lop bao ve.
+# Spring Boot mac dinh: khi `management.server.port` khac `server.port`, management server chay
+# tren MOT embedded servlet container RIENG va KHONG tu thua huong SecurityFilterChain cua servlet
+# context chinh (do @EnableWebSecurity/SecurityConfig o nss-controller dang bao ve). Nghia la
+# /actuator/prometheus KHONG di qua JWT/SecurityConfig cua /api/**, va nguoc lai /api/** KHONG bi
+# anh huong gi boi viec nay — hai contract doc lap hoan toan. Hanh vi nay da duoc xac nhan bang
+# request that (khong phai suy dien tu tai lieu Spring), xem Outcome cua backlog 0038.
+#
+# Day la CUNG MUC LO DIEN da chap nhan cho 3316 (MySQL) / 9094 (Kafka host listener) / 6390
+# (Redis) / 8089 (Kafka UI) trong environment/docker-compose-dev.yml — dev-only, khong auth,
+# khong phai mot nhuong bo moi.
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        # CHI prometheus + health — KHONG '*'. Bat toan bo Actuator (/actuator/env, /actuator/beans,
+        # ...) la mo mot public surface thua, di nguoc dung tinh than "khong public surface thua"
+        # cua ADR 0005.
+        include: prometheus,health
+  metrics:
+    tags:
+      # Gan nhan moi metric voi ten service de dashboard Grafana loc duoc khi sau nay co nhieu
+      # instance/service cung scrape vao mot Prometheus.
+      application: nss-event-api
+
 spring:
   application:
     name: nss-api
@@ -141,6 +171,18 @@ nss:
     # hai la con duong.
     forgot-password-max-attempts: ${FORGOT_PASSWORD_MAX_ATTEMPTS:5}
     forgot-password-window: ${FORGOT_PASSWORD_WINDOW:PT15M}
+    # Xac nhan email de kich hoat tai khoan (backlog 0037). Hop dong IM LANG ve con so nay — no la
+    # mot gia dinh da neu ro, khong phai contract.
+    # DAI HON han han so voi password-reset-token-ttl (PT15M) la CO CHU Y: day khong phai bi mat cho
+    # phep chiem tai khoan, chi xac nhan mot hop thu co that, va nguoi dung de tri hoan bam link nay
+    # hon nhieu so voi mot yeu cau dat lai mat khau dang khan cap. AuthAppServiceImpl VA
+    # MailAppServiceImpl deu fail luc khoi dong neu gia tri khong duong.
+    email-confirmation-token-ttl: ${EMAIL_CONFIRMATION_TOKEN_TTL:PT24H}
+    # Chong do tan suat cho POST /auth/resend-confirmation (backlog 0037, tai dung pattern cua
+    # ForgotPasswordRateLimiter). Ngan sach RIENG voi forgot-password-* o tren — xem javadoc
+    # ResendConfirmationRateLimiter.
+    resend-confirmation-max-attempts: ${RESEND_CONFIRMATION_MAX_ATTEMPTS:5}
+    resend-confirmation-window: ${RESEND_CONFIRMATION_WINDOW:PT15M}
 
   # Tran thong luong cua bien vao /api/** (backlog 0021, ADR 0005). Theo dung nep ${ENV_VAR:dev-default}
   # — khong tao profile moi.
@@ -184,6 +226,12 @@ nss:
     # hien nhien — 404 ngay khi bam — neu FE chon duong khac. Token di kem dang ?token=...
     # Fail luc khoi dong neu khong phai mot URL http(s) tuyet doi.
     password-reset-url: ${PASSWORD_RESET_URL:http://localhost:5173/dat-lai-mat-khau}
+
+    # Endpoint xac nhan email (backlog 0037) — KHAC password-reset-url o tren: day la duong do CHINH
+    # BACKEND phuc vu (GET /api/auth/confirm-email, tra HTML), khong phai mot trang frontend. Mac
+    # dinh khop server.port 8080 cua chinh app nay. Token di kem dang ?token=...
+    # Fail luc khoi dong neu khong phai mot URL http(s) tuyet doi.
+    email-confirm-url: ${EMAIL_CONFIRM_URL:http://localhost:8080/api/auth/confirm-email}
 
     # CIRCUIT BREAKER QUANH DUONG GUI SMTP (backlog 0021 Phase 2, ADR 0005).
     #

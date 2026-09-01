@@ -169,3 +169,66 @@ services:
       - kafka
     networks:
       - ssn-event-network
+
+  # Prometheus cho moi truong dev (backlog 0038, architecture/01-overview.md §2/§9).
+  #
+  # MOT GIA DINH DA SAI LUC LAP TICKET, VA SERVICE NAY SUA NO: ke hoach ban dau gia dinh app `api`
+  # chay trong CUNG container network voi Prometheus, nen scrape target se la ten service (vd
+  # `api:8081`). THUC TE app chay TRUC TIEP tren may host qua IntelliJ/Maven, KHONG containerize
+  # (chi ha tang — mysql/mailpit/redis/kafka/kafka-ui — chay trong compose nay). Vi vay
+  # environment/prometheus/prometheus.yml phai scrape qua `host.docker.internal:8081`, KHONG phai
+  # ten service `api` trong ssn-event-network.
+  #
+  # Image chinh chu prom/prometheus, ghim version cu the (v2.55.1) — KHONG `latest`, dung nep
+  # mailpit:v1.21 / apache/kafka:3.7.0 / kafka-ui:v1.5.0 o tren: mot ban `latest` doi duoi chan lam
+  # bang chung kiem chung khong lap lai duoc.
+  #
+  # extra_hosts: Docker Desktop (Windows/Mac) tu phan giai `host.docker.internal`; dong nay chi can
+  # thiet tren Linux (`host-gateway` la gia tri dac biet Docker hieu la "IP that cua host"). Khai
+  # san de file nay chay dung tren ca ba he dieu hanh ma khong ai phai sua lai luc chuyen may.
+  #
+  # KHONG mount volume du lieu: TSDB cua Prometheus mat khi container bi xoa la CO Y, cung tinh
+  # than voi redis/mailpit o tren — day la cong cu quan sat dev, khong phai kho luu tru lau dai.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: nss-event-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      # 9090 = UI/API mac dinh cua Prometheus, khong dung "3316"/"1025"/"8025"/"6390"/"9094"/"8089"/"8080"
+      # da dung trong file nay.
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ssn-event-network
+
+  # Grafana cho moi truong dev (backlog 0038) — dashboard doc metric tu Prometheus o tren.
+  #
+  # PROVISION QUA FILE, KHONG click tay: ./grafana/provisioning/datasources/ khai san datasource
+  # Prometheus, ./grafana/provisioning/dashboards/ khai san MOT dashboard (JVM, HTTP, Hikari pool,
+  # RateLimiter 3 tier, CircuitBreaker SMTP) — Owner mo http://localhost:3000 la thay ngay, khong
+  # phai "Add data source" hay "Import dashboard" thu cong.
+  #
+  # Image chinh chu grafana/grafana, ghim version cu the (11.3.1) — cung ly do voi prometheus o tren.
+  #
+  # Login mac dinh cua image (admin/admin) GIU NGUYEN, KHONG doi, KHONG tat — day la dev-only, khong
+  # auth, cung muc lo dien da chap nhan cho 3316 (mysql) / 9094 (kafka) / 6390 (redis) / 8089
+  # (kafka-ui) trong file nay.
+  #
+  # KHONG mount volume: dashboard/datasource song lai tu file provisioning moi lan container khoi
+  # dong lai, nen mat trang thai (thay doi tay tren UI) khi container bi xoa la CHAP NHAN DUOC —
+  # nguon that la file trong git, khong phai o dia cua container.
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: nss-event-grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      # 3000 = UI mac dinh cua Grafana, khong dung voi cac port da liet ke o tren (ke ca 9090 cua
+      # chinh Prometheus trong file nay).
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - ssn-event-network
