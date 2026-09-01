@@ -21,6 +21,8 @@ com\nss\ddd\application\model\response\ReviewResponse.class
 com\nss\ddd\application\service\stats\impl\StatsAppServiceImpl.class
 com\nss\ddd\application\model\response\OrderItemResponse.class
 com\nss\ddd\application\model\response\ProfileMutationResponse.class
+com\nss\ddd\application\service\order\impl\OrderAppServiceImpl$TierOneDeduction.class
+com\nss\ddd\application\service\product\cache\impl\ProductCacheServiceImpl.class
 com\nss\ddd\application\service\cart\CartAppService.class
 com\nss\ddd\application\mapper\CategoryMapper.class
 com\nss\ddd\application\service\stats\StatsAppService.class
@@ -32,6 +34,7 @@ com\nss\ddd\application\service\coupon\impl\CouponAppServiceImpl.class
 com\nss\ddd\application\model\response\PriceRangeResponse.class
 com\nss\ddd\application\model\command\ShippingInfoCommand.class
 com\nss\ddd\application\model\response\ProductResponse.class
+com\nss\ddd\application\service\product\cache\StockCacheService.class
 com\nss\ddd\application\model\response\AuthResponse.class
 com\nss\ddd\application\model\response\UserResponse.class
 com\nss\ddd\application\service\hello\impl\HelloAppServiceImpl.class
@@ -45,6 +48,7 @@ com\nss\ddd\application\service\review\impl\ReviewAppServiceImpl.class
 com\nss\ddd\application\model\response\AdminOverviewResponse.class
 com\nss\ddd\application\service\order\mq\OrderStatusChangedConsumer.class
 com\nss\ddd\application\service\hello\HelloAppService.class
+com\nss\ddd\application\service\product\cache\ProductCacheService.class
 com\nss\ddd\application\mapper\CouponMapper.class
 com\nss\ddd\application\model\response\ShippingInfoResponse.class
 com\nss\ddd\application\service\cart\impl\CartAppServiceImpl.class
@@ -68,6 +72,7 @@ com\nss\ddd\application\mapper\CartMapper$1.class
 com\nss\ddd\application\service\product\impl\ProductAppServiceImpl.class
 com\nss\ddd\application\model\command\CartItemCommand.class
 com\nss\ddd\application\model\response\PasswordResetMutationResponse.class
+com\nss\ddd\application\service\product\cache\impl\StockCacheServiceImpl.class
 com\nss\ddd\application\model\command\LoginCommand.class
 com\nss\ddd\application\service\category\CategoryAppService.class
 com\nss\ddd\application\model\response\PaginatedResponse.class

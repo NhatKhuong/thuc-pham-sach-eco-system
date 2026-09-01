@@ -353,6 +353,26 @@ Quy tắc chung:
   private static final DefaultRedisScript<Long> SCRIPT_DEDUCT = new DefaultRedisScript<>(LUA_DEDUCT, Long.class);
   ```
 - Lock Redisson: `tryLock` có timeout (không `lock()` vô hạn), luôn `finally { unlock(); }`, và unlock phải kiểm `isLocked() && isHeldByCurrentThread()`.
+- **`@Lazy` phải nằm ở CẢ HAI đầu — trên `@Bean` factory method LẪN trên tham số constructor nơi tiêm nó — cho bất kỳ bean nào có side-effect kết nối mạng ngay lúc khởi tạo** (ví dụ `RedissonClient` qua `Redisson.create()`, khác `LettuceConnectionFactory` vốn lazy mặc định). Chỉ đánh `@Lazy` trên `@Bean` là **chưa đủ**: Spring container vẫn resolve (và do đó tạo thật) dependency bắt buộc của constructor injection ngay khi dựng bean tiêu thụ nó, trừ khi chính tham số constructor đó cũng được đánh dấu `@Lazy`. Thiếu nửa sau, **mọi** `@SpringBootTest` nạp context đầy đủ sẽ vỡ khi hạ tầng mạng đó không chạy — kể cả test không liên quan gì tới cache/lock.
+
+  Nửa đầu, `@Bean` ở `RedissonConfig`:
+  ```java
+  @Bean
+  @Lazy
+  public RedissonClient redissonClient(@Value("${spring.data.redis.host}") String host,
+                                       @Value("${spring.data.redis.port}") int port) {
+      Config config = new Config();
+      config.useSingleServer().setAddress("redis://" + host + ":" + port);
+      return Redisson.create(config);
+  }
+  ```
+  Nửa sau — bắt buộc — ở constructor của bean **tiêu thụ** nó, `RedissonDistributedLockServiceImpl`, viết tay thay vì `@RequiredArgsConstructor` đúng vì lý do này:
+  ```java
+  public RedissonDistributedLockServiceImpl(@Lazy RedissonClient redissonClient) {
+      this.redissonClient = redissonClient;
+  }
+  ```
+  Ca thật đã đo được ([backlog 0035](../../../management/backlog/0035-chong-oversell-cache-stampede-flash-sale.md), harness delta): thiếu `@Lazy` ở điểm tiêm làm `mvn clean package` mặc định (Redis không chạy) đỏ toàn bộ, kể cả `SecurityRulesTest` không đụng gì tới cache/lock — đúng kiểu lỗi "build xanh hôm qua, đỏ hôm nay không ai đổi gì" mà evidence bar của mọi ticket cấm.
 - Redis chỉ được chạm từ `*-application` (qua `*CacheService`) và `*-infrastructure`. Domain không biết Redis tồn tại.
 
 ---
@@ -534,6 +554,11 @@ try {
 
 ---
 
-*Last updated: 2026-08-31 — §17: thêm checklist "`@Scheduled` job mới phải có smoke assertion xác
+*Last updated: 2026-09-01 — §13: thêm mục "`@Lazy` phải nằm ở cả hai đầu" (trên `@Bean` factory
+method LẪN trên tham số constructor nơi tiêm nó) cho bean có side-effect kết nối mạng lúc khởi tạo,
+ví dụ `RedissonClient` qua `Redisson.create()`; trích code thật `RedissonConfig` +
+`RedissonDistributedLockServiceImpl`, ca đo được ở harness delta backlog 0035 (thiếu nửa sau làm
+mọi `@SpringBootTest` vỡ khi Redis không chạy) (backlog 0036). Trước đó: 2026-08-31 — §17: thêm
+checklist "`@Scheduled` job mới phải có smoke assertion xác
 nhận `@EnableScheduling`", trỏ về ca thật `StartApplication` thiếu annotation này ở backlog 0032 và
 test mẫu `SchedulingEnabledSmokeTest` (backlog 0033). Trước đó: 2026-08-26 — §3 + §7: bỏ hậu tố `*DTO` (0 file `*DTO.java`, 0 `toDTO`; thật là `*Response` 19 file / `toResponse` 87 lần), ghi ranh giới **vào `*Request`→`*Command`** / **ra `*Response`** và hai vai của `*Response`; ví dụ mapper + static factory thay bằng class có thật; mọi con trỏ `API_CONTRACT.md` ghi rõ **mirror + ngày đồng bộ** (backlog 0029). Trước đó: §11: kéo Pattern A/B về khớp code — `ProblemDetail` + mã HTTP thật thay envelope `ResultMessage`/`ResultUtil`, validate là **422 + `errors`** chứ không phải 400, kèm lý do và trỏ ADR 0001; §7 sửa đuôi chuỗi chuyển đổi (backlog 0028). Trước đó: §1 validation message chuyển sang **Tiếng Việt** + ghi ranh giới phân nhóm (backlog 0026). Cập nhật stamp này trong cùng lần sửa nội dung.*

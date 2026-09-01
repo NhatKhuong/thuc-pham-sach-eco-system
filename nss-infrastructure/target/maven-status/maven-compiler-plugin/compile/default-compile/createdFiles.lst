@@ -1,9 +1,12 @@
 com\nss\ddd\infrastructure\persistence\repository\CategoryRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\repository\PasswordResetTokenRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\OrderItemJPAMapper.class
+com\nss\ddd\infrastructure\cache\redis\StockCacheRedisAdapter.class
 com\nss\ddd\infrastructure\persistence\repository\UserRoleRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\UserRoleCode.class
 com\nss\ddd\infrastructure\persistence\repository\UserRepositoryImpl.class
+com\nss\ddd\infrastructure\distributed\redisson\DistributedLockService.class
+com\nss\ddd\infrastructure\distributed\redisson\config\RedissonConfig.class
 com\nss\ddd\infrastructure\persistence\mapper\BrandJPAMapper.class
 com\nss\ddd\infrastructure\config\KafkaTopicConfig.class
 com\nss\ddd\infrastructure\persistence\mapper\CategoryJPAMapper.class
@@ -25,9 +28,11 @@ com\nss\ddd\infrastructure\persistence\mapper\RefreshTokenJPAMapper.class
 com\nss\ddd\infrastructure\persistence\repository\OrderRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\repository\ProductRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\CouponJPAMapper.class
+com\nss\ddd\infrastructure\distributed\redisson\impl\RedissonDistributedLockServiceImpl.class
 com\nss\ddd\infrastructure\persistence\repository\IdempotencyKeyRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\mapper\PasswordResetTokenJPAMapper.class
 com\nss\ddd\infrastructure\persistence\mapper\OrderStatusHistoryJPAMapper.class
+com\nss\ddd\infrastructure\cache\redis\ProductCacheRedisAdapter.class
 com\nss\ddd\infrastructure\persistence\repository\HelloRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\repository\ProductImageRepositoryImpl.class
 com\nss\ddd\infrastructure\persistence\repository\BrandRepositoryImpl.class

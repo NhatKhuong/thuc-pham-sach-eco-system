@@ -10,6 +10,7 @@ import com.nss.ddd.application.model.response.OrderMutationResponse;
 import com.nss.ddd.application.model.response.OrderResponse;
 import com.nss.ddd.application.model.response.PaginatedResponse;
 import com.nss.ddd.application.service.order.OrderAppService;
+import com.nss.ddd.application.service.product.cache.StockCacheService;
 import com.nss.ddd.domain.model.OrderFilter;
 import com.nss.ddd.domain.model.PageResult;
 import com.nss.ddd.domain.model.entity.Coupon;
@@ -125,6 +126,9 @@ public class OrderAppServiceImpl implements OrderAppService {
 
     private final ObjectMapper objectMapper;
 
+    /** Cổng atomic Redis chống oversell/cache-stampede (backlog 0035 Phase 2) — xem {@link #createOrder}. */
+    private final StockCacheService stockCacheService;
+
     // ========== GHI ==========
 
     /**
@@ -179,12 +183,31 @@ public class OrderAppServiceImpl implements OrderAppService {
                     genFirstImageUrl(imagesByProductId.get(product.getId()))));
         }
 
-        // 2. Tru kho tung dong bang conditional UPDATE (§Contract 9 buoc 2). So dong anh huong
-        //    khac 1 -> rollback + 409, khong @Version va khong doc-roi-ghi (§Contract 8).
+        // 2. Tru kho tung dong: Tang 1 (Redis, backlog 0035 Phase 2) TRUOC, Tang 2 (MySQL, conditional
+        //    UPDATE, giu nguyen y het) SAU — Tang 2 luon la trong tai cuoi cung, KHONG phu thuoc ket
+        //    qua Tang 1 (architecture §5: "Redis la cong atomic. MySQL la luoi an toan."). So dong
+        //    anh huong khac 1 o Tang 2 -> rollback + 409, khong @Version va khong doc-roi-ghi (§Contract 8).
+        List<TierOneDeduction> tier1Deducted = new ArrayList<>(lines.size());
         for (CartItemCommand line : lines) {
-            if (!orderDomainService.deductStock(line.getProductId(), genQuantity(line))) {
+            Long productId = line.getProductId();
+            int quantity = genQuantity(line);
+            // 2a. Tang 1 — Lua atomic gate. StockCacheServiceImpl tu warm (dung productsById DA DOC
+            //     SAN o buoc 1, khong query them) va tu retry DUNG MOT LAN khi mien (architecture §5).
+            Product product = productsById.get(productId);
+            long knownStock = product == null || product.getStock() == null ? 0L : product.getStock();
+            int tier1Result = stockCacheService.deductStock(productId, quantity, knownStock);
+            if (tier1Result == StockCacheService.DEDUCTED) {
+                tier1Deducted.add(new TierOneDeduction(productId, quantity));
+            }
+            // 2b. Tang 2 — KHONG DOI, luon duoc goi bat ke Tang 1 thanh cong hay khong: mot "0"/"mien"
+            //     lien tuc cua Tang 1 co the la cache lech tam thoi (bounded staleness, architecture
+            //     §4), khong phai bang chung het hang that.
+            if (!orderDomainService.deductStock(productId, quantity)) {
                 log.warn("createOrder: stock deduction failed | productId={} quantity={}",
-                        line.getProductId(), line.getQuantity());
+                        productId, line.getQuantity());
+                // Tang 2 tu choi trong khi (co the) Tang 1 da tru — hoan lai MOI dong da tru Lua
+                // thanh cong trong request nay truoc khi tra loi (architecture §5 Tang 3, bat buoc).
+                compensateStockCache(tier1Deducted);
                 return failedAndRollback(OrderMutationResponse.CODE_OUT_OF_STOCK,
                         genOutOfStockMessage(line.getName()));
             }
@@ -198,17 +221,20 @@ public class OrderAppServiceImpl implements OrderAppService {
             coupon = couponDomainService.findByCode(command.getCouponCode());
             if (coupon == null) {
                 log.warn("createOrder: coupon not found | code={}", command.getCouponCode());
+                compensateStockCache(tier1Deducted);
                 return failedAndRollback(CouponValidationResponse.CODE_COUPON_NOT_APPLICABLE,
                         MESSAGE_COUPON_NOT_FOUND);
             }
             if (!couponDomainService.isRedeemable(coupon)) {
                 log.warn("createOrder: coupon not redeemable | code={}", coupon.getCode());
+                compensateStockCache(tier1Deducted);
                 return failedAndRollback(CouponValidationResponse.CODE_COUPON_NOT_APPLICABLE,
                         MESSAGE_COUPON_NOT_REDEEMABLE);
             }
             if (!couponDomainService.meetsMinOrderValue(coupon, subtotal)) {
                 log.warn("createOrder: subtotal below minimum | code={} subtotal={} minOrderValue={}",
                         coupon.getCode(), subtotal, coupon.getMinOrderValue());
+                compensateStockCache(tier1Deducted);
                 return failedAndRollback(CouponValidationResponse.CODE_COUPON_NOT_APPLICABLE,
                         genMinOrderValueMessage(coupon.getMinOrderValue()));
             }
@@ -216,6 +242,7 @@ public class OrderAppServiceImpl implements OrderAppService {
             // luc nay, mot don khac co the da lay mat luot cuoi.
             if (!orderDomainService.redeemCoupon(coupon.getCode())) {
                 log.warn("createOrder: coupon usage limit reached | code={}", coupon.getCode());
+                compensateStockCache(tier1Deducted);
                 return failedAndRollback(CouponValidationResponse.CODE_COUPON_NOT_APPLICABLE,
                         MESSAGE_COUPON_USED_UP);
             }
@@ -225,36 +252,71 @@ public class OrderAppServiceImpl implements OrderAppService {
         long shippingFee = orderDomainService.calcShippingFee(subtotal - discount);
         long total = orderDomainService.calcTotal(subtotal, discount, shippingFee);
 
-        // 4. INSERT customer_order + order_item (§Contract 9 buoc 4)
+        // 4-6. INSERT customer_order + order_item + outbox event (§Contract 9 buoc 4-5, backlog 0032).
+        //      Boc try/catch (backlog 0035 Phase 2) — day la khe ho nguy hiem nhat theo architecture
+        //      §5: bat ky exception ngoai du kien nao o day (truoc ticket nay khong co gi de ma quen
+        //      compensate, vi chua co Redis trong luong) deu phai hoan lai MOI dong da tru Lua thanh
+        //      cong TRUOC khi rethrow — khong nuot, khong doi kieu (coding-conventions §11).
         LocalDateTime nowUtc = genNowUtcToSecond();
-        Order saved = orderDomainService.create(new Order()
-                .setCode(orderDomainService.genOrderCode(nowUtc))
-                .setUser(owner)
-                .setShipping(OrderMapper.toShippingInfo(command.getShipping()))
-                .setPaymentMethod(paymentMethod)
-                .setStatus(OrderDomainService.STATUS_PENDING)
-                .setSubtotal(subtotal)
-                .setDiscount(discount)
-                .setShippingFee(shippingFee)
-                .setTotal(total)
-                .setCouponCode(coupon == null ? null : coupon.getCode())
-                .setCreatedAt(nowUtc)
-                .setUpdatedAt(nowUtc));
-        for (OrderItem item : items) {
-            item.setOrder(saved);
+        try {
+            Order saved = orderDomainService.create(new Order()
+                    .setCode(orderDomainService.genOrderCode(nowUtc))
+                    .setUser(owner)
+                    .setShipping(OrderMapper.toShippingInfo(command.getShipping()))
+                    .setPaymentMethod(paymentMethod)
+                    .setStatus(OrderDomainService.STATUS_PENDING)
+                    .setSubtotal(subtotal)
+                    .setDiscount(discount)
+                    .setShippingFee(shippingFee)
+                    .setTotal(total)
+                    .setCouponCode(coupon == null ? null : coupon.getCode())
+                    .setCreatedAt(nowUtc)
+                    .setUpdatedAt(nowUtc));
+            for (OrderItem item : items) {
+                item.setOrder(saved);
+            }
+            List<OrderItem> savedItems = orderDomainService.createItems(items);
+
+            // 5. INSERT dong dau order_status_history (§Contract 9 buoc 5)
+            orderDomainService.recordCreation(saved, genChangedBy(command.getUserId()), nowUtc);
+
+            // 6. Outbox event OrderStatusChanged (backlog 0032) — CUNG transaction, KHONG goi Kafka
+            //    truc tiep. fromStatus=null: don vua duoc tao, khong di TU dau ca.
+            genOutboxOrderStatusChangedEvent(saved, null, OrderDomainService.STATUS_PENDING, nowUtc);
+
+            log.info("createOrder: success | orderId={} code={} userId={} total={} itemCount={}",
+                    saved.getId(), saved.getCode(), command.getUserId(), total, savedItems.size());
+            return OrderMutationResponse.success(OrderMapper.toResponse(saved, savedItems));
+        } catch (RuntimeException e) {
+            log.error("createOrder: loi ngoai du kien sau khi da tru kho, compensate Redis truoc khi rethrow"
+                    + " | userId={}", command.getUserId(), e);
+            compensateStockCache(tier1Deducted);
+            throw e;
         }
-        List<OrderItem> savedItems = orderDomainService.createItems(items);
+    }
 
-        // 5. INSERT dong dau order_status_history (§Contract 9 buoc 5)
-        orderDomainService.recordCreation(saved, genChangedBy(command.getUserId()), nowUtc);
+    /**
+     * Hoàn lại Redis (Tầng 1) cho <b>mọi</b> dòng đã trừ Lua thành công trong request này
+     * (architecture §5 Tầng 3 — SAGA compensation, backlog 0035 Phase 2).
+     * <p>
+     * Gọi ở <b>mọi</b> nhánh thất bại xảy ra sau khi vòng lặp trừ kho đã chạy — kể cả những nhánh
+     * chưa từng ghi gì xuống DB — cùng kỷ luật "nhánh nào cũng qua {@code failedAndRollback}" đã ghi
+     * ở javadoc cấp class.
+     *
+     * @param tier1Deducted các dòng đã trừ Lua thành công, theo đúng thứ tự đã trừ
+     */
+    private void compensateStockCache(List<TierOneDeduction> tier1Deducted) {
+        for (TierOneDeduction deduction : tier1Deducted) {
+            stockCacheService.increaseStock(deduction.productId(), deduction.quantity());
+        }
+    }
 
-        // 6. Outbox event OrderStatusChanged (backlog 0032) — CUNG transaction, KHONG goi Kafka
-        //    truc tiep. fromStatus=null: don vua duoc tao, khong di TU dau ca.
-        genOutboxOrderStatusChangedEvent(saved, null, OrderDomainService.STATUS_PENDING, nowUtc);
-
-        log.info("createOrder: success | orderId={} code={} userId={} total={} itemCount={}",
-                saved.getId(), saved.getCode(), command.getUserId(), total, savedItems.size());
-        return OrderMutationResponse.success(OrderMapper.toResponse(saved, savedItems));
+    /**
+     * Một dòng đã trừ thành công ở Tầng 1 (Redis) trong phạm vi một lượt {@link #createOrder} —
+     * chỉ tồn tại để {@link #compensateStockCache} biết hoàn lại đúng những gì đã trừ, không phải
+     * một kiểu của bề mặt dây.
+     */
+    private record TierOneDeduction(Long productId, int quantity) {
     }
 
     // ========== DOC ==========
@@ -371,6 +433,18 @@ public class OrderAppServiceImpl implements OrderAppService {
         List<OrderItem> items = orderDomainService
                 .findItemsGroupedByOrderId(List.of(saved.getId()))
                 .getOrDefault(saved.getId(), Collections.emptyList());
+
+        // 5. Khoi phuc ton kho khi CANCELLED (backlog 0035 Phase 2, Quyet dinh Owner #2). Tang 2
+        //    (MySQL) truoc, Tang 1 (Redis) sau — doi xung voi thu tu luc tru o createOrder, MySQL
+        //    van la nguon su that nen ghi truoc; Redis chi la loi tang toc, ghi sau khong sao ca.
+        if (toStatus == OrderDomainService.STATUS_CANCELLED) {
+            for (OrderItem item : items) {
+                int quantity = genQuantity(item);
+                orderDomainService.restoreStock(item.getProductId(), quantity);
+                stockCacheService.increaseStock(item.getProductId(), quantity);
+            }
+        }
+
         log.info("changeOrderStatus: success | orderId={} code={} from={} to={} changedBy={}",
                 saved.getId(), saved.getCode(), fromStatus, toStatus, changedBy);
         return OrderMutationResponse.success(OrderMapper.toResponse(saved, items));
@@ -500,6 +574,14 @@ public class OrderAppServiceImpl implements OrderAppService {
      */
     private int genQuantity(CartItemCommand line) {
         return line.getQuantity() == null ? 0 : line.getQuantity();
+    }
+
+    /**
+     * @param item dòng hàng đã ghi của một đơn
+     * @return số lượng, hoặc 0 khi rỗng — cùng quy ước với {@link #genQuantity(CartItemCommand)}
+     */
+    private int genQuantity(OrderItem item) {
+        return item.getQuantity() == null ? 0 : item.getQuantity();
     }
 
     /**

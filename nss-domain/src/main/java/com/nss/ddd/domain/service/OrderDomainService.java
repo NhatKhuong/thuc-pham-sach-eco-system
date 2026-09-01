@@ -293,6 +293,19 @@ public interface OrderDomainService {
     boolean deductStock(Long productId, int quantity);
 
     /**
+     * Hoàn tồn kho bằng UPDATE — đối xứng {@link #deductStock} (backlog 0035 Phase 2, Quyết định
+     * Owner #2), dùng khi đơn chuyển sang {@code CANCELLED}.
+     * <p>
+     * Cùng nguyên tắc với {@link #deductStock}: rows-affected là khái niệm của tầng adapter, domain
+     * chỉ thấy {@code boolean}.
+     *
+     * @param productId khoá chính của sản phẩm
+     * @param quantity số lượng cần hoàn, phải dương — đúng số lượng dòng hàng đã đặt
+     * @return true khi hoàn được đúng một dòng; false khi sản phẩm không tồn tại hoặc đã bị xoá mềm
+     */
+    boolean restoreStock(Long productId, int quantity);
+
+    /**
      * Đốt một lượt của mã giảm giá bằng <b>conditional UPDATE</b>.
      * <p>
      * Điều kiện {@code usedCount < usageLimit} nằm trong câu UPDATE vì cùng một lý do với

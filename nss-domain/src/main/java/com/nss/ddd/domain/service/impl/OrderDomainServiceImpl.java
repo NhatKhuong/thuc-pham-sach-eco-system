@@ -307,6 +307,19 @@ public class OrderDomainServiceImpl implements OrderDomainService {
     }
 
     @Override
+    public boolean restoreStock(Long productId, int quantity) {
+        if (productId == null || quantity <= 0) {
+            return false;
+        }
+        boolean restored = productRepository.increaseStock(productId, quantity);
+        if (!restored) {
+            log.warn("restoreStock: khong tim thay san pham con hieu luc | productId={} quantity={}",
+                    productId, quantity);
+        }
+        return restored;
+    }
+
+    @Override
     public boolean redeemCoupon(String code) {
         if (code == null || code.isBlank()) {
             return false;

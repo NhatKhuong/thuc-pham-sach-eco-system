@@ -152,6 +152,22 @@ public interface ProductRepository {
     boolean decreaseStock(Long id, int quantity);
 
     /**
+     * Hoàn tồn kho bằng UPDATE — đối xứng {@link #decreaseStock}, dùng khi đơn chuyển sang
+     * {@code CANCELLED} (backlog 0035 Phase 2, Quyết định Owner #2).
+     * <p>
+     * <b>Không cần điều kiện {@code >=} vì đây là phép cộng</b> — khác {@link #decreaseStock}, không
+     * có cách nào để một phép cộng làm tồn kho vượt quá một giới hạn cần bảo vệ. Vẫn giữ
+     * {@code isActive = true} cùng điều kiện: một sản phẩm đã bị gỡ khỏi cửa hàng thì không cần hoàn
+     * tồn kho hiển thị nữa (theo đúng quy ước xoá mềm của port này).
+     *
+     * @param id khoá chính của sản phẩm
+     * @param quantity số lượng cần hoàn, phải dương
+     * @return true khi có đúng một dòng được cộng lại; false khi id không tồn tại hoặc sản phẩm đã
+     *         bị xoá mềm
+     */
+    boolean increaseStock(Long id, int quantity);
+
+    /**
      * Một trang sản phẩm còn hiệu lực <b>có lọc và có sắp xếp</b> — đường đọc của
      * {@code GET /products} công khai (API_CONTRACT §B.1).
      * <p>
