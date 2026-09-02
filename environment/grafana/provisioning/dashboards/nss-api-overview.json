@@ -172,6 +172,38 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "id": 10,
+      "title": "Purchase Request — tuoi cua PENDING cu nhat",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-nss-event" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "description": "Gauge nghiep vu purchase_request_pending_age_seconds (backlog 0039 Phase 7): bat ca 'consumer treo nhung con song' ma kafka_consumer_fetch_manager_records_lag khong bat duoc (lag thap trong khi mot request khong bao gio resolve). Sut sat quanh 0 la binh thuong; tang lien tuc nghia co request PENDING dang bi ket.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "purchase_request_pending_age_seconds{application=\"nss-event-api\"}",
+          "legendFormat": "oldest pending age",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Kafka Consumer Lag — purchase.requested",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus-nss-event" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "description": "kafka_consumer_fetch_manager_records_lag cho group nss-purchase-request (backlog 0039 Phase 7) — do duoc tu dong qua micrometer-core/spring-kafka, khong can cau hinh them.",
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "kafka_consumer_fetch_manager_records_lag{application=\"nss-event-api\"}",
+          "legendFormat": "{{topic}} / partition {{partition}}",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

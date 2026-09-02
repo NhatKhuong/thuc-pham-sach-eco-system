@@ -7,11 +7,13 @@ import com.nss.ddd.infrastructure.config.KafkaTopicConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -62,12 +64,29 @@ public class OutboxPublisherJob {
      *       tăng mạnh, đổi sang gửi lô + {@code CompletableFuture.allOf} là hướng tối ưu tiếp theo.</li>
      * </ul>
      *
+     * <p>
+     * <b>Tổng quát hoá theo {@code event_type} (backlog 0039 Phase 3)</b> — topic tra qua
+     * {@link KafkaTopicConfig#resolveTopic(String)}, record key ưu tiên
+     * {@link OutboxEvent#getPartitionKey()} (fallback về chuỗi hoá {@link OutboxEvent#getId()} khi
+     * {@code null}, đúng 100% hành vi trước ticket 0039 cho {@code OrderStatusChanged}). Header
+     * {@link KafkaTopicConfig#HEADER_EVENT_ID} luôn được gắn thêm — {@code OrderStatusChangedConsumer}
+     * không đọc nó (vẫn dùng record key như cũ) nên gắn thêm không đổi hành vi của consumer đó;
+     * {@code PurchaseRequestedConsumer} thì BẮT BUỘC đọc header này vì record key của nó mang
+     * {@code productId}, không còn là định danh event.
+     *
      * @param event dòng outbox đang {@code PENDING}
      */
     private void publishRowByRow(OutboxEvent event) {
         try {
-            SendResult<String, String> result = kafkaTemplate
-                    .send(KafkaTopicConfig.ORDER_STATUS_CHANGED_TOPIC, String.valueOf(event.getId()), event.getPayload())
+            String topic = KafkaTopicConfig.resolveTopic(event.getEventType());
+            String key = event.getPartitionKey() != null
+                    ? event.getPartitionKey()
+                    : String.valueOf(event.getId());
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, null, key, event.getPayload());
+            record.headers().add(KafkaTopicConfig.HEADER_EVENT_ID,
+                    String.valueOf(event.getId()).getBytes(StandardCharsets.UTF_8));
+
+            SendResult<String, String> result = kafkaTemplate.send(record)
                     .get(ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             outboxEventRepository.markPublished(event.getId());
             log.info("publishPendingEvents: published | eventId={} aggregateId={} partition={} offset={}",

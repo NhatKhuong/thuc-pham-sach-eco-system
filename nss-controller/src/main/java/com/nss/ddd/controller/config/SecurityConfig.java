@@ -205,6 +205,29 @@ public class SecurityConfig {
     public static final String PATH_ORDER_BY_CODE = "/api/orders/*";
 
     /**
+     * Nộp yêu cầu mua hàng bất đồng bộ — công khai theo backlog 0039 §Contract, và <b>chỉ với
+     * {@code POST}</b>.
+     * <p>
+     * <b>Cùng lý do công khai với {@link #PATH_ORDER_CREATE}</b>: body y hệt nhau
+     * ({@code CreateOrderRequest}), khách vãng lai đặt hàng được, {@code userId} vẫn chỉ đến từ
+     * claim {@code sub} (§C.2). Đường dẫn literal, không giao với {@link #PATH_ORDER_BY_CODE} (đó
+     * là {@code GET}, đây là {@code POST}) nên vị trí giữa hai dòng không ảnh hưởng gì.
+     */
+    public static final String PATH_ORDER_ASYNC_SUBMIT = "/api/orders/async";
+
+    /**
+     * Tra trạng thái yêu cầu mua hàng — công khai theo backlog 0039 §Contract, và <b>chỉ với
+     * {@code GET}</b>.
+     * <p>
+     * <b>Cùng lý do công khai với {@link #PATH_ORDER_BY_CODE}</b>: {@code requestId} chính là
+     * token, sinh ngẫu nhiên an toàn mật mã (16 hex), không đoán được. Mẫu hai đoạn
+     * ({@code /api/orders/requests/*}) không giao với {@link #PATH_ORDER_BY_CODE} (một đoạn) —
+     * {@code /api/orders/requests/{id}} có HAI đoạn sau {@code /orders}, nên
+     * {@code /api/orders/*} không khớp nó; vị trí giữa hai dòng vì vậy không ảnh hưởng gì.
+     */
+    public static final String PATH_ORDER_ASYNC_STATUS = "/api/orders/requests/*";
+
+    /**
      * Mã vai trò quản trị — <b>không</b> kèm tiền tố {@code ROLE_}.
      * <p>
      * {@code hasRole(...)} tự thêm tiền tố; truyền {@code "ROLE_ADMIN"} vào đây sẽ thành
@@ -356,6 +379,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, PATH_ORDER_ME).authenticated()
                         .requestMatchers(HttpMethod.POST, PATH_ORDER_CREATE).permitAll()
                         .requestMatchers(HttpMethod.GET, PATH_ORDER_BY_CODE).permitAll()
+                        // 5b. Luong async (backlog 0039, §Contract) — hai duong CONG KHAI, cung ly
+                        //     do voi nhom 5: POST/orders/async y het POST /orders (khach vang lai
+                        //     dat hang duoc), GET .../requests/{id} y het GET /orders/{code}
+                        //     (requestId la token, khong doan duoc). Khong giao voi ba dong tren.
+                        .requestMatchers(HttpMethod.POST, PATH_ORDER_ASYNC_SUBMIT).permitAll()
+                        .requestMatchers(HttpMethod.GET, PATH_ORDER_ASYNC_STATUS).permitAll()
                         // 6. Ba nhom con lai giu nguyen nhu truoc backlog 0012 — khong giao voi
                         //    ba nhom tren nen thu tu giua chung khong anh huong gi.
                         .requestMatchers(PATH_HELLO).permitAll()

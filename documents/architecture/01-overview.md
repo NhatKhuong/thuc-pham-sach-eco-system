@@ -401,6 +401,36 @@ Bốn quy tắc không được phá:
 > ở đây có sẵn khoá tự nhiên (`Order.code`) và không cần sinh thêm một chuỗi ngẫu nhiên chỉ để định
 > danh event.
 
+> **Triển khai THỨ HAI của Luồng B: `PurchaseRequested` (backlog 0039) — lần đầu tiên đúng bản
+> blueprint gốc, có "queue" (`purchase_request`) VÀ có `GET .../requests/{requestId}`.** Đây là luồng
+> mua hàng bất đồng bộ song song với `POST /orders` đồng bộ hiện có (`POST /orders/async`), khác
+> `OrderStatusChanged` (thông báo một chiều) ở chỗ client THẬT SỰ cần biết kết quả (tạo đơn thành công
+> hay hết hàng), nên nửa "queue + status endpoint" mà `OrderStatusChanged` bỏ được giữ nguyên ở đây.
+>
+> Ba điểm khác biệt so với `OrderStatusChanged`, mỗi điểm đều là hệ quả trực tiếp của việc partition
+> key giờ mang **`productId`** (công bằng FIFO theo SKU) thay vì định danh event:
+>
+> - **Kafka record key = `productId` của item đầu tiên trong giỏ** (chuỗi hoá; `null` nếu giỏ rỗng —
+>   khi đó `OutboxPublisherJob` tự fallback về `OutboxEvent.id` như cũ), KHÔNG phải `OutboxEvent.id`.
+>   Cột `outbox_event.partition_key` (nullable) là cơ chế tổng quát cho việc này —
+>   `OutboxPublisherJob` không cần biết gì về shape của từng loại event, chỉ đọc cột này nếu có.
+> - **Danh tính event cho cổng idempotency chuyển sang Kafka header `X-Event-Id`**, không còn đọc
+>   được từ record key (record key giờ mang `productId`, không phải `OutboxEvent.id`). Header này do
+>   `OutboxPublisherJob` gắn cho **MỌI** event bất kể `event_type` — `OrderStatusChangedConsumer`
+>   không đọc nó (vẫn dùng `KafkaHeaders.RECEIVED_KEY` như trước, vì record key của topic đó không
+>   đổi) nên việc gắn thêm header không ảnh hưởng gì tới nó.
+> - **`OrderAppService.createOrderInNewTransaction` (`REQUIRES_NEW`), không phải `createOrder`
+>   thường.** Consumer của `OrderStatusChanged` không tạo đơn — nó chỉ gửi mail cho đơn đã có sẵn, nên
+>   vấn đề "business failure cascade rollback ra transaction ngoài" chưa từng xuất hiện ở đó.
+>   `PurchaseRequestedConsumer` thì có: nó gọi `createOrderInNewTransaction` bên trong transaction
+>   riêng của chính nó (ghi `idempotency_key` + cập nhật `purchase_request`) — một thất bại nghiệp vụ
+>   (hết hàng) chỉ rollback đúng phần Tier2/coupon/order-write bên trong transaction con
+>   `REQUIRES_NEW`, không xoá mất dòng `idempotency_key` vừa chèn hay dòng `purchase_request.FAILED`
+>   cần giữ lại để client polling thấy kết quả.
+>
+> Bốn quy tắc bất biến còn lại vẫn giữ nguyên 100%, kể cả `topic`/`groupId`/`concurrency` riêng
+> (`purchase.requested`, `nss-purchase-request`, `3` — khớp 3 partition).
+
 ---
 
 ## 7. Response envelope
@@ -495,7 +525,12 @@ Dự án tham chiếu **không có unit test** (`src/test` rỗng, không module
 
 *Đọc tiếp: [`coding-conventions.md`](coding-conventions.md) — quy ước viết code cưỡng chế các nguyên tắc trên.*
 
-*Last updated: 2026-09-01 — backlog 0038: Actuator + `micrometer-registry-prometheus` rời danh sách
+*Last updated: 2026-09-02 — backlog 0039: Luồng B thứ hai — `PurchaseRequested` (mua hàng bất đồng
+bộ song song với `POST /orders`). §6 thêm callout "triển khai THỨ HAI" khác `OrderStatusChanged` ở ba
+điểm (Kafka record key = `productId` chứ không phải `OutboxEvent.id`; danh tính event cho idempotency
+chuyển sang header `X-Event-Id`; consumer gọi `OrderAppService.createOrderInNewTransaction`
+`REQUIRES_NEW` thay vì `createOrder`) — cả ba đều là hệ quả của partition key mới. Trước đó:
+2026-09-01 — backlog 0038: Actuator + `micrometer-registry-prometheus` rời danh sách
 "có tên nhưng chưa nối dây" (§2, đo lại `<artifactId>` + `dependency:tree`); §2 thêm `ResilienceMetricsConfig`
 (bind RateLimiter/CircuitBreaker vào Micrometer) và `ManagementSecurityConfig` (management port
 `8081` tách khỏi `SecurityConfig`, kèm phát hiện thật khác giả định ban đầu của ticket — xem đoạn

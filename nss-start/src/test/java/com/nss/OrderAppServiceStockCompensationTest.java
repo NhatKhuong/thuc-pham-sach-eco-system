@@ -232,4 +232,43 @@ class OrderAppServiceStockCompensationTest {
         assertBothLinesCompensatedExactlyOnce();
         verify(outboxEventRepository, org.mockito.Mockito.never()).save(any());
     }
+
+    // ========== createOrderInNewTransaction (backlog 0039 Phase 1) ==========
+
+    /**
+     * <b>Cùng một bộ kịch bản compensation, gọi qua {@code createOrderInNewTransaction} thay vì
+     * {@code createOrder}</b> — bằng chứng rằng REQUIRES_NEW không đổi gì ở hành vi Tầng 3
+     * (SAGA compensation): cả hai method public đều uỷ thác cho cùng một {@code doCreateOrder},
+     * nên compensation phải giống hệt nhau bất kể ranh giới transaction nào bọc quanh.
+     */
+    @Test
+    @DisplayName("createOrderInNewTransaction: Tang 2 tu choi -> compensate CA HAI dong, giong het createOrder")
+    void createOrderInNewTransactionCompensatesBothLinesOnTier2Failure() {
+        CreateOrderCommand command = genTwoLineCommand();
+        when(orderDomainService.deductStock(PRODUCT_1, QUANTITY_1)).thenReturn(true);
+        when(orderDomainService.deductStock(PRODUCT_2, QUANTITY_2)).thenReturn(false);
+
+        OrderMutationResponse result = orderAppService.createOrderInNewTransaction(command);
+
+        assertNull(result.getOrder());
+        assertEquals(OrderMutationResponse.CODE_OUT_OF_STOCK, result.getCode());
+        assertBothLinesCompensatedExactlyOnce();
+    }
+
+    @Test
+    @DisplayName("createOrderInNewTransaction: thanh cong tra ve don, khong compensate gi")
+    void createOrderInNewTransactionSucceedsWhenBothTiersPass() {
+        CreateOrderCommand command = genTwoLineCommand();
+        when(orderDomainService.deductStock(PRODUCT_1, QUANTITY_1)).thenReturn(true);
+        when(orderDomainService.deductStock(PRODUCT_2, QUANTITY_2)).thenReturn(true);
+        when(orderDomainService.genOrderCode(any())).thenReturn("NSS-20260902-NEWTXTEST");
+        when(orderDomainService.create(any()))
+                .thenAnswer(inv -> inv.getArgument(0, com.nss.ddd.domain.model.entity.Order.class).setId(500L));
+        when(orderDomainService.createItems(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderMutationResponse result = orderAppService.createOrderInNewTransaction(command);
+
+        assertEquals("NSS-20260902-NEWTXTEST", result.getOrder().getCode());
+        verify(stockCacheService, org.mockito.Mockito.never()).increaseStock(any(), anyInt());
+    }
 }

@@ -24,12 +24,14 @@ import com.nss.ddd.domain.repository.OutboxEventRepository;
 import com.nss.ddd.domain.service.CouponDomainService;
 import com.nss.ddd.domain.service.OrderDomainService;
 import com.nss.ddd.domain.service.ProductDomainService;
+import com.nss.ddd.infrastructure.config.KafkaTopicConfig;
 import com.nss.ddd.infrastructure.mq.OrderStatusChangedMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
@@ -113,9 +115,6 @@ public class OrderAppServiceImpl implements OrderAppService {
     private static final String MESSAGE_UNKNOWN_STATUS =
             "Trạng thái đơn hàng không hợp lệ, vui lòng chọn lại.";
 
-    /** Loại event ghi vào {@code outbox_event.event_type} — khớp §Contract của backlog 0032. */
-    private static final String EVENT_TYPE_ORDER_STATUS_CHANGED = "OrderStatusChanged";
-
     private final OrderDomainService orderDomainService;
 
     private final CouponDomainService couponDomainService;
@@ -141,6 +140,37 @@ public class OrderAppServiceImpl implements OrderAppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderMutationResponse createOrder(CreateOrderCommand command) {
+        return doCreateOrder(command);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>{@code REQUIRES_NEW}</b> (backlog 0039 Phase 1) — xem javadoc của
+     * {@link OrderAppService#createOrderInNewTransaction(CreateOrderCommand)} về lý do. Thân method
+     * y hệt {@link #createOrder(CreateOrderCommand)}: cả hai chỉ khác NHAU ở ranh giới transaction
+     * bọc quanh {@link #doCreateOrder}, không khác gì ở logic.
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public OrderMutationResponse createOrderInNewTransaction(CreateOrderCommand command) {
+        return doCreateOrder(command);
+    }
+
+    /**
+     * Thân nghiệp vụ dùng chung của {@link #createOrder} và {@link #createOrderInNewTransaction}
+     * (backlog 0039 Phase 1) — <b>logic y hệt {@code createOrder} trước ticket 0039, không đổi hành
+     * vi đường sync</b>. Tách ra khỏi hai method public để tránh một bản sao thứ hai của năm bước
+     * §Contract 9: hai method public chỉ khác nhau ở {@code @Transactional} bọc quanh, method này
+     * không tự khai transaction nào — nó chạy bên trong transaction do method gọi nó đã mở, đúng
+     * cách {@code failedAndRollback} (dùng {@code TransactionAspectSupport.currentTransactionStatus()})
+     * vẫn hoạt động: lời gọi đó chỉ cần MỘT transaction đang mở trên thread hiện tại, không quan tâm
+     * ai là người mở nó.
+     *
+     * @param command lệnh tạo đơn
+     * @return đơn đã tạo khi thành công; ngược lại là mã lỗi nghiệp vụ kèm thông điệp tiếng Việt
+     */
+    private OrderMutationResponse doCreateOrder(CreateOrderCommand command) {
         List<CartItemCommand> lines = command.getItems();
         // 0a. Gio rong -> 400. Day la cho DUY NHAT gio rong bi chan; POST /cart/validate co y tra
         //     200 kem mang rong cho cung tinh huong, vi cau hoi "gio nay co van de gi khong" van hop le.
@@ -489,7 +519,7 @@ public class OrderAppServiceImpl implements OrderAppService {
         }
         outboxEventRepository.save(new OutboxEvent()
                 .setAggregateId(order.getCode())
-                .setEventType(EVENT_TYPE_ORDER_STATUS_CHANGED)
+                .setEventType(KafkaTopicConfig.EVENT_TYPE_ORDER_STATUS_CHANGED)
                 .setPayload(payload)
                 .setStatus(OutboxEvent.STATUS_PENDING)
                 .setCreatedAt(changedAt));

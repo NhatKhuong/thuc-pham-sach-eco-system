@@ -380,6 +380,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Không tìm thấy yêu cầu mua hàng theo {@code requestId} (backlog 0039).
+     *
+     * @param e không tìm thấy yêu cầu mua hàng
+     * @return 404 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(PurchaseRequestNotFoundException.class)
+    public ProblemDetail handlePurchaseRequestNotFound(PurchaseRequestNotFoundException e) {
+        log.warn("handlePurchaseRequestNotFound: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    /**
+     * Thiếu header {@code Idempotency-Key} bắt buộc ở {@code POST /orders/async} (backlog 0039).
+     *
+     * @param e thiếu header Idempotency-Key
+     * @return 400 kèm {@code detail} tiếng Việt
+     */
+    @ExceptionHandler(MissingIdempotencyKeyException.class)
+    public ProblemDetail handleMissingIdempotencyKey(MissingIdempotencyKeyException e) {
+        log.warn("handleMissingIdempotencyKey: {}", e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /**
      * @param e tham số không hợp lệ
      * @return 400 kèm {@code detail} tiếng Việt
      */
