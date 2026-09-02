@@ -13,6 +13,7 @@ import com.nss.ddd.infrastructure.persistence.mapper.OutboxEventJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.PasswordResetTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductImageJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ProductJPAMapper;
+import com.nss.ddd.infrastructure.persistence.mapper.PurchaseRequestJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.RefreshTokenJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.ReviewJPAMapper;
 import com.nss.ddd.infrastructure.persistence.mapper.UserJPAMapper;
@@ -166,6 +167,10 @@ class SecurityRulesTest {
 
     @MockBean
     private IdempotencyKeyJPAMapper idempotencyKeyJPAMapper;
+
+    /** Backlog 0039 — purchase_request co adapter tu ticket do tro di (luong async). */
+    @MockBean
+    private PurchaseRequestJPAMapper purchaseRequestJPAMapper;
 
     private final MockMvc mockMvc;
 

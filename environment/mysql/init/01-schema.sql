@@ -132,9 +132,23 @@
         id bigint not null auto_increment comment 'Khoa chinh',
         aggregate_id varchar(64) not null comment 'Id logic cua aggregate sinh ra event nay, vi du ma don',
         event_type varchar(64) not null comment 'Loai event, vi du OrderStatusChanged',
+        partition_key varchar(64) comment 'Kafka record key tuy chon; null thi OutboxPublisherJob fallback ve chuoi hoa cua id (backlog 0039)',
         payload JSON not null comment 'Payload JSON gui len Kafka, dung nguyen ven khong bien doi lai',
         primary key (id)
     ) comment='Outbox event cho pattern Outbox + Kafka' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+    create table purchase_request (
+        status integer not null comment 'Trang thai xu ly: 0=PENDING, 1=SUCCESS, 2=FAILED',
+        created_at datetime(6) not null comment 'Thoi diem submit, luu theo gio UTC',
+        updated_at datetime(6) not null comment 'Thoi diem cap nhat gan nhat, luu theo gio UTC',
+        user_id bigint comment 'Chu request; null la khach vang lai',
+        request_id varchar(32) not null comment 'Khoa chinh tu nhien, dang PR-<16 hex>',
+        idempotency_key varchar(128) not null comment 'Khoa idempotency do CLIENT cung cap qua header Idempotency-Key, chong retry HTTP',
+        order_code varchar(32) comment 'Ma don da tao, chi co gia tri khi status=SUCCESS',
+        failure_code varchar(64) comment 'Ma loi nghiep vu UPPER_SNAKE, chi co gia tri khi status=FAILED',
+        failure_message varchar(500) comment 'Thong diep tieng Viet cho nguoi dung cuoi, chi co gia tri khi status=FAILED',
+        primary key (request_id)
+    ) comment='Yeu cau mua hang bat dong bo (Luong B), theo doi tu PENDING den SUCCESS/FAILED' engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
     create table password_reset_token (
         is_used bit not null comment 'Da dung hay chua; dat mat khau thanh cong dat cot nay thanh true',
@@ -301,10 +315,16 @@
     create index idx_order_id 
        on order_status_history (order_id);
 
-    create index idx_status_created 
+    create index idx_status_created
        on outbox_event (status, created_at);
 
-    create index idx_user_id 
+    create index idx_status_created
+       on purchase_request (status, created_at);
+
+    alter table purchase_request
+       add constraint uk_idempotency_key unique (idempotency_key);
+
+    create index idx_user_id
        on password_reset_token (user_id);
 
     alter table password_reset_token 
@@ -407,8 +427,13 @@
        foreign key (user_id) 
        references user (id);
 
-    alter table product 
-       add constraint fk_product_brand 
+    alter table purchase_request
+       add constraint fk_purchase_request_user
+       foreign key (user_id)
+       references user (id);
+
+    alter table product
+       add constraint fk_product_brand
        foreign key (brand_id) 
        references brand (id);
 

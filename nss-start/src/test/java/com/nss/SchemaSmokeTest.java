@@ -54,9 +54,12 @@ class SchemaSmokeTest {
      * Owner duyệt qua AskUserQuestion trước khi ticket được viết (xem "Quyết định của Owner" trong
      * ticket).
      * <p>
+     * <b>23 → 24 ở backlog 0039</b> — {@code purchase_request}, bảng theo dõi vòng đời của luồng
+     * mua hàng bất đồng bộ (Luồng B); Owner duyệt qua phiên plan-mode trước khi ticket được persist.
+     * <p>
      * Sửa hằng số này rồi báo "test vẫn xanh" là làm mất đúng thứ nó bảo vệ.
      */
-    private static final int EXPECTED_TABLE_COUNT = 23;
+    private static final int EXPECTED_TABLE_COUNT = 24;
 
     /**
      * <b>16 → 17 ở backlog 0017</b> — đúng một khoá ngoại mới:
@@ -70,11 +73,15 @@ class SchemaSmokeTest {
      * {@code user.id} ({@code fk_email_confirmation_token_user}), đi kèm bảng mới cùng ticket nên
      * {@link #EXPECTED_TABLE_COUNT} cũng đổi trong cùng lần.
      * <p>
+     * <b>19 → 20 ở backlog 0039</b> — đúng một: {@code purchase_request.user_id} → {@code user.id}
+     * ({@code fk_purchase_request_user}), đi kèm bảng mới cùng ticket nên
+     * {@link #EXPECTED_TABLE_COUNT} cũng đổi trong cùng lần.
+     * <p>
      * Đếm riêng khỏi số bảng vì hai con số hỏng theo hai kiểu khác nhau: một bảng mới <i>quên</i>
      * khoá ngoại vẫn giữ nguyên số bảng đúng, và một dòng token mồ côi thì không có gì phát hiện ra
      * cho tới lúc cần biết nó thuộc về ai.
      */
-    private static final int EXPECTED_FOREIGN_KEY_COUNT = 19;
+    private static final int EXPECTED_FOREIGN_KEY_COUNT = 20;
 
     private final DataSource dataSource;
 

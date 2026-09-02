@@ -39,6 +39,32 @@ public interface OrderAppService {
     OrderMutationResponse createOrder(CreateOrderCommand command);
 
     /**
+     * Tạo đơn hàng trong <b>TRANSACTION RIÊNG</b> (backlog 0039 Phase 1, {@code REQUIRES_NEW}) —
+     * dùng bởi {@code PurchaseRequestedConsumer} của luồng async.
+     * <p>
+     * <b>Vì sao method này tồn tại tách khỏi {@link #createOrder(CreateOrderCommand)}.</b> Consumer
+     * Kafka bọc lời gọi tạo đơn trong transaction CỦA RIÊNG NÓ (ghi {@code idempotency_key} +
+     * cập nhật {@code purchase_request}). Nếu tạo đơn thất bại về nghiệp vụ (vd hết hàng) dùng
+     * CHUNG transaction đó, {@code failedAndRollback} sẽ set rollback-only cho <i>toàn bộ</i>
+     * transaction của consumer — xoá luôn bản ghi {@code idempotency_key} vừa chèn (Kafka sẽ
+     * redeliver vô hạn) và bản ghi {@code purchase_request.FAILED} cần giữ lại để client polling
+     * thấy kết quả. {@code REQUIRES_NEW} mở một transaction con độc lập: một business failure chỉ
+     * rollback đúng phần Tier2/coupon/order-write bên trong nó, không cascade ra ngoài; một
+     * exception THẬT SỰ ngoài dự kiến thì vẫn propagate ra ngoài transaction cha để Kafka redeliver
+     * toàn bộ (coding-conventions §8 mục 4, §11 Pattern A vẫn giữ nguyên — thất bại nghiệp vụ vẫn là
+     * giá trị trả về).
+     * <p>
+     * Logic nghiệp vụ giống hệt {@link #createOrder(CreateOrderCommand)} — cả hai đều uỷ thác cho
+     * cùng một {@code doCreateOrder} ở tầng impl, không có bản sao thứ hai của năm bước
+     * §Contract 9.
+     *
+     * @param command lệnh đã dựng từ payload Kafka; {@code userId} lấy từ lúc submit, không phải
+     *                từ claim JWT của consumer (consumer không có request nào để đọc JWT)
+     * @return đơn đã tạo khi thành công; ngược lại là mã lỗi nghiệp vụ kèm thông điệp tiếng Việt
+     */
+    OrderMutationResponse createOrderInNewTransaction(CreateOrderCommand command);
+
+    /**
      * Đơn của chính người đang đăng nhập — {@code GET /orders/me}.
      * <p>
      * <b>Không phân trang</b>: hợp đồng §B.6 chốt {@code Order[]} trần.

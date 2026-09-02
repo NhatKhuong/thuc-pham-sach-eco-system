@@ -61,6 +61,25 @@ public class OutboxEvent {
     @Comment("Loai event, vi du OrderStatusChanged")
     private String eventType;
 
+    /**
+     * Tương ứng cột {@code partition_key} — Kafka record key TUỲ CHỌN (backlog 0039 Phase 3).
+     * <p>
+     * <b>{@code null} là mặc định và là ca của {@code OrderStatusChanged}</b>:
+     * {@code OutboxPublisherJob} fallback về chuỗi hoá của {@link #id} khi cột này rỗng, giữ nguyên
+     * 100% hành vi trước ticket 0039. Event {@code PurchaseRequested} đặt cột này bằng
+     * {@code productId} (chuỗi hoá) để Kafka partition công bằng theo sản phẩm — xem
+     * {@code KafkaTopicConfig} và javadoc {@code OutboxPublisherJob#publishRowByRow}.
+     * <p>
+     * <b>Vì record key giờ có thể KHÔNG còn là định danh event</b>, danh tính dùng cho idempotency
+     * ở consumer chuyển sang truyền qua Kafka header {@code X-Event-Id} — xem
+     * {@code KafkaTopicConfig#HEADER_EVENT_ID}. Đây là điểm khác biệt duy nhất giữa
+     * {@code PurchaseRequestedConsumer} và {@code OrderStatusChangedConsumer} (cái sau vẫn đọc
+     * {@code KafkaHeaders.RECEIVED_KEY} như cũ, vì key của nó luôn là {@link #id}).
+     */
+    @Column(length = 64)
+    @Comment("Kafka record key tuy chon; null thi OutboxPublisherJob fallback ve chuoi hoa cua id")
+    private String partitionKey;
+
     /** Tương ứng cột {@code payload} — chuỗi JSON đã dựng sẵn, gửi nguyên vẹn lên Kafka. */
     @Column(nullable = false, columnDefinition = "JSON")
     @Comment("Payload JSON gui len Kafka, dung nguyen ven khong bien doi lai")

@@ -129,6 +129,39 @@ class OrderAppServiceOutboxEventTest {
         assertEquals("khach2@vidu.vn", message.getShippingEmail());
     }
 
+    /**
+     * <b>Bằng chứng backlog 0039 Phase 1</b>: gọi qua {@code createOrderInNewTransaction} (đường mà
+     * {@code PurchaseRequestedConsumer} dùng) phải ghi outbox event {@code OrderStatusChanged} y hệt
+     * đường {@code createOrder} thường — cả hai chỉ khác nhau ở ranh giới transaction, không khác gì
+     * ở phần ghi outbox.
+     */
+    @Test
+    @DisplayName("createOrderInNewTransaction thanh cong -> van dung 1 outbox_event OrderStatusChanged, giong createOrder")
+    void createOrderInNewTransactionAlsoWritesExactlyOneOutboxEvent() throws Exception {
+        Product product = new Product().setId(9L).setSlug("rau-muong").setName("Rau muống")
+                .setUnit("bó").setPrice(10_000L).setEffectivePrice(10_000L);
+        when(orderDomainService.findProductsByIds(any())).thenReturn(Map.of(9L, product));
+        when(productDomainService.findImagesGroupedByProductId(any())).thenReturn(Map.of());
+        when(orderDomainService.deductStock(eq(9L), org.mockito.ArgumentMatchers.anyInt())).thenReturn(true);
+        when(orderDomainService.genOrderCode(any())).thenReturn("NSS-20260902-NEWTXOUTBOX");
+        when(orderDomainService.create(any())).thenAnswer(inv -> inv.getArgument(0, Order.class).setId(200L));
+        when(orderDomainService.createItems(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateOrderCommand command = new CreateOrderCommand()
+                .setUserId(null)
+                .setItems(List.of(new CartItemCommand().setProductId(9L).setName("Rau muống").setQuantity(2)))
+                .setShipping(new ShippingInfoCommand()
+                        .setFullName("Nguyễn Văn A").setPhone("0900000000").setEmail("khach@vidu.vn")
+                        .setProvince("HCM").setDistrict("Q1").setWard("P.Bến Nghé").setStreet("1 Lê Lợi"))
+                .setPaymentMethod("cod");
+
+        orderAppService.createOrderInNewTransaction(command);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxEventRepository).save(captor.capture());
+        assertEquals("OrderStatusChanged", captor.getValue().getEventType());
+    }
+
     @Test
     @DisplayName("Transition bi tu choi: KHONG ghi outbox_event nao ca")
     void rejectedTransitionWritesNoOutboxEvent() {
